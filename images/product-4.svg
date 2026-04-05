@@ -1,0 +1,13 @@
+<svg width="1000" height="1000" viewBox="0 0 1000 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1000" height="1000" fill="url(#bg)"/>
+  <path d="M310 360H690L644 675C638 719 602 752 557 752H443C398 752 362 719 356 675L310 360Z" fill="#8B5D43"/>
+  <path d="M350 360C350 277 417 210 500 210C583 210 650 277 650 360H606C606 301 559 254 500 254C441 254 394 301 394 360H350Z" fill="#6D4835"/>
+  <rect x="420" y="510" width="160" height="42" rx="21" fill="#E6D6C9"/>
+  <text x="500" y="865" text-anchor="middle" fill="#644231" font-size="54" font-family="Arial, sans-serif" font-weight="700">礼品占位图 04</text>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1000" y2="1000" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8EBDD"/>
+      <stop offset="1" stop-color="#D9B49C"/>
+    </linearGradient>
+  </defs>
+</svg>

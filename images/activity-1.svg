@@ -1,0 +1,15 @@
+<svg width="1600" height="800" viewBox="0 0 1600 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="800" fill="url(#bg)"/>
+  <circle cx="1320" cy="120" r="180" fill="white" fill-opacity="0.12"/>
+  <circle cx="1200" cy="640" r="210" fill="white" fill-opacity="0.08"/>
+  <text x="110" y="280" fill="white" font-size="94" font-family="Arial, sans-serif" font-weight="700">招商银行专属礼</text>
+  <text x="110" y="360" fill="#FFE9D0" font-size="36" font-family="Arial, sans-serif">活动横幅占位图 01</text>
+  <rect x="110" y="460" width="290" height="84" rx="42" fill="white" fill-opacity="0.16"/>
+  <text x="158" y="515" fill="white" font-size="40" font-family="Arial, sans-serif" font-weight="700">1600 × 800</text>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="800" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D64B2A"/>
+      <stop offset="1" stop-color="#E58C48"/>
+    </linearGradient>
+  </defs>
+</svg>

@@ -1,0 +1,18 @@
+<svg width="1600" height="1000" viewBox="0 0 1600 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="1000" fill="#D9E9F5"/>
+  <rect width="1600" height="1000" fill="url(#bg)"/>
+  <circle cx="290" cy="180" r="250" fill="#A1D4FF" fill-opacity="0.9"/>
+  <circle cx="1330" cy="830" r="210" fill="#8EA7FF" fill-opacity="0.45"/>
+  <rect x="110" y="140" width="220" height="64" rx="32" fill="#2E78B7"/>
+  <text x="220" y="182" text-anchor="middle" fill="white" font-size="32" font-family="Arial, sans-serif" font-weight="700">新人专属</text>
+  <text x="110" y="360" fill="#204D74" font-size="104" font-family="Arial, sans-serif" font-weight="700">办1得2 办2得4</text>
+  <text x="110" y="448" fill="#355A79" font-size="40" font-family="Arial, sans-serif">可替换 Banner 图 02</text>
+  <rect x="110" y="562" width="260" height="80" rx="40" fill="#204D74" fill-opacity="0.1"/>
+  <text x="152" y="615" fill="#204D74" font-size="40" font-family="Arial, sans-serif" font-weight="700">1600 × 1000</text>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="1000" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E8F4FF"/>
+      <stop offset="1" stop-color="#8AB8EA"/>
+    </linearGradient>
+  </defs>
+</svg>
