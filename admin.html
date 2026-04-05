@@ -39,15 +39,27 @@
         </div>
         <p class="admin-inline-message" id="adminAuthMessage"></p>
       </form>
+      <div class="admin-account-card" id="adminAccountCard" hidden>
+        <div class="admin-account-copy">
+          <p class="admin-account-label">当前登录账号</p>
+          <p class="admin-account-email" id="adminAccountEmail">-</p>
+        </div>
+        <button class="admin-secondary-btn" id="adminLogoutButtonLogged" type="button">退出登录</button>
+      </div>
     </section>
 
     <section class="admin-card admin-locked-panel" id="adminLockedPanel">
       <h2 class="admin-section-title">等待登录</h2>
-      <p class="admin-status-text">登录成功后，这里会显示商品录入表单和最近商品列表。</p>
+      <p class="admin-status-text">登录成功后，这里会显示录入礼品和编辑礼品两个入口。</p>
     </section>
 
     <div id="adminWorkspace" hidden>
-      <section class="admin-card">
+      <section class="admin-card admin-panel-nav">
+        <button class="admin-panel-tab active" id="adminTabCreate" type="button">录入礼品</button>
+        <button class="admin-panel-tab" id="adminTabEdit" type="button">编辑礼品</button>
+      </section>
+
+      <section class="admin-card" id="adminCreatePanel">
         <div class="admin-status-head">
           <h2 class="admin-section-title" id="adminEditorTitle">录入商品</h2>
           <span class="admin-status-pill admin-status-pill-soft" id="adminSubmitState">待提交</span>
@@ -130,10 +142,13 @@
         </form>
       </section>
 
-      <section class="admin-card">
+      <section class="admin-card" id="adminEditPanel" hidden>
         <div class="admin-status-head">
-          <h2 class="admin-section-title">最近商品</h2>
+          <h2 class="admin-section-title">编辑礼品</h2>
           <button class="admin-secondary-btn" id="adminRefreshButton" type="button">刷新列表</button>
+        </div>
+        <div class="admin-edit-toolbar">
+          <input id="adminSearchInput" type="search" placeholder="搜索礼品名称">
         </div>
         <div class="admin-recent-list" id="adminRecentList">
           <p class="admin-status-text">登录管理员账号后，这里会显示最近录入的商品。</p>

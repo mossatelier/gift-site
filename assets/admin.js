@@ -4,13 +4,20 @@ const SESSION_STORAGE_KEY = "gift-site-admin-session";
 const adminAuthState = document.getElementById("adminAuthState");
 const adminAuthTip = document.getElementById("adminAuthTip");
 const adminAuthForm = document.getElementById("adminAuthForm");
+const adminAccountCard = document.getElementById("adminAccountCard");
+const adminAccountEmail = document.getElementById("adminAccountEmail");
 const adminLockedPanel = document.getElementById("adminLockedPanel");
 const adminWorkspace = document.getElementById("adminWorkspace");
 const adminEmailInput = document.getElementById("adminEmailInput");
 const adminPasswordInput = document.getElementById("adminPasswordInput");
 const adminLoginButton = document.getElementById("adminLoginButton");
 const adminLogoutButton = document.getElementById("adminLogoutButton");
+const adminLogoutButtonLogged = document.getElementById("adminLogoutButtonLogged");
 const adminAuthMessage = document.getElementById("adminAuthMessage");
+const adminTabCreate = document.getElementById("adminTabCreate");
+const adminTabEdit = document.getElementById("adminTabEdit");
+const adminCreatePanel = document.getElementById("adminCreatePanel");
+const adminEditPanel = document.getElementById("adminEditPanel");
 const productForm = document.getElementById("productForm");
 const adminImageFile = document.getElementById("adminImageFile");
 const adminImageUrl = document.getElementById("adminImageUrl");
@@ -24,6 +31,7 @@ const adminSubmitState = document.getElementById("adminSubmitState");
 const adminSubmitMessage = document.getElementById("adminSubmitMessage");
 const adminRecentList = document.getElementById("adminRecentList");
 const adminRefreshButton = document.getElementById("adminRefreshButton");
+const adminSearchInput = document.getElementById("adminSearchInput");
 const adminCategorySelect = document.getElementById("adminCategorySelect");
 
 const categoryOptions = Array.isArray(config.categories)
@@ -34,7 +42,9 @@ const state = {
   session: null,
   previewUrl: "",
   editingProduct: null,
-  recentProducts: []
+  recentProducts: [],
+  activePanel: "create",
+  searchQuery: ""
 };
 
 function isSupabaseConfigured() {
@@ -199,11 +209,20 @@ function updateAuthUi() {
   adminAuthState.classList.add(loggedIn ? "admin-status-pill-success" : "admin-status-pill-soft");
 
   if (loggedIn) {
-    adminAuthTip.textContent = `当前管理员：${session.user?.email || "未知账号"}。现在可以新增商品。`;
+    adminAuthTip.textContent = "登录成功，现在可以管理礼品。";
     adminLoginButton.disabled = true;
     adminEmailInput.disabled = true;
     adminPasswordInput.disabled = true;
     adminLogoutButton.disabled = false;
+    if (adminAuthForm) {
+      adminAuthForm.hidden = true;
+    }
+    if (adminAccountCard) {
+      adminAccountCard.hidden = false;
+    }
+    if (adminAccountEmail) {
+      adminAccountEmail.textContent = session.user?.email || "未知账号";
+    }
     if (adminLockedPanel) {
       adminLockedPanel.hidden = true;
     }
@@ -216,12 +235,38 @@ function updateAuthUi() {
     adminEmailInput.disabled = false;
     adminPasswordInput.disabled = false;
     adminLogoutButton.disabled = true;
+    if (adminAuthForm) {
+      adminAuthForm.hidden = false;
+    }
+    if (adminAccountCard) {
+      adminAccountCard.hidden = true;
+    }
+    if (adminAccountEmail) {
+      adminAccountEmail.textContent = "-";
+    }
     if (adminLockedPanel) {
       adminLockedPanel.hidden = false;
     }
     if (adminWorkspace) {
       adminWorkspace.hidden = true;
     }
+  }
+}
+
+function updatePanelUi() {
+  const isCreate = state.activePanel === "create";
+
+  if (adminTabCreate) {
+    adminTabCreate.classList.toggle("active", isCreate);
+  }
+  if (adminTabEdit) {
+    adminTabEdit.classList.toggle("active", !isCreate);
+  }
+  if (adminCreatePanel) {
+    adminCreatePanel.hidden = !isCreate;
+  }
+  if (adminEditPanel) {
+    adminEditPanel.hidden = isCreate;
   }
 }
 
@@ -239,6 +284,8 @@ function setEditorMode(product = null) {
   state.editingProduct = product;
 
   if (product) {
+    state.activePanel = "create";
+    updatePanelUi();
     if (adminEditorTitle) {
       adminEditorTitle.textContent = "编辑商品";
     }
@@ -268,6 +315,44 @@ function setEditorMode(product = null) {
     adminCancelEditButton.hidden = true;
   }
   setSubmitState("待提交");
+}
+
+function filteredRecentProducts() {
+  const keyword = state.searchQuery.trim().toLowerCase();
+
+  if (!keyword) {
+    return state.recentProducts;
+  }
+
+  return state.recentProducts.filter((item) => {
+    const categoryLabel = categoryOptions.find((option) => option.value === item.category)?.label || item.category || "";
+    return `${item.title || ""} ${categoryLabel}`.toLowerCase().includes(keyword);
+  });
+}
+
+function renderRecentProducts() {
+  const items = filteredRecentProducts();
+
+  if (items.length === 0) {
+    adminRecentList.innerHTML = "<p class=\"admin-status-text\">没有找到匹配的礼品。</p>";
+    return;
+  }
+
+  adminRecentList.innerHTML = items.map((item) => {
+    const categoryLabel = categoryOptions.find((option) => option.value === item.category)?.label || item.category || "未分类";
+    const cardsNeeded = Number(item.cards_needed || item.price || 0);
+    return `
+      <article class="admin-recent-item">
+        <img class="admin-recent-image" src="${escapeHtml(item.image_url || "images/product-1.svg")}" alt="${escapeHtml(item.title || "商品")}">
+        <div class="admin-recent-copy">
+          <h3>${escapeHtml(item.title || "未命名商品")}</h3>
+          <p>${escapeHtml(categoryLabel)} · ${escapeHtml(cardsNeeded)}卡兑换</p>
+          <p>${item.is_active ? "已上架" : "未上架"}</p>
+        </div>
+        <button class="admin-secondary-btn admin-edit-btn" type="button" data-edit-id="${escapeHtml(item.id || "")}">编辑</button>
+      </article>
+    `;
+  }).join("");
 }
 
 function fillCategoryOptions() {
@@ -431,22 +516,7 @@ async function loadRecentProducts() {
       adminRecentList.innerHTML = "<p class=\"admin-status-text\">数据库还没有商品，提交第一件后会显示在这里。</p>";
       return;
     }
-
-    adminRecentList.innerHTML = state.recentProducts.map((item) => {
-      const categoryLabel = categoryOptions.find((option) => option.value === item.category)?.label || item.category || "未分类";
-      const cardsNeeded = Number(item.cards_needed || item.price || 0);
-      return `
-        <article class="admin-recent-item">
-          <img class="admin-recent-image" src="${escapeHtml(item.image_url || "images/product-1.svg")}" alt="${escapeHtml(item.title || "商品")}">
-          <div class="admin-recent-copy">
-            <h3>${escapeHtml(item.title || "未命名商品")}</h3>
-            <p>${escapeHtml(categoryLabel)} · ${escapeHtml(cardsNeeded)}卡兑换</p>
-            <p>${item.is_active ? "已上架" : "未上架"}</p>
-          </div>
-          <button class="admin-secondary-btn admin-edit-btn" type="button" data-edit-id="${escapeHtml(item.id || "")}">编辑</button>
-        </article>
-      `;
-    }).join("");
+    renderRecentProducts();
   } catch (error) {
     adminRecentList.innerHTML = `<p class="admin-status-text">${escapeHtml(error.message)}</p>`;
   }
@@ -596,6 +666,10 @@ adminLogoutButton?.addEventListener("click", async () => {
   adminRecentList.innerHTML = "<p class=\"admin-status-text\">登录管理员账号后，这里会显示最近录入的商品。</p>";
 });
 
+adminLogoutButtonLogged?.addEventListener("click", () => {
+  adminLogoutButton?.click();
+});
+
 productForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
@@ -672,6 +746,22 @@ adminRefreshButton?.addEventListener("click", () => {
   loadRecentProducts();
 });
 
+adminTabCreate?.addEventListener("click", () => {
+  state.activePanel = "create";
+  updatePanelUi();
+});
+
+adminTabEdit?.addEventListener("click", () => {
+  state.activePanel = "edit";
+  updatePanelUi();
+  loadRecentProducts();
+});
+
+adminSearchInput?.addEventListener("input", () => {
+  state.searchQuery = adminSearchInput.value || "";
+  renderRecentProducts();
+});
+
 adminRecentList?.addEventListener("click", (event) => {
   const editButton = event.target.closest("[data-edit-id]");
 
@@ -699,6 +789,7 @@ fillCategoryOptions();
 updateAuthUi();
 bindPreviewEvents();
 setEditorMode(null);
+updatePanelUi();
 setSubmitMessage("");
 updateFormAccess();
 restoreSession();
