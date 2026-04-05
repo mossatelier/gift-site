@@ -32,6 +32,7 @@ const adminSubmitMessage = document.getElementById("adminSubmitMessage");
 const adminRecentList = document.getElementById("adminRecentList");
 const adminRefreshButton = document.getElementById("adminRefreshButton");
 const adminSearchInput = document.getElementById("adminSearchInput");
+const adminFilterCategory = document.getElementById("adminFilterCategory");
 const adminCategorySelect = document.getElementById("adminCategorySelect");
 
 const categoryOptions = Array.isArray(config.categories)
@@ -45,6 +46,7 @@ const state = {
   recentProducts: [],
   activePanel: "create",
   searchQuery: "",
+  filterCategory: "all",
   pendingProductId: ""
 };
 
@@ -320,14 +322,13 @@ function setEditorMode(product = null) {
 
 function filteredRecentProducts() {
   const keyword = state.searchQuery.trim().toLowerCase();
-
-  if (!keyword) {
-    return state.recentProducts;
-  }
+  const selectedCategory = state.filterCategory;
 
   return state.recentProducts.filter((item) => {
     const categoryLabel = categoryOptions.find((option) => option.value === item.category)?.label || item.category || "";
-    return `${item.title || ""} ${categoryLabel}`.toLowerCase().includes(keyword);
+    const matchesKeyword = !keyword || `${item.title || ""} ${categoryLabel}`.toLowerCase().includes(keyword);
+    const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
+    return matchesKeyword && matchesCategory;
   });
 }
 
@@ -372,6 +373,13 @@ function fillCategoryOptions() {
   adminCategorySelect.innerHTML = categoryOptions.map((item) => {
     return `<option value="${escapeHtml(item.value)}">${escapeHtml(item.label)}</option>`;
   }).join("");
+
+  if (adminFilterCategory) {
+    adminFilterCategory.innerHTML = [
+      "<option value=\"all\">全部分类</option>",
+      ...categoryOptions.map((item) => `<option value="${escapeHtml(item.value)}">${escapeHtml(item.label)}</option>`)
+    ].join("");
+  }
 }
 
 function updatePreview(url = "") {
@@ -849,6 +857,11 @@ adminTabEdit?.addEventListener("click", () => {
 
 adminSearchInput?.addEventListener("input", () => {
   state.searchQuery = adminSearchInput.value || "";
+  renderRecentProducts();
+});
+
+adminFilterCategory?.addEventListener("change", () => {
+  state.filterCategory = adminFilterCategory.value || "all";
   renderRecentProducts();
 });
 
