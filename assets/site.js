@@ -204,7 +204,10 @@ function renderProducts() {
   productGrid.innerHTML = products.map((item) => {
     return `
       <article class="product-card">
-        <img class="product-image" src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.title)}">
+        <div class="product-media">
+          <img class="product-image" src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.title)}">
+          <div class="product-name-badge">${escapeHtml(item.title)}</div>
+        </div>
         <div class="product-body">
           <h3 class="product-title">${escapeHtml(item.title)}</h3>
           <p class="product-meta">${escapeHtml(categoryLabel(item.category))} · 参考价 ¥${escapeHtml(item.price)}</p>

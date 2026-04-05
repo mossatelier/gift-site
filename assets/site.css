@@ -605,12 +605,31 @@ textarea {
   border-radius: 22px;
 }
 
+.product-media {
+  position: relative;
+}
+
 .product-card[hidden] {
   display: none;
 }
 
 .product-image {
   aspect-ratio: 1 / 1;
+}
+
+.product-name-badge {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(29, 27, 24, 0.72);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.35;
+  backdrop-filter: blur(8px);
 }
 
 .product-body {
@@ -626,6 +645,11 @@ textarea {
   color: var(--red);
   font-size: 12px;
   font-weight: 700;
+}
+
+.product-title {
+  margin-top: 0;
+  font-size: 16px;
 }
 
 .product-empty {
