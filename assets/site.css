@@ -764,11 +764,13 @@ textarea {
   align-items: center;
   justify-content: center;
   min-height: 40px;
+  min-width: 104px;
   padding: 0 16px;
   border-radius: 999px;
   border: 1px solid rgba(234, 223, 206, 0.95);
   background: rgba(255, 255, 255, 0.9);
   color: var(--text);
+  white-space: nowrap;
 }
 
 .admin-card {

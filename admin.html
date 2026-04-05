@@ -12,26 +12,18 @@
     <header class="admin-header">
       <div>
         <p class="admin-kicker">手机上新后台</p>
-        <h1 class="admin-title">商品录入页</h1>
-        <p class="admin-subtitle">适合在手机端快速新增商品、上传图片、同步到前台列表。</p>
+        <h1 class="admin-title">加加礼品屋后台</h1>
+        <p class="admin-subtitle">登录后可直接新增商品，前台刷新后会自动显示。</p>
       </div>
       <a class="admin-back" href="index.html">返回前台</a>
     </header>
-
-    <section class="admin-card admin-status-card">
-      <div class="admin-status-head">
-        <h2 class="admin-section-title">连接状态</h2>
-        <span class="admin-status-pill" id="adminConfigStatus">未配置</span>
-      </div>
-      <p class="admin-status-text" id="adminConfigTip">请先在 <code>assets/config.js</code> 填好 Supabase 项目地址和匿名 Key。</p>
-    </section>
 
     <section class="admin-card admin-auth-card">
       <div class="admin-status-head">
         <h2 class="admin-section-title">管理员登录</h2>
         <span class="admin-status-pill admin-status-pill-soft" id="adminAuthState">未登录</span>
       </div>
-      <p class="admin-status-text" id="adminAuthTip">这里改成 Supabase 账号登录。只有被加入管理员名单的账号才能上传和查看后台数据。</p>
+      <p class="admin-status-text" id="adminAuthTip">请输入管理员邮箱和密码，登录后即可管理商品。</p>
       <form class="admin-form admin-auth-form" id="adminAuthForm">
         <label class="admin-field">
           <span>管理员邮箱</span>
@@ -51,7 +43,7 @@
 
     <section class="admin-card admin-locked-panel" id="adminLockedPanel">
       <h2 class="admin-section-title">等待登录</h2>
-      <p class="admin-status-text">登录成功后，下面才会显示商品录入表单和最近商品列表。</p>
+      <p class="admin-status-text">登录成功后，这里会显示商品录入表单和最近商品列表。</p>
     </section>
 
     <div id="adminWorkspace" hidden>

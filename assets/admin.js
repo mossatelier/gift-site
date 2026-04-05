@@ -1,8 +1,6 @@
 const config = window.APP_CONFIG || {};
 const SESSION_STORAGE_KEY = "gift-site-admin-session";
 
-const adminConfigStatus = document.getElementById("adminConfigStatus");
-const adminConfigTip = document.getElementById("adminConfigTip");
 const adminAuthState = document.getElementById("adminAuthState");
 const adminAuthTip = document.getElementById("adminAuthTip");
 const adminAuthForm = document.getElementById("adminAuthForm");
@@ -197,7 +195,7 @@ function updateAuthUi() {
   adminAuthState.classList.add(loggedIn ? "admin-status-pill-success" : "admin-status-pill-soft");
 
   if (loggedIn) {
-    adminAuthTip.textContent = `当前管理员：${session.user?.email || "未知账号"}。只有管理员名单中的账号可以上传、查看和修改数据。`;
+    adminAuthTip.textContent = `当前管理员：${session.user?.email || "未知账号"}。现在可以新增商品。`;
     adminLoginButton.disabled = true;
     adminEmailInput.disabled = true;
     adminPasswordInput.disabled = true;
@@ -209,7 +207,7 @@ function updateAuthUi() {
       adminWorkspace.hidden = false;
     }
   } else {
-    adminAuthTip.textContent = "这里改成 Supabase 账号登录。只有被加入管理员名单的账号才能上传和查看后台数据。";
+    adminAuthTip.textContent = "请输入管理员邮箱和密码，登录后即可管理商品。";
     adminLoginButton.disabled = false;
     adminEmailInput.disabled = false;
     adminPasswordInput.disabled = false;
@@ -241,19 +239,6 @@ function fillCategoryOptions() {
   adminCategorySelect.innerHTML = categoryOptions.map((item) => {
     return `<option value="${escapeHtml(item.value)}">${escapeHtml(item.label)}</option>`;
   }).join("");
-}
-
-function updateConfigStatus() {
-  adminConfigStatus.classList.remove("admin-status-pill-success", "admin-status-pill-error");
-
-  if (isSupabaseConfigured()) {
-    adminConfigStatus.textContent = "已配置";
-    adminConfigStatus.classList.add("admin-status-pill-success");
-    adminConfigTip.innerHTML = "Supabase 配置已填写。下一步请在 Supabase 里创建管理员账号，并执行 <code>supabase/hardening.sql</code> 完成权限收口。";
-  } else {
-    adminConfigStatus.textContent = "未配置";
-    adminConfigTip.innerHTML = "请先在 <code>assets/config.js</code> 填好 Supabase 项目地址、匿名 Key、数据表名和 bucket 名。";
-  }
 }
 
 function updatePreview(url = "") {
@@ -344,7 +329,7 @@ async function loadRecentProducts() {
   }
 
   if (!isSupabaseConfigured()) {
-    adminRecentList.innerHTML = "<p class=\"admin-status-text\">先完成配置后，这里才会读取最近商品。</p>";
+    adminRecentList.innerHTML = "<p class=\"admin-status-text\">当前后台暂时不可用，请联系网站维护人员。</p>";
     return;
   }
 
@@ -451,7 +436,7 @@ adminAuthForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   if (!isSupabaseConfigured()) {
-    setAuthMessage("还没有填写 Supabase 配置。", "error");
+    setAuthMessage("当前后台暂时不可用，请联系网站维护人员。", "error");
     return;
   }
 
@@ -517,7 +502,7 @@ productForm?.addEventListener("submit", async (event) => {
   }
 
   if (!isSupabaseConfigured()) {
-    setSubmitMessage("还没有填写 Supabase 配置，当前不能提交。", "error");
+    setSubmitMessage("当前后台暂时不可用，请联系网站维护人员。", "error");
     return;
   }
 
@@ -579,7 +564,6 @@ adminRefreshButton?.addEventListener("click", () => {
 });
 
 fillCategoryOptions();
-updateConfigStatus();
 updateAuthUi();
 bindPreviewEvents();
 setSubmitState("待提交");
