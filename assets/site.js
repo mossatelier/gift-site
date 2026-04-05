@@ -39,12 +39,15 @@ function parseDate(dateValue) {
 }
 
 function normalizeProduct(product, index) {
+  const cardsNeeded = Number(product.cardsNeeded ?? product.cards_needed ?? 0);
+
   return {
     id: product.id || `product-${index + 1}`,
     title: product.title || "未命名礼品",
     category: product.category || "all",
     price: Number(product.price || 0),
-    description: product.description || "暂无说明",
+    description: product.description || "",
+    cardsNeeded,
     imageUrl: product.imageUrl || product.image_url || "images/product-1.svg",
     actionLabel: product.actionLabel || product.action_label || "查看详情",
     actionUrl: product.actionUrl || product.action_url || "#service",
@@ -197,8 +200,7 @@ function renderProducts() {
         </div>
         <div class="product-body">
           <h3 class="product-title">${escapeHtml(item.title)}</h3>
-          <p class="product-meta">${escapeHtml(categoryLabel(item.category))} · 参考价 ¥${escapeHtml(item.price)}</p>
-          <p class="product-desc">${escapeHtml(item.description)}</p>
+          <p class="product-meta">${escapeHtml(categoryLabel(item.category))} · ${escapeHtml(item.cardsNeeded || 0)}卡兑换</p>
           <a class="product-link" href="${escapeHtml(item.actionUrl)}">${escapeHtml(item.actionLabel)}</a>
         </div>
       </article>

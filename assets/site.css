@@ -596,9 +596,9 @@ textarea {
 }
 
 .product-meta {
-  margin: 0 0 8px;
+  margin: 0 0 12px;
   color: var(--red);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
 }
 
