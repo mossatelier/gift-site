@@ -26,14 +26,27 @@
       <p class="admin-status-text" id="adminConfigTip">请先在 <code>assets/config.js</code> 填好 Supabase 项目地址和匿名 Key。</p>
     </section>
 
-    <section class="admin-card admin-lock-card" id="adminLockCard" hidden>
-      <h2 class="admin-section-title">管理口令</h2>
-      <p class="admin-status-text">你在配置里填写了一个前端口令。这里先校验一次，避免误触。它不是严格安全方案，只是基础门槛。</p>
-      <div class="admin-inline-form">
-        <input id="adminPasscodeInput" type="password" placeholder="输入管理口令">
-        <button id="adminUnlockButton" type="button">进入后台</button>
+    <section class="admin-card admin-auth-card">
+      <div class="admin-status-head">
+        <h2 class="admin-section-title">管理员登录</h2>
+        <span class="admin-status-pill admin-status-pill-soft" id="adminAuthState">未登录</span>
       </div>
-      <p class="admin-inline-message" id="adminLockMessage"></p>
+      <p class="admin-status-text" id="adminAuthTip">这里改成 Supabase 账号登录。只有被加入管理员名单的账号才能上传和查看后台数据。</p>
+      <form class="admin-form admin-auth-form" id="adminAuthForm">
+        <label class="admin-field">
+          <span>管理员邮箱</span>
+          <input id="adminEmailInput" name="email" type="email" placeholder="你的管理员邮箱" autocomplete="username email" required>
+        </label>
+        <label class="admin-field">
+          <span>登录密码</span>
+          <input id="adminPasswordInput" name="password" type="password" placeholder="你的管理员密码" autocomplete="current-password" required>
+        </label>
+        <div class="admin-auth-actions">
+          <button id="adminLoginButton" type="submit">登录后台</button>
+          <button class="admin-secondary-btn" id="adminLogoutButton" type="button">退出登录</button>
+        </div>
+        <p class="admin-inline-message" id="adminAuthMessage"></p>
+      </form>
     </section>
 
     <section class="admin-card">
@@ -126,7 +139,7 @@
         <button class="admin-secondary-btn" id="adminRefreshButton" type="button">刷新列表</button>
       </div>
       <div class="admin-recent-list" id="adminRecentList">
-        <p class="admin-status-text">配置完成后，这里会显示最近录入的商品。</p>
+        <p class="admin-status-text">登录管理员账号后，这里会显示最近录入的商品。</p>
       </div>
     </section>
   </main>
