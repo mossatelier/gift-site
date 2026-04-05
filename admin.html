@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>商品录入后台</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body class="admin-page">
+  <main class="admin-shell">
+    <header class="admin-header">
+      <div>
+        <p class="admin-kicker">手机上新后台</p>
+        <h1 class="admin-title">商品录入页</h1>
+        <p class="admin-subtitle">适合在手机端快速新增商品、上传图片、同步到前台列表。</p>
+      </div>
+      <a class="admin-back" href="index.html">返回前台</a>
+    </header>
+
+    <section class="admin-card admin-status-card">
+      <div class="admin-status-head">
+        <h2 class="admin-section-title">连接状态</h2>
+        <span class="admin-status-pill" id="adminConfigStatus">未配置</span>
+      </div>
+      <p class="admin-status-text" id="adminConfigTip">请先在 <code>assets/config.js</code> 填好 Supabase 项目地址和匿名 Key。</p>
+    </section>
+
+    <section class="admin-card admin-auth-card">
+      <div class="admin-status-head">
+        <h2 class="admin-section-title">管理员登录</h2>
+        <span class="admin-status-pill admin-status-pill-soft" id="adminAuthState">未登录</span>
+      </div>
+      <p class="admin-status-text" id="adminAuthTip">这里改成 Supabase 账号登录。只有被加入管理员名单的账号才能上传和查看后台数据。</p>
+      <form class="admin-form admin-auth-form" id="adminAuthForm">
+        <label class="admin-field">
+          <span>管理员邮箱</span>
+          <input id="adminEmailInput" name="email" type="email" placeholder="你的管理员邮箱" autocomplete="username email" required>
+        </label>
+        <label class="admin-field">
+          <span>登录密码</span>
+          <input id="adminPasswordInput" name="password" type="password" placeholder="你的管理员密码" autocomplete="current-password" required>
+        </label>
+        <div class="admin-auth-actions">
+          <button id="adminLoginButton" type="submit">登录后台</button>
+          <button class="admin-secondary-btn" id="adminLogoutButton" type="button">退出登录</button>
+        </div>
+        <p class="admin-inline-message" id="adminAuthMessage"></p>
+      </form>
+    </section>
+
+    <section class="admin-card admin-locked-panel" id="adminLockedPanel">
+      <h2 class="admin-section-title">等待登录</h2>
+      <p class="admin-status-text">登录成功后，下面才会显示商品录入表单和最近商品列表。</p>
+    </section>
+
+    <div id="adminWorkspace" hidden>
+      <section class="admin-card">
+        <div class="admin-status-head">
+          <h2 class="admin-section-title">录入商品</h2>
+          <span class="admin-status-pill admin-status-pill-soft" id="adminSubmitState">待提交</span>
+        </div>
+        <form class="admin-form" id="productForm">
+          <label class="admin-field">
+            <span>商品标题</span>
+            <input name="title" type="text" placeholder="例如：夏日随行水杯礼盒" required>
+          </label>
+
+          <div class="admin-grid">
+            <label class="admin-field">
+              <span>分类</span>
+              <select name="category" id="adminCategorySelect" required>
+                <option value="toy">玩偶周边</option>
+                <option value="kitchen">厨房家居</option>
+                <option value="beauty">美妆护肤</option>
+                <option value="coffee">咖啡茶饮</option>
+                <option value="digital">数码配件</option>
+              </select>
+            </label>
+            <label class="admin-field">
+              <span>参考价</span>
+              <input name="price" type="number" min="0" step="1" placeholder="例如：199" required>
+            </label>
+          </div>
+
+          <label class="admin-field">
+            <span>商品说明</span>
+            <textarea name="description" rows="4" placeholder="一句话说明这个商品适合什么活动、价值感如何。" required></textarea>
+          </label>
+
+          <label class="admin-field">
+            <span>上传图片</span>
+            <input name="imageFile" id="adminImageFile" type="file" accept="image/*">
+          </label>
+
+          <label class="admin-field">
+            <span>或填写图片链接</span>
+            <input name="imageUrl" id="adminImageUrl" type="url" placeholder="如果图片已经在别处，可直接填完整链接">
+          </label>
+
+          <div class="admin-grid">
+            <label class="admin-field">
+              <span>按钮文案</span>
+              <input name="actionLabel" type="text" placeholder="例如：立即领取" value="立即领取">
+            </label>
+            <label class="admin-field">
+              <span>跳转链接</span>
+              <input name="actionUrl" type="text" placeholder="例如：https://你的活动链接" value="#service">
+            </label>
+          </div>
+
+          <div class="admin-grid">
+            <label class="admin-field">
+              <span>排序值</span>
+              <input name="sortOrder" type="number" min="0" step="1" placeholder="越小越靠前" value="10">
+            </label>
+            <label class="admin-field admin-checkbox-field">
+              <span>上架状态</span>
+              <label class="admin-checkbox">
+                <input name="isActive" type="checkbox" checked>
+                <span>提交后立即显示</span>
+              </label>
+            </label>
+          </div>
+
+          <div class="admin-preview" id="adminPreview">
+            <div class="admin-preview-media">
+              <span id="adminPreviewEmpty">等待上传图片</span>
+              <img id="adminPreviewImage" alt="商品预览图" hidden>
+            </div>
+            <div class="admin-preview-text">
+              <p class="admin-preview-title">图片预览</p>
+              <p class="admin-preview-desc">手机端录入时先看一眼比例，避免前台列表被横图或超长图撑坏。</p>
+            </div>
+          </div>
+
+          <button class="admin-submit" id="adminSubmitButton" type="submit">上传并新增商品</button>
+          <p class="admin-inline-message" id="adminSubmitMessage"></p>
+        </form>
+      </section>
+
+      <section class="admin-card">
+        <div class="admin-status-head">
+          <h2 class="admin-section-title">最近商品</h2>
+          <button class="admin-secondary-btn" id="adminRefreshButton" type="button">刷新列表</button>
+        </div>
+        <div class="admin-recent-list" id="adminRecentList">
+          <p class="admin-status-text">登录管理员账号后，这里会显示最近录入的商品。</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="assets/config.js"></script>
+  <script src="assets/admin.js"></script>
+</body>
+</html>

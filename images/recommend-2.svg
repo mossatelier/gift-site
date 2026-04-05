@@ -1,0 +1,12 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <circle cx="1290" cy="210" r="210" fill="white" fill-opacity="0.1"/>
+  <text x="110" y="340" fill="white" font-size="98" font-family="Arial, sans-serif" font-weight="700">推荐好友得双倍</text>
+  <text x="110" y="424" fill="#D9EAFF" font-size="38" font-family="Arial, sans-serif">推荐活动占位图 02</text>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2E78B7"/>
+      <stop offset="1" stop-color="#6AA6DD"/>
+    </linearGradient>
+  </defs>
+</svg>

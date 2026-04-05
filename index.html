@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>加加礼品屋</title>
+  <meta name="description" content="加加礼品屋活动与礼品展示页，支持 Supabase 动态商品列表与手机端录入。">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body id="top">
+  <div class="page-shell">
+    <header class="top-bar">
+      <a class="brand" href="#top">加加礼品屋</a>
+      <div class="top-actions">
+        <a class="top-action" href="admin.html">上新</a>
+        <a class="top-action" href="#service">客服</a>
+        <a class="top-action" href="#faq">帮助</a>
+      </div>
+    </header>
+
+    <section class="search-wrap" aria-label="站内搜索">
+      <div class="search-box">
+        <input id="productSearchInput" type="text" placeholder="搜索礼品、活动、办卡专区">
+        <button id="productSearchButton" type="button">搜索</button>
+      </div>
+    </section>
+
+    <nav class="mall-nav" aria-label="礼品分类导航">
+      <a class="mall-nav-item active" href="#products" data-category-link="all">全部礼品</a>
+      <a class="mall-nav-item" href="#products" data-category-link="toy">玩偶周边</a>
+      <a class="mall-nav-item" href="#products" data-category-link="kitchen">厨房家居</a>
+      <a class="mall-nav-item" href="#products" data-category-link="beauty">美妆护肤</a>
+      <a class="mall-nav-item" href="#products" data-category-link="coffee">咖啡茶饮</a>
+      <a class="mall-nav-item" href="#products" data-category-link="digital">数码配件</a>
+    </nav>
+
+    <section class="banner-wrap" aria-label="活动轮播">
+      <div class="banner-track" id="bannerTrack">
+        <a class="banner-slide" href="#activity-cmb">
+          <img class="banner-image" src="images/banner-1.svg" alt="超值兑换礼品活动横幅">
+          <div class="banner-overlay"></div>
+          <div class="banner-content">
+            <span class="banner-tag">限时活动</span>
+            <h1 class="banner-title">超值兑换礼品</h1>
+            <p class="banner-sub">办卡即享，礼品多多，图片和文案均可替换。</p>
+            <span class="banner-btn">立即参与</span>
+          </div>
+        </a>
+        <a class="banner-slide" href="#activity-newcomer">
+          <img class="banner-image" src="images/banner-2.svg" alt="新人专属活动横幅">
+          <div class="banner-overlay"></div>
+          <div class="banner-content">
+            <span class="banner-tag banner-tag-blue">新人专属</span>
+            <h2 class="banner-title">办1得2 · 办2得4</h2>
+            <p class="banner-sub">后续只需要替换 <code>images/banner-2.*</code> 对应图片与链接。</p>
+            <span class="banner-btn banner-btn-blue">马上领取</span>
+          </div>
+        </a>
+        <a class="banner-slide" href="#activity-referral">
+          <img class="banner-image" src="images/banner-3.svg" alt="推荐有礼活动横幅">
+          <div class="banner-overlay"></div>
+          <div class="banner-content">
+            <span class="banner-tag banner-tag-green">推荐有礼</span>
+            <h2 class="banner-title">千元大礼包</h2>
+            <p class="banner-sub">推荐好友可获礼品，静态页面可直接挂到 Gitee Pages 或 Vercel。</p>
+            <span class="banner-btn banner-btn-green">去推荐</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="banner-dots" aria-label="轮播切换">
+        <button class="dot active" type="button" aria-label="第 1 张" data-slide="0"></button>
+        <button class="dot" type="button" aria-label="第 2 张" data-slide="1"></button>
+        <button class="dot" type="button" aria-label="第 3 张" data-slide="2"></button>
+      </div>
+    </section>
+
+    <nav class="quick-links" aria-label="快捷入口">
+      <a class="ql-item" href="#guide">
+        <span class="ql-badge ql-badge-gold">必读</span>
+        <span class="ql-label">办卡必读</span>
+      </a>
+      <a class="ql-item" href="#entry">
+        <span class="ql-badge ql-badge-red">入口</span>
+        <span class="ql-label">办卡入口</span>
+      </a>
+      <a class="ql-item" href="#service">
+        <span class="ql-badge ql-badge-blue">售后</span>
+        <span class="ql-label">售后须知</span>
+      </a>
+      <a class="ql-item" href="#lookup">
+        <span class="ql-badge ql-badge-green">查询</span>
+        <span class="ql-label">查询新户</span>
+      </a>
+      <a class="ql-item" href="#proof">
+        <span class="ql-badge ql-badge-purple">实拍</span>
+        <span class="ql-label">客户晒图</span>
+      </a>
+    </nav>
+
+    <section class="promo-strip" aria-label="活动亮点">
+      <div class="promo-card">
+        <div class="promo-title">超值兑换</div>
+        <div class="promo-text">限时福利专区</div>
+      </div>
+      <div class="promo-card">
+        <div class="promo-title">双倍礼包</div>
+        <div class="promo-text">办卡即享加赠</div>
+      </div>
+      <div class="promo-card">
+        <div class="promo-title">推荐有礼</div>
+        <div class="promo-text">分享也能领奖</div>
+      </div>
+      <div class="promo-card">
+        <div class="promo-title">免激活</div>
+        <div class="promo-text">通过即可登记</div>
+      </div>
+    </section>
+
+    <section class="announce" id="guide">
+      <h2 class="announce-title">僖僖家介绍</h2>
+      <p class="announce-item">已送出礼品超 1w+，目前有 40 多个 500 人群。</p>
+      <p class="announce-item">所有礼品均为正品，活动真实有效，可按专区查看。</p>
+      <p class="announce-item">当前模板已预留动态商品能力，后续可以直接在手机后台录入新商品。</p>
+    </section>
+
+    <section class="section" id="entry">
+      <div class="section-header">
+        <h2 class="section-title">热门活动</h2>
+        <a class="section-more" href="#activity-cmb">查看更多</a>
+      </div>
+
+      <a class="hero-card" id="activity-cmb" href="#service">
+        <img class="hero-image" src="images/activity-1.svg" alt="招商银行专属礼活动图">
+        <div class="hero-body">
+          <div class="hero-copy">
+            <span class="hero-tag">招商专区</span>
+            <h3 class="hero-title">招商银行专属礼</h3>
+            <p class="hero-desc">办卡即送，多重礼品任选。活动图可直接替换为你自己的横幅素材。</p>
+          </div>
+          <span class="hero-action">立即办理</span>
+        </div>
+      </a>
+
+      <a class="hero-card" id="activity-newcomer" href="#service">
+        <img class="hero-image" src="images/activity-2.svg" alt="浦发银行专属礼活动图">
+        <div class="hero-body">
+          <div class="hero-copy">
+            <span class="hero-tag hero-tag-green">浦发专区</span>
+            <h3 class="hero-title">浦发银行专属礼</h3>
+            <p class="hero-desc">适合经常换活动的静态托管方案，图片和说明保持分离，维护成本更低。</p>
+          </div>
+          <span class="hero-action hero-action-green">马上查看</span>
+        </div>
+      </a>
+    </section>
+
+    <section class="section" id="products">
+      <div class="section-header">
+        <h2 class="section-title">精选礼品</h2>
+        <a class="section-more" href="admin.html">手机上新</a>
+      </div>
+
+      <div class="shop-toolbar" aria-label="礼品排序与筛选">
+        <div class="shop-sort">
+          <button class="toolbar-btn active" type="button" data-sort="default">综合</button>
+          <button class="toolbar-btn" type="button" data-sort="price">价格</button>
+        </div>
+        <label class="toolbar-filter">
+          <span class="toolbar-filter-label">分类</span>
+          <select id="categoryFilter" aria-label="礼品分类筛选">
+            <option value="all">全部分类</option>
+            <option value="toy">玩偶周边</option>
+            <option value="kitchen">厨房家居</option>
+            <option value="beauty">美妆护肤</option>
+            <option value="coffee">咖啡茶饮</option>
+            <option value="digital">数码配件</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="product-meta-bar">
+        <span id="productResultCount">商品加载中</span>
+        <span id="productSortState">当前排序：综合</span>
+      </div>
+
+      <div class="product-source-bar">
+        <span class="product-source-pill" id="productDataState">数据源：本地占位</span>
+        <span class="product-source-tip" id="productDataTip">填好 Supabase 配置后，这里会自动切换成动态商品。</span>
+      </div>
+
+      <div class="product-grid" id="productGrid"></div>
+
+      <p class="product-empty" id="productEmpty" hidden>当前条件下暂无礼品，你后续在手机后台上新后会自动显示在这里。</p>
+    </section>
+
+    <section class="section" id="proof">
+      <div class="section-header">
+        <h2 class="section-title">推荐活动</h2>
+        <a class="section-more" href="#faq">常见问题</a>
+      </div>
+
+      <div class="feature-grid">
+        <a class="feature-card" href="#activity-referral">
+          <img class="feature-image" src="images/recommend-1.svg" alt="首次办卡送大礼活动图">
+          <div class="feature-body">
+            <span class="feature-tag">新人活动</span>
+            <h3 class="feature-title">首次办卡送大礼</h3>
+            <p class="feature-desc">新用户专享，礼品价值千元。</p>
+          </div>
+        </a>
+        <a class="feature-card" id="activity-referral" href="#service">
+          <img class="feature-image" src="images/recommend-2.svg" alt="推荐好友得双倍活动图">
+          <div class="feature-body">
+            <span class="feature-tag feature-tag-blue">老带新</span>
+            <h3 class="feature-title">推荐好友得双倍</h3>
+            <p class="feature-desc">推荐一位好友，双方同享好礼。</p>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <section class="section support-section" id="service">
+      <div class="section-header">
+        <h2 class="section-title">客服与链接</h2>
+      </div>
+      <div class="support-card">
+        <p class="support-line">客服微信：<code>请替换为你的客服微信</code></p>
+        <p class="support-line">活动链接：把页面里的 <code>href="#service"</code> 改成真实跳转地址。</p>
+        <p class="support-line">二维码入口：可在此区域加一张客服二维码图或跳转到企业微信页。</p>
+        <p class="support-line">手机上新后台：<a class="inline-link" href="admin.html">打开商品录入页</a></p>
+      </div>
+    </section>
+
+    <section class="section support-section" id="faq">
+      <div class="section-header">
+        <h2 class="section-title">常见问题</h2>
+      </div>
+      <div class="faq-list">
+        <article class="faq-item">
+          <h3 class="faq-question">Q1：图片放在哪里？</h3>
+          <p class="faq-answer">本地占位图仍在 <code>images/</code>，接入 Supabase 后新商品图片会直接上传到云存储。</p>
+        </article>
+        <article class="faq-item" id="lookup">
+          <h3 class="faq-question">Q2：为什么不用 Google Fonts？</h3>
+          <p class="faq-answer">已改为系统字体栈，国内访问更稳，不依赖外部字体服务。</p>
+        </article>
+        <article class="faq-item">
+          <h3 class="faq-question">Q3：后续怎么更新？</h3>
+          <p class="faq-answer">商品上新走 <code>admin.html</code>，Banner 和介绍文案仍然在当前页面里修改。</p>
+        </article>
+      </div>
+    </section>
+
+    <div class="bottom-spacer"></div>
+  </div>
+
+  <nav class="bottom-nav" aria-label="底部导航">
+    <a class="nav-item active" href="#top">
+      <span class="nav-icon">首页</span>
+      <span class="nav-label">首页</span>
+    </a>
+    <a class="nav-item" href="#products">
+      <span class="nav-icon">礼品</span>
+      <span class="nav-label">分类</span>
+    </a>
+    <a class="nav-item" href="#service">
+      <span class="nav-icon">客服</span>
+      <span class="nav-label">添加客服</span>
+    </a>
+    <a class="nav-item" href="#guide">
+      <span class="nav-icon">流程</span>
+      <span class="nav-label">领取流程</span>
+    </a>
+    <a class="nav-item" href="#faq">
+      <span class="nav-icon">帮助</span>
+      <span class="nav-label">常见问题</span>
+    </a>
+  </nav>
+
+  <script src="assets/config.js"></script>
+  <script src="assets/site.js"></script>
+</body>
+</html>

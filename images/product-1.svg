@@ -1,0 +1,15 @@
+<svg width="1000" height="1000" viewBox="0 0 1000 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1000" height="1000" fill="url(#bg)"/>
+  <circle cx="500" cy="390" r="170" fill="white" fill-opacity="0.38"/>
+  <circle cx="438" cy="360" r="38" fill="#9F4E2D"/>
+  <circle cx="562" cy="360" r="38" fill="#9F4E2D"/>
+  <ellipse cx="500" cy="480" rx="126" ry="138" fill="#B36A43"/>
+  <ellipse cx="500" cy="650" rx="220" ry="140" fill="#C8875C" fill-opacity="0.82"/>
+  <text x="500" y="865" text-anchor="middle" fill="#714129" font-size="54" font-family="Arial, sans-serif" font-weight="700">礼品占位图 01</text>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1000" y2="1000" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFE6D8"/>
+      <stop offset="1" stop-color="#F2B794"/>
+    </linearGradient>
+  </defs>
+</svg>
