@@ -194,7 +194,6 @@ function renderProducts() {
       <article class="product-card">
         <div class="product-media">
           <img class="product-image" src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.title)}">
-          <div class="product-name-badge">${escapeHtml(item.title)}</div>
         </div>
         <div class="product-body">
           <h3 class="product-title">${escapeHtml(item.title)}</h3>
