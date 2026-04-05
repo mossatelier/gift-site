@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>商品录入后台</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body class="admin-page">
+  <main class="admin-shell">
+    <header class="admin-header">
+      <div>
+        <p class="admin-kicker">手机上新后台</p>
+        <h1 class="admin-title">商品录入页</h1>
+        <p class="admin-subtitle">适合在手机端快速新增商品、上传图片、同步到前台列表。</p>
+      </div>
+      <a class="admin-back" href="index.html">返回前台</a>
+    </header>
+
+    <section class="admin-card admin-status-card">
+      <div class="admin-status-head">
+        <h2 class="admin-section-title">连接状态</h2>
+        <span class="admin-status-pill" id="adminConfigStatus">未配置</span>
+      </div>
+      <p class="admin-status-text" id="adminConfigTip">请先在 <code>assets/config.js</code> 填好 Supabase 项目地址和匿名 Key。</p>
+    </section>
+
+    <section class="admin-card admin-lock-card" id="adminLockCard" hidden>
+      <h2 class="admin-section-title">管理口令</h2>
+      <p class="admin-status-text">你在配置里填写了一个前端口令。这里先校验一次，避免误触。它不是严格安全方案，只是基础门槛。</p>
+      <div class="admin-inline-form">
+        <input id="adminPasscodeInput" type="password" placeholder="输入管理口令">
+        <button id="adminUnlockButton" type="button">进入后台</button>
+      </div>
+      <p class="admin-inline-message" id="adminLockMessage"></p>
+    </section>
+
+    <section class="admin-card">
+      <div class="admin-status-head">
+        <h2 class="admin-section-title">录入商品</h2>
+        <span class="admin-status-pill admin-status-pill-soft" id="adminSubmitState">待提交</span>
+      </div>
+      <form class="admin-form" id="productForm">
+        <label class="admin-field">
+          <span>商品标题</span>
+          <input name="title" type="text" placeholder="例如：夏日随行水杯礼盒" required>
+        </label>
+
+        <div class="admin-grid">
+          <label class="admin-field">
+            <span>分类</span>
+            <select name="category" id="adminCategorySelect" required>
+              <option value="toy">玩偶周边</option>
+              <option value="kitchen">厨房家居</option>
+              <option value="beauty">美妆护肤</option>
+              <option value="coffee">咖啡茶饮</option>
+              <option value="digital">数码配件</option>
+            </select>
+          </label>
+          <label class="admin-field">
+            <span>参考价</span>
+            <input name="price" type="number" min="0" step="1" placeholder="例如：199" required>
+          </label>
+        </div>
+
+        <label class="admin-field">
+          <span>商品说明</span>
+          <textarea name="description" rows="4" placeholder="一句话说明这个商品适合什么活动、价值感如何。" required></textarea>
+        </label>
+
+        <label class="admin-field">
+          <span>上传图片</span>
+          <input name="imageFile" id="adminImageFile" type="file" accept="image/*">
+        </label>
+
+        <label class="admin-field">
+          <span>或填写图片链接</span>
+          <input name="imageUrl" id="adminImageUrl" type="url" placeholder="如果图片已经在别处，可直接填完整链接">
+        </label>
+
+        <div class="admin-grid">
+          <label class="admin-field">
+            <span>按钮文案</span>
+            <input name="actionLabel" type="text" placeholder="例如：立即领取" value="立即领取">
+          </label>
+          <label class="admin-field">
+            <span>跳转链接</span>
+            <input name="actionUrl" type="text" placeholder="例如：https://你的活动链接" value="#service">
+          </label>
+        </div>
+
+        <div class="admin-grid">
+          <label class="admin-field">
+            <span>排序值</span>
+            <input name="sortOrder" type="number" min="0" step="1" placeholder="越小越靠前" value="10">
+          </label>
+          <label class="admin-field admin-checkbox-field">
+            <span>上架状态</span>
+            <label class="admin-checkbox">
+              <input name="isActive" type="checkbox" checked>
+              <span>提交后立即显示</span>
+            </label>
+          </label>
+        </div>
+
+        <div class="admin-preview" id="adminPreview">
+          <div class="admin-preview-media">
+            <span id="adminPreviewEmpty">等待上传图片</span>
+            <img id="adminPreviewImage" alt="商品预览图" hidden>
+          </div>
+          <div class="admin-preview-text">
+            <p class="admin-preview-title">图片预览</p>
+            <p class="admin-preview-desc">手机端录入时先看一眼比例，避免前台列表被横图或超长图撑坏。</p>
+          </div>
+        </div>
+
+        <button class="admin-submit" id="adminSubmitButton" type="submit">上传并新增商品</button>
+        <p class="admin-inline-message" id="adminSubmitMessage"></p>
+      </form>
+    </section>
+
+    <section class="admin-card">
+      <div class="admin-status-head">
+        <h2 class="admin-section-title">最近商品</h2>
+        <button class="admin-secondary-btn" id="adminRefreshButton" type="button">刷新列表</button>
+      </div>
+      <div class="admin-recent-list" id="adminRecentList">
+        <p class="admin-status-text">配置完成后，这里会显示最近录入的商品。</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/config.js"></script>
+  <script src="assets/admin.js"></script>
+</body>
+</html>
