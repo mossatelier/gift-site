@@ -11,16 +11,12 @@ const categoryFilter = document.getElementById("categoryFilter");
 const productGrid = document.getElementById("productGrid");
 const productResultCount = document.getElementById("productResultCount");
 const productSortState = document.getElementById("productSortState");
-const productDataState = document.getElementById("productDataState");
-const productDataTip = document.getElementById("productDataTip");
 const productEmpty = document.getElementById("productEmpty");
 const productSearchInput = document.getElementById("productSearchInput");
 const productSearchButton = document.getElementById("productSearchButton");
 
 const state = {
   products: [],
-  source: "fallback",
-  sourceTip: "填好 Supabase 配置后，这里会自动切换成动态商品。",
   currentSlide: 0,
   timerId: null,
   sort: "default",
@@ -98,8 +94,6 @@ async function fetchProductsFromSupabase() {
 async function loadProducts() {
   if (!isSupabaseConfigured()) {
     state.products = (config.fallbackProducts || []).map(normalizeProduct).filter((item) => item.isActive);
-    state.source = "fallback";
-    state.sourceTip = "当前未填写 Supabase 项目地址和匿名 Key，页面先显示本地占位商品。";
     renderProducts();
     return;
   }
@@ -107,14 +101,8 @@ async function loadProducts() {
   try {
     const products = await fetchProductsFromSupabase();
     state.products = products.filter((item) => item.isActive);
-    state.source = "supabase";
-    state.sourceTip = state.products.length > 0
-      ? "当前商品来自 Supabase，手机端上新后这里会自动刷新展示。"
-      : "Supabase 已连接成功，但商品表目前还是空的。";
   } catch (error) {
     state.products = (config.fallbackProducts || []).map(normalizeProduct).filter((item) => item.isActive);
-    state.source = "fallback";
-    state.sourceTip = `${error.message}，已退回本地占位商品。`;
   }
 
   renderProducts();
@@ -226,15 +214,6 @@ function renderProducts() {
     productSortState.textContent = state.sort === "price"
       ? `当前排序：价格${state.priceDirection === "asc" ? "从低到高" : "从高到低"}`
       : "当前排序：综合";
-  }
-
-  if (productDataState) {
-    productDataState.textContent = state.source === "supabase" ? "数据源：Supabase" : "数据源：本地占位";
-    productDataState.classList.toggle("product-source-live", state.source === "supabase");
-  }
-
-  if (productDataTip) {
-    productDataTip.textContent = state.sourceTip;
   }
 
   if (productEmpty) {

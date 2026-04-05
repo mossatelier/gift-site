@@ -561,41 +561,6 @@ textarea {
   font-size: 12px;
 }
 
-.product-source-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 12px;
-  padding: 10px 12px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(234, 223, 206, 0.9);
-}
-
-.product-source-pill {
-  display: inline-flex;
-  align-items: center;
-  min-height: 32px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: rgba(214, 75, 42, 0.12);
-  color: var(--red);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.product-source-live {
-  background: rgba(22, 122, 97, 0.12);
-  color: var(--green);
-}
-
-.product-source-tip {
-  color: var(--muted);
-  font-size: 12px;
-  text-align: right;
-}
-
 .product-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -732,8 +697,45 @@ textarea {
 }
 
 .nav-icon {
-  font-size: 12px;
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 6px 14px rgba(46, 35, 18, 0.07);
+}
+
+.nav-icon svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+}
+
+.nav-icon-home {
+  background: linear-gradient(180deg, #fff6ec 0%, #ffe5cb 100%);
+}
+
+.nav-icon-gift {
+  background: linear-gradient(180deg, #fff1ef 0%, #ffd8d0 100%);
+}
+
+.nav-icon-service {
+  background: linear-gradient(180deg, #eef8ff 0%, #d5ecff 100%);
+}
+
+.nav-icon-flow {
+  background: linear-gradient(180deg, #f7f5ff 0%, #e4dcff 100%);
+}
+
+.nav-icon-help {
+  background: linear-gradient(180deg, #f2fff7 0%, #d9f6e4 100%);
+}
+
+.nav-item.active .nav-icon,
+.nav-item:hover .nav-icon {
+  box-shadow: 0 10px 18px rgba(214, 75, 42, 0.16);
 }
 
 .nav-label {
@@ -1049,7 +1051,6 @@ textarea {
 
   .shop-toolbar,
   .product-meta-bar,
-  .product-source-bar,
   .admin-header,
   .admin-inline-form,
   .admin-preview {
@@ -1066,7 +1067,6 @@ textarea {
     margin-top: 6px;
   }
 
-  .product-source-tip,
   .admin-back {
     display: block;
     margin-top: 8px;
