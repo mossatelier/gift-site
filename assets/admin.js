@@ -398,14 +398,27 @@ async function loadRecentProducts() {
   }
 
   try {
-    const params = new URLSearchParams({
+    const primaryParams = new URLSearchParams({
       select: "id,title,category,price,cards_needed,image_url,action_label,action_url,sort_order,created_at,is_active",
       order: "created_at.desc",
       limit: "6"
     });
-    const response = await fetch(`${config.supabaseUrl}/rest/v1/${config.productsTable}?${params.toString()}`, {
+
+    let response = await fetch(`${config.supabaseUrl}/rest/v1/${config.productsTable}?${primaryParams.toString()}`, {
       headers: authHeaders(session.access_token)
     });
+
+    if (!response.ok && response.status === 400) {
+      const fallbackParams = new URLSearchParams({
+        select: "id,title,category,price,image_url,action_label,action_url,sort_order,created_at,is_active",
+        order: "created_at.desc",
+        limit: "6"
+      });
+
+      response = await fetch(`${config.supabaseUrl}/rest/v1/${config.productsTable}?${fallbackParams.toString()}`, {
+        headers: authHeaders(session.access_token)
+      });
+    }
 
     if (!response.ok) {
       throw new Error(`读取最近商品失败：${response.status}`);
