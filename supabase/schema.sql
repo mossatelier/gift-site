@@ -5,6 +5,7 @@ create table if not exists public.products (
   title text not null,
   category text not null,
   price numeric(10, 2) not null default 0,
+  cards_needed integer not null default 0,
   description text not null default '',
   image_url text not null,
   action_label text not null default '立即领取',

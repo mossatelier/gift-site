@@ -16,7 +16,10 @@ const adminImageFile = document.getElementById("adminImageFile");
 const adminImageUrl = document.getElementById("adminImageUrl");
 const adminPreviewEmpty = document.getElementById("adminPreviewEmpty");
 const adminPreviewImage = document.getElementById("adminPreviewImage");
+const adminEditorTitle = document.getElementById("adminEditorTitle");
+const editingProductId = document.getElementById("editingProductId");
 const adminSubmitButton = document.getElementById("adminSubmitButton");
+const adminCancelEditButton = document.getElementById("adminCancelEditButton");
 const adminSubmitState = document.getElementById("adminSubmitState");
 const adminSubmitMessage = document.getElementById("adminSubmitMessage");
 const adminRecentList = document.getElementById("adminRecentList");
@@ -30,6 +33,7 @@ const categoryOptions = Array.isArray(config.categories)
 const state = {
   session: null,
   previewUrl: "",
+  editingProduct: null,
   recentProducts: []
 };
 
@@ -231,6 +235,41 @@ function updateFormAccess() {
   adminRefreshButton.disabled = !canUseForm;
 }
 
+function setEditorMode(product = null) {
+  state.editingProduct = product;
+
+  if (product) {
+    if (adminEditorTitle) {
+      adminEditorTitle.textContent = "编辑商品";
+    }
+    if (editingProductId) {
+      editingProductId.value = product.id || "";
+    }
+    if (adminSubmitButton) {
+      adminSubmitButton.textContent = "保存商品修改";
+    }
+    if (adminCancelEditButton) {
+      adminCancelEditButton.hidden = false;
+    }
+    setSubmitState("编辑中");
+    return;
+  }
+
+  if (adminEditorTitle) {
+    adminEditorTitle.textContent = "录入商品";
+  }
+  if (editingProductId) {
+    editingProductId.value = "";
+  }
+  if (adminSubmitButton) {
+    adminSubmitButton.textContent = "上传并新增商品";
+  }
+  if (adminCancelEditButton) {
+    adminCancelEditButton.hidden = true;
+  }
+  setSubmitState("待提交");
+}
+
 function fillCategoryOptions() {
   if (!adminCategorySelect || categoryOptions.length === 0) {
     return;
@@ -320,6 +359,31 @@ async function insertProduct(row) {
   return Array.isArray(data) ? data[0] : data;
 }
 
+async function updateProduct(productId, row) {
+  const session = activeSession();
+
+  if (!session) {
+    throw new Error("请先登录管理员账号");
+  }
+
+  const response = await fetch(`${config.supabaseUrl}/rest/v1/${config.productsTable}?id=eq.${encodeURIComponent(productId)}`, {
+    method: "PATCH",
+    headers: authHeaders(session.access_token, {
+      "Content-Type": "application/json",
+      Prefer: "return=representation"
+    }),
+    body: JSON.stringify(row)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`商品更新失败：${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return Array.isArray(data) ? data[0] : data;
+}
+
 async function loadRecentProducts() {
   const session = activeSession();
 
@@ -335,7 +399,7 @@ async function loadRecentProducts() {
 
   try {
     const params = new URLSearchParams({
-      select: "id,title,category,price,image_url,created_at,is_active",
+      select: "id,title,category,price,cards_needed,image_url,action_label,action_url,sort_order,created_at,is_active",
       order: "created_at.desc",
       limit: "6"
     });
@@ -357,14 +421,16 @@ async function loadRecentProducts() {
 
     adminRecentList.innerHTML = state.recentProducts.map((item) => {
       const categoryLabel = categoryOptions.find((option) => option.value === item.category)?.label || item.category || "未分类";
+      const cardsNeeded = Number(item.cards_needed || item.price || 0);
       return `
         <article class="admin-recent-item">
           <img class="admin-recent-image" src="${escapeHtml(item.image_url || "images/product-1.svg")}" alt="${escapeHtml(item.title || "商品")}">
           <div class="admin-recent-copy">
             <h3>${escapeHtml(item.title || "未命名商品")}</h3>
-            <p>${escapeHtml(categoryLabel)} · ¥${escapeHtml(item.price || 0)}</p>
+            <p>${escapeHtml(categoryLabel)} · ${escapeHtml(cardsNeeded)}卡兑换</p>
             <p>${item.is_active ? "已上架" : "未上架"}</p>
           </div>
+          <button class="admin-secondary-btn admin-edit-btn" type="button" data-edit-id="${escapeHtml(item.id || "")}">编辑</button>
         </article>
       `;
     }).join("");
@@ -392,6 +458,31 @@ function bindPreviewEvents() {
 
     updatePreview(adminImageUrl.value.trim());
   });
+}
+
+function fillForm(product) {
+  if (!productForm || !product) {
+    return;
+  }
+
+  productForm.elements.title.value = product.title || "";
+  productForm.elements.category.value = product.category || categoryOptions[0]?.value || "";
+  productForm.elements.cardsNeeded.value = Number(product.cards_needed || product.price || 0) || "";
+  productForm.elements.imageUrl.value = product.image_url || "";
+  productForm.elements.actionLabel.value = product.action_label || "立即领取";
+  productForm.elements.actionUrl.value = product.action_url || "#service";
+  productForm.elements.sortOrder.value = Number(product.sort_order || 10);
+  productForm.elements.isActive.checked = Boolean(product.is_active);
+  updatePreview(product.image_url || "");
+  setEditorMode(product);
+  setSubmitMessage("已载入商品信息，修改后保存即可。");
+}
+
+function resetEditor() {
+  productForm.reset();
+  updatePreview("");
+  setEditorMode(null);
+  setSubmitMessage("");
 }
 
 async function restoreSession() {
@@ -458,7 +549,7 @@ adminAuthForm?.addEventListener("submit", async (event) => {
     await verifyAdminAccess(nextSession.access_token);
     saveSession(nextSession);
     adminPasswordInput.value = "";
-    setAuthMessage("登录成功，现在可以上新商品。", "success");
+    setAuthMessage("登录成功，现在可以新增和编辑商品。", "success");
     updateAuthUi();
     updateFormAccess();
     await loadRecentProducts();
@@ -485,11 +576,10 @@ adminLogoutButton?.addEventListener("click", async () => {
 
   saveSession(null);
   adminAuthForm.reset();
-  updatePreview("");
+  resetEditor();
   updateAuthUi();
   updateFormAccess();
   setAuthMessage("已退出登录。");
-  setSubmitMessage("");
   adminRecentList.innerHTML = "<p class=\"admin-status-text\">登录管理员账号后，这里会显示最近录入的商品。</p>";
 });
 
@@ -509,8 +599,8 @@ productForm?.addEventListener("submit", async (event) => {
   const formData = new FormData(productForm);
   const title = String(formData.get("title") || "").trim();
   const category = String(formData.get("category") || "").trim();
-  const price = Number(formData.get("price") || 0);
-  const description = String(formData.get("description") || "").trim();
+  const cardsNeeded = Number(formData.get("cardsNeeded") || 0);
+  const currentEditingId = String(formData.get("editingProductId") || "").trim();
   const actionLabel = String(formData.get("actionLabel") || "立即领取").trim() || "立即领取";
   const actionUrl = String(formData.get("actionUrl") || "#service").trim() || "#service";
   const sortOrder = Number(formData.get("sortOrder") || 10);
@@ -518,8 +608,8 @@ productForm?.addEventListener("submit", async (event) => {
   const externalImageUrl = String(formData.get("imageUrl") || "").trim();
   const imageFile = adminImageFile?.files?.[0];
 
-  if (!title || !category || !description) {
-    setSubmitMessage("标题、分类和说明是必填项。", "error");
+  if (!title || !category || !cardsNeeded) {
+    setSubmitMessage("标题、分类和几卡兑换是必填项。", "error");
     return;
   }
 
@@ -530,26 +620,32 @@ productForm?.addEventListener("submit", async (event) => {
 
   adminSubmitButton.disabled = true;
   setSubmitState("提交中", "idle");
-  setSubmitMessage("正在上传图片并写入商品数据，请稍候。");
+  setSubmitMessage(currentEditingId ? "正在保存商品修改，请稍候。" : "正在上传图片并写入商品数据，请稍候。");
 
   try {
     const imageUrl = imageFile ? await uploadFile(imageFile) : externalImageUrl;
-    await insertProduct({
+    const payload = {
       title,
       category,
-      price,
-      description,
+      price: cardsNeeded,
+      cards_needed: cardsNeeded,
+      description: "",
       image_url: imageUrl,
       action_label: actionLabel,
       action_url: actionUrl,
       sort_order: sortOrder,
       is_active: isActive
-    });
+    };
 
-    productForm.reset();
-    updatePreview("");
+    if (currentEditingId) {
+      await updateProduct(currentEditingId, payload);
+    } else {
+      await insertProduct(payload);
+    }
+
+    resetEditor();
     setSubmitState("提交成功", "success");
-    setSubmitMessage("商品已写入 Supabase。刷新前台页面后，这件商品就会出现在列表里。", "success");
+    setSubmitMessage(currentEditingId ? "商品已更新。刷新前台页面后即可看到最新内容。" : "商品已写入。刷新前台页面后，这件商品就会出现在列表里。", "success");
     await loadRecentProducts();
   } catch (error) {
     setSubmitState("提交失败", "error");
@@ -563,10 +659,33 @@ adminRefreshButton?.addEventListener("click", () => {
   loadRecentProducts();
 });
 
+adminRecentList?.addEventListener("click", (event) => {
+  const editButton = event.target.closest("[data-edit-id]");
+
+  if (!editButton) {
+    return;
+  }
+
+  const targetId = editButton.dataset.editId || "";
+  const targetProduct = state.recentProducts.find((item) => item.id === targetId);
+
+  if (!targetProduct) {
+    setSubmitMessage("没有找到要编辑的商品。", "error");
+    return;
+  }
+
+  fillForm(targetProduct);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+adminCancelEditButton?.addEventListener("click", () => {
+  resetEditor();
+});
+
 fillCategoryOptions();
 updateAuthUi();
 bindPreviewEvents();
-setSubmitState("待提交");
+setEditorMode(null);
 setSubmitMessage("");
 updateFormAccess();
 restoreSession();

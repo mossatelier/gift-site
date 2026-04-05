@@ -39,7 +39,7 @@ function parseDate(dateValue) {
 }
 
 function normalizeProduct(product, index) {
-  const cardsNeeded = Number(product.cardsNeeded ?? product.cards_needed ?? 0);
+  const cardsNeeded = Number(product.cardsNeeded ?? product.cards_needed ?? product.price ?? 0);
 
   return {
     id: product.id || `product-${index + 1}`,

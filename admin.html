@@ -49,10 +49,11 @@
     <div id="adminWorkspace" hidden>
       <section class="admin-card">
         <div class="admin-status-head">
-          <h2 class="admin-section-title">录入商品</h2>
+          <h2 class="admin-section-title" id="adminEditorTitle">录入商品</h2>
           <span class="admin-status-pill admin-status-pill-soft" id="adminSubmitState">待提交</span>
         </div>
         <form class="admin-form" id="productForm">
+          <input id="editingProductId" name="editingProductId" type="hidden">
           <label class="admin-field">
             <span>商品标题</span>
             <input name="title" type="text" placeholder="例如：夏日随行水杯礼盒" required>
@@ -70,15 +71,10 @@
               </select>
             </label>
             <label class="admin-field">
-              <span>参考价</span>
-              <input name="price" type="number" min="0" step="1" placeholder="例如：199" required>
+              <span>几卡兑换</span>
+              <input name="cardsNeeded" type="number" min="1" step="1" placeholder="例如：2" required>
             </label>
           </div>
-
-          <label class="admin-field">
-            <span>商品说明</span>
-            <textarea name="description" rows="4" placeholder="一句话说明这个商品适合什么活动、价值感如何。" required></textarea>
-          </label>
 
           <label class="admin-field">
             <span>上传图片</span>
@@ -126,7 +122,10 @@
             </div>
           </div>
 
-          <button class="admin-submit" id="adminSubmitButton" type="submit">上传并新增商品</button>
+          <div class="admin-form-actions">
+            <button class="admin-submit" id="adminSubmitButton" type="submit">上传并新增商品</button>
+            <button class="admin-secondary-btn" id="adminCancelEditButton" type="button" hidden>取消编辑</button>
+          </div>
           <p class="admin-inline-message" id="adminSubmitMessage"></p>
         </form>
       </section>

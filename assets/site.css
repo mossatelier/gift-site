@@ -994,6 +994,16 @@ textarea {
   min-height: 48px;
 }
 
+.admin-form-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.admin-form-actions .admin-submit,
+.admin-form-actions .admin-secondary-btn {
+  flex: 1;
+}
+
 .admin-submit:disabled,
 .admin-secondary-btn:disabled {
   opacity: 0.6;
@@ -1030,6 +1040,11 @@ textarea {
   margin: 0;
   color: var(--muted);
   line-height: 1.5;
+}
+
+.admin-edit-btn {
+  min-width: 72px;
+  flex-shrink: 0;
 }
 
 @media (max-width: 360px) {
@@ -1078,6 +1093,15 @@ textarea {
   }
 
   .admin-auth-actions .admin-secondary-btn {
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .admin-form-actions {
+    display: block;
+  }
+
+  .admin-form-actions .admin-secondary-btn {
     width: 100%;
     margin-top: 10px;
   }
