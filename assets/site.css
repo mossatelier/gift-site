@@ -844,6 +844,11 @@ textarea {
   margin-top: 12px;
 }
 
+.admin-auth-actions {
+  display: flex;
+  gap: 10px;
+}
+
 .admin-inline-form input {
   flex: 1;
 }
@@ -867,6 +872,7 @@ textarea {
 }
 
 .admin-inline-form button,
+.admin-auth-actions button:first-child,
 .admin-submit {
   border: 0;
   border-radius: 16px;
@@ -874,6 +880,10 @@ textarea {
   color: #fff;
   font-weight: 700;
   box-shadow: 0 10px 18px rgba(214, 75, 42, 0.2);
+}
+
+.admin-auth-actions button {
+  flex: 1;
 }
 
 .admin-form {
@@ -1045,6 +1055,15 @@ textarea {
     width: 100%;
     margin-top: 10px;
     min-height: 46px;
+  }
+
+  .admin-auth-actions {
+    display: block;
+  }
+
+  .admin-auth-actions .admin-secondary-btn {
+    width: 100%;
+    margin-top: 10px;
   }
 
   .admin-preview-media {

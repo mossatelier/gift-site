@@ -1,7 +1,7 @@
 window.APP_CONFIG = {
   siteName: "僖僖家礼品屋",
   adminPath: "admin.html",
-  adminPasscode: "liuliuping",
+  adminPasscode: "",
   supabaseUrl: "https://ukoqffocqjokcroilyyv.supabase.co",
   supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrb3FmZm9jcWpva2Nyb2lseXl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzMxMDUsImV4cCI6MjA5MDkwOTEwNX0.jKFzbuDLbbDboUD8vJLAu0uTkkEzE2YnC2bHU5I8RH0",
   productsTable: "products",
