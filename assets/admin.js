@@ -44,7 +44,8 @@ const state = {
   editingProduct: null,
   recentProducts: [],
   activePanel: "create",
-  searchQuery: ""
+  searchQuery: "",
+  pendingProductId: ""
 };
 
 function isSupabaseConfigured() {
@@ -341,15 +342,23 @@ function renderRecentProducts() {
   adminRecentList.innerHTML = items.map((item) => {
     const categoryLabel = categoryOptions.find((option) => option.value === item.category)?.label || item.category || "未分类";
     const cardsNeeded = Number(item.cards_needed || item.price || 0);
+    const actionId = escapeHtml(item.id || "");
+    const isPending = state.pendingProductId === item.id;
+    const toggleLabel = item.is_active ? "下架" : "上架";
+    const statusLabel = item.is_active ? "已上架" : "未上架";
     return `
       <article class="admin-recent-item">
         <img class="admin-recent-image" src="${escapeHtml(item.image_url || "images/product-1.svg")}" alt="${escapeHtml(item.title || "商品")}">
         <div class="admin-recent-copy">
           <h3>${escapeHtml(item.title || "未命名商品")}</h3>
           <p>${escapeHtml(categoryLabel)} · ${escapeHtml(cardsNeeded)}卡兑换</p>
-          <p>${item.is_active ? "已上架" : "未上架"}</p>
+          <p>${statusLabel}</p>
         </div>
-        <button class="admin-secondary-btn admin-edit-btn" type="button" data-edit-id="${escapeHtml(item.id || "")}">编辑</button>
+        <div class="admin-recent-actions">
+          <button class="admin-secondary-btn admin-edit-btn" type="button" data-edit-id="${actionId}" ${isPending ? "disabled" : ""}>编辑</button>
+          <button class="admin-secondary-btn admin-toggle-btn" type="button" data-toggle-id="${actionId}" ${isPending ? "disabled" : ""}>${toggleLabel}</button>
+          <button class="admin-secondary-btn admin-danger-btn" type="button" data-delete-id="${actionId}" ${isPending ? "disabled" : ""}>删除</button>
+        </div>
       </article>
     `;
   }).join("");
@@ -469,6 +478,29 @@ async function updateProduct(productId, row) {
   return Array.isArray(data) ? data[0] : data;
 }
 
+async function deleteProduct(productId) {
+  const session = activeSession();
+
+  if (!session) {
+    throw new Error("请先登录管理员账号");
+  }
+
+  const response = await fetch(`${config.supabaseUrl}/rest/v1/${config.productsTable}?id=eq.${encodeURIComponent(productId)}`, {
+    method: "DELETE",
+    headers: authHeaders(session.access_token, {
+      Prefer: "return=representation"
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`商品删除失败：${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return Array.isArray(data) ? data[0] : data;
+}
+
 async function loadRecentProducts() {
   const session = activeSession();
 
@@ -485,8 +517,8 @@ async function loadRecentProducts() {
   try {
     const primaryParams = new URLSearchParams({
       select: "id,title,category,price,cards_needed,image_url,action_label,action_url,sort_order,created_at,is_active",
-      order: "created_at.desc",
-      limit: "6"
+      order: "updated_at.desc",
+      limit: "50"
     });
 
     let response = await fetch(`${config.supabaseUrl}/rest/v1/${config.productsTable}?${primaryParams.toString()}`, {
@@ -497,7 +529,7 @@ async function loadRecentProducts() {
       const fallbackParams = new URLSearchParams({
         select: "id,title,category,price,image_url,action_label,action_url,sort_order,created_at,is_active",
         order: "created_at.desc",
-        limit: "6"
+        limit: "50"
       });
 
       response = await fetch(`${config.supabaseUrl}/rest/v1/${config.productsTable}?${fallbackParams.toString()}`, {
@@ -511,6 +543,7 @@ async function loadRecentProducts() {
 
     const data = await response.json();
     state.recentProducts = Array.isArray(data) ? data : [];
+    state.pendingProductId = "";
 
     if (state.recentProducts.length === 0) {
       adminRecentList.innerHTML = "<p class=\"admin-status-text\">数据库还没有商品，提交第一件后会显示在这里。</p>";
@@ -519,6 +552,63 @@ async function loadRecentProducts() {
     renderRecentProducts();
   } catch (error) {
     adminRecentList.innerHTML = `<p class="admin-status-text">${escapeHtml(error.message)}</p>`;
+  }
+}
+
+async function handleToggleProduct(productId) {
+  const targetProduct = state.recentProducts.find((item) => item.id === productId);
+
+  if (!targetProduct) {
+    setSubmitMessage("没有找到要操作的礼品。", "error");
+    return;
+  }
+
+  state.pendingProductId = productId;
+  renderRecentProducts();
+
+  try {
+    await updateProduct(productId, {
+      is_active: !targetProduct.is_active
+    });
+    setSubmitMessage(targetProduct.is_active ? "礼品已下架。" : "礼品已重新上架。", "success");
+    await loadRecentProducts();
+  } catch (error) {
+    state.pendingProductId = "";
+    renderRecentProducts();
+    setSubmitMessage(error.message, "error");
+  }
+}
+
+async function handleDeleteProduct(productId) {
+  const targetProduct = state.recentProducts.find((item) => item.id === productId);
+
+  if (!targetProduct) {
+    setSubmitMessage("没有找到要删除的礼品。", "error");
+    return;
+  }
+
+  const confirmed = window.confirm(`确定删除“${targetProduct.title || "这件礼品"}”吗？删除后不能恢复。`);
+
+  if (!confirmed) {
+    return;
+  }
+
+  state.pendingProductId = productId;
+  renderRecentProducts();
+
+  try {
+    await deleteProduct(productId);
+
+    if (state.editingProduct?.id === productId) {
+      resetEditor();
+    }
+
+    setSubmitMessage("礼品已删除。", "success");
+    await loadRecentProducts();
+  } catch (error) {
+    state.pendingProductId = "";
+    renderRecentProducts();
+    setSubmitMessage(error.message, "error");
   }
 }
 
@@ -764,6 +854,30 @@ adminSearchInput?.addEventListener("input", () => {
 
 adminRecentList?.addEventListener("click", (event) => {
   const editButton = event.target.closest("[data-edit-id]");
+  const toggleButton = event.target.closest("[data-toggle-id]");
+  const deleteButton = event.target.closest("[data-delete-id]");
+
+  if (toggleButton) {
+    const targetId = toggleButton.dataset.toggleId || "";
+
+    if (!targetId) {
+      return;
+    }
+
+    handleToggleProduct(targetId);
+    return;
+  }
+
+  if (deleteButton) {
+    const targetId = deleteButton.dataset.deleteId || "";
+
+    if (!targetId) {
+      return;
+    }
+
+    handleDeleteProduct(targetId);
+    return;
+  }
 
   if (!editButton) {
     return;

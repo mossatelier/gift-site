@@ -1093,9 +1093,27 @@ textarea {
   line-height: 1.5;
 }
 
+.admin-recent-actions {
+  display: grid;
+  gap: 8px;
+  margin-left: auto;
+}
+
 .admin-edit-btn {
   min-width: 72px;
   flex-shrink: 0;
+}
+
+.admin-toggle-btn {
+  min-width: 72px;
+  color: var(--blue);
+}
+
+.admin-danger-btn {
+  min-width: 72px;
+  color: var(--red);
+  border-color: rgba(214, 75, 42, 0.22);
+  background: rgba(214, 75, 42, 0.06);
 }
 
 @media (max-width: 360px) {
@@ -1170,6 +1188,18 @@ textarea {
   .admin-preview-media {
     width: 100%;
     margin-bottom: 10px;
+  }
+
+  .admin-recent-item {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .admin-recent-actions {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-left: 0;
   }
 
   .banner-title {
