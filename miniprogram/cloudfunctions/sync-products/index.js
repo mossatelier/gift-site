@@ -86,6 +86,13 @@ const PRODUCT_COMPARE_FIELDS = [
   'description', 'imageUrl', 'sortOrder', 'isActive', 'updatedAt'
 ];
 
+// 并发跑 tasks，但每批最多 CONCURRENCY 个，避免压垮 DB
+async function runInBatches(tasks, concurrency = 20) {
+  for (let i = 0; i < tasks.length; i += concurrency) {
+    await Promise.all(tasks.slice(i, i + concurrency).map(fn => fn()));
+  }
+}
+
 async function syncProducts(supabaseProducts) {
   const stats = { inserted: 0, updated: 0, skipped: 0, deleted: 0, fetched: supabaseProducts.length };
 
@@ -101,6 +108,8 @@ async function syncProducts(supabaseProducts) {
     if (e.supabaseId) map.set(e.supabaseId, e);
   }
 
+  const tasks = [];
+
   for (const sp of supabaseProducts) {
     const norm = normalizeProduct(sp);
     const supabaseVC = norm._supabaseViewCount;
@@ -108,28 +117,25 @@ async function syncProducts(supabaseProducts) {
 
     const cur = map.get(norm.supabaseId);
     if (cur) {
-      // 计算合并后的 viewCount
+      // viewCount 合并：H5 新增 + 小程序累加
       const cloudVC = cur.viewCount;
       const lastSnap = cur.supabaseViewCountSnapshot;
       let nextVC;
       if (cloudVC === undefined || lastSnap === undefined) {
-        // 首次同步 / 回填：用 Supabase 当前 view_count 做基线
         nextVC = supabaseVC;
       } else {
-        // H5 这次新增 = supabaseVC - lastSnap（不会负数）
         const delta = Math.max(0, supabaseVC - lastSnap);
         nextVC = cloudVC + delta;
       }
       norm.viewCount = nextVC;
       norm.supabaseViewCountSnapshot = supabaseVC;
 
-      // 判断是否真的有变化（业务字段 OR viewCount/snapshot 有变化）
       const fieldsChanged = PRODUCT_COMPARE_FIELDS.some(k => cur[k] !== norm[k]);
       const vcChanged = (nextVC !== cloudVC) || (supabaseVC !== lastSnap);
 
       if (fieldsChanged || vcChanged) {
-        await db.collection('products').doc(cur._id).update({ data: norm });
-        stats.updated++;
+        const docId = cur._id;
+        tasks.push(() => db.collection('products').doc(docId).update({ data: norm }).then(() => { stats.updated++; }));
       } else {
         stats.skipped++;
       }
@@ -137,16 +143,17 @@ async function syncProducts(supabaseProducts) {
     } else {
       norm.viewCount = supabaseVC;
       norm.supabaseViewCountSnapshot = supabaseVC;
-      await db.collection('products').add({ data: norm });
-      stats.inserted++;
+      tasks.push(() => db.collection('products').add({ data: norm }).then(() => { stats.inserted++; }));
     }
   }
 
   // Supabase 已不存在的 → 删除
   for (const orphan of map.values()) {
-    await db.collection('products').doc(orphan._id).remove();
-    stats.deleted++;
+    const docId = orphan._id;
+    tasks.push(() => db.collection('products').doc(docId).remove().then(() => { stats.deleted++; }));
   }
+
+  await runInBatches(tasks, 20);
   return stats;
 }
 
@@ -167,28 +174,31 @@ async function syncBanks(supabaseBanks) {
     if (e.supabaseId) map.set(e.supabaseId, e);
   }
 
+  const tasks = [];
+
   for (const sb of supabaseBanks) {
     const norm = normalizeBank(sb);
     const cur = map.get(norm.supabaseId);
     if (cur) {
       const changed = BANK_COMPARE_FIELDS.some(k => cur[k] !== norm[k]);
       if (changed) {
-        await db.collection('banks_earn').doc(cur._id).update({ data: norm });
-        stats.updated++;
+        const docId = cur._id;
+        tasks.push(() => db.collection('banks_earn').doc(docId).update({ data: norm }).then(() => { stats.updated++; }));
       } else {
         stats.skipped++;
       }
       map.delete(norm.supabaseId);
     } else {
-      await db.collection('banks_earn').add({ data: norm });
-      stats.inserted++;
+      tasks.push(() => db.collection('banks_earn').add({ data: norm }).then(() => { stats.inserted++; }));
     }
   }
 
   for (const orphan of map.values()) {
-    await db.collection('banks_earn').doc(orphan._id).remove();
-    stats.deleted++;
+    const docId = orphan._id;
+    tasks.push(() => db.collection('banks_earn').doc(docId).remove().then(() => { stats.deleted++; }));
   }
+
+  await runInBatches(tasks, 20);
   return stats;
 }
 
