@@ -1,0 +1,22 @@
+<view class="page-shell earn-page">
+  <view class="section">
+    <view class="section-banner">
+      <text class="banner-title-text">赚卡 · 银行积分对照</text>
+    </view>
+
+    <view class="bank-table">
+      <text class="bank-intro">不同银行办卡可获得的兑换积分如下表（具体以最新活动为准）。</text>
+
+      <view class="bank-list">
+        <view class="bank-item" wx:for="{{banks}}" wx:key="name">
+          <text class="bank-name">{{item.name}}</text>
+          <text class="bank-points">{{item.points}} 分</text>
+        </view>
+      </view>
+
+      <text class="bank-tip">具体积分以联系客服时确认的活动为准。1 分 ≈ 40 元礼品价。</text>
+    </view>
+  </view>
+
+  <view class="bottom-spacer"></view>
+</view>

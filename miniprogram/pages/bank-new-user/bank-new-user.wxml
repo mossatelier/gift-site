@@ -1,0 +1,15 @@
+<view class="page-shell guide-page">
+  <view class="section">
+    <view class="section-banner">
+      <text class="banner-title-text">银行新户</text>
+    </view>
+    <view class="image-guide-card">
+      <image
+        class="image-guide-img"
+        src="/images/guide-bank-new-user.jpg"
+        mode="widthFix"
+        bindtap="previewImage"
+      ></image>
+    </view>
+  </view>
+</view>

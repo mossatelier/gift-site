@@ -1,0 +1,171 @@
+/* 全局样式 —— H5 主题：暖米色 + 红金 */
+
+page {
+  --bg: #f4f1ea;
+  --paper: #ffffff;
+  --paper-soft: #fffaf3;
+  --line: #eadfce;
+  --text: #1d1b18;
+  --muted: #72695c;
+  --red: #d64b2a;
+  --red-deep: #b53b1b;
+  --gold: #e0ac4d;
+  --blue: #2e78b7;
+  --green: #167a61;
+  --purple: #6d5bb3;
+
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  font-size: 28rpx;
+  line-height: 1.5;
+}
+
+.page-shell {
+  padding: 0 24rpx 32rpx;
+  box-sizing: border-box;
+}
+
+/* 通用纸卡 */
+.card {
+  background: var(--paper);
+  border-radius: 24rpx;
+  padding: 28rpx;
+  box-shadow: 0 10rpx 30rpx rgba(46, 35, 18, 0.08);
+}
+
+/* 区段标题条 */
+.section {
+  margin-top: 36rpx;
+}
+
+.section-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+  padding: 0 6rpx;
+}
+
+.banner-title-text {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.banner-more {
+  font-size: 26rpx;
+  color: var(--muted);
+}
+
+/* 商品网格 */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20rpx;
+}
+
+.product-grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16rpx;
+}
+
+.product-card {
+  background: var(--paper);
+  border-radius: 20rpx;
+  overflow: hidden;
+  box-shadow: 0 10rpx 30rpx rgba(46, 35, 18, 0.08);
+  display: flex;
+  flex-direction: column;
+  border: 1rpx solid var(--line);
+}
+
+.product-card .product-image {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: var(--paper-soft);
+}
+
+.product-card .product-info {
+  padding: 16rpx 18rpx 20rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.product-card .product-title {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  line-height: 1.4;
+}
+
+.product-card .product-price {
+  font-size: 26rpx;
+  color: var(--red);
+  font-weight: 700;
+}
+
+.product-card .product-cards-needed {
+  font-size: 22rpx;
+  color: var(--muted);
+}
+
+/* 空状态 */
+.empty-state {
+  padding: 80rpx 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 26rpx;
+}
+
+/* 加载状态 */
+.loading-state {
+  padding: 40rpx 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 26rpx;
+}
+
+/* 商品卡上的小心愿单按钮（覆盖在图片右上角） */
+.card-heart-btn {
+  position: absolute;
+  top: 12rpx;
+  right: 12rpx;
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6rpx 14rpx rgba(46, 35, 18, 0.18);
+  z-index: 5;
+}
+
+.card-heart-svg {
+  width: 30rpx;
+  height: 30rpx;
+}
+
+/* 主按钮 —— 红金渐变 */
+.primary-btn {
+  background: linear-gradient(135deg, var(--red) 0%, var(--red-deep) 100%);
+  color: #fff;
+  border-radius: 999rpx;
+  padding: 22rpx 0;
+  font-size: 30rpx;
+  font-weight: 600;
+  text-align: center;
+  border: none;
+  box-shadow: 0 8rpx 18rpx rgba(214, 75, 42, 0.25);
+}
+
+.primary-btn::after {
+  border: none;
+}

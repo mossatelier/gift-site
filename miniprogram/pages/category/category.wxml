@@ -1,0 +1,81 @@
+<view class="category-page">
+  <!-- 顶部搜索栏（与 H5 一致） -->
+  <view class="category-search">
+    <input
+      class="category-search-input"
+      type="text"
+      placeholder="搜索礼品、活动、办卡专区"
+      value="{{keyword}}"
+      bindinput="onKeywordInput"
+      confirm-type="search"
+      bindconfirm="onSearchSubmit"
+    />
+    <view class="category-search-btn" bindtap="onSearchSubmit">搜索</view>
+  </view>
+
+  <view class="category-body">
+    <!-- 左侧主分类 -->
+    <scroll-view class="category-left" scroll-y>
+      <view
+        class="category-left-item {{currentCategory === item.value ? 'active' : ''}}"
+        wx:for="{{categories}}"
+        wx:key="value"
+        data-value="{{item.value}}"
+        bindtap="onCategoryTap"
+      >{{item.label}}</view>
+    </scroll-view>
+
+    <!-- 右侧内容 -->
+    <scroll-view class="category-right" scroll-y>
+      <!-- 当前分类标题 + 查看全部 -->
+      <view class="category-title-bar">
+        <text class="category-title">{{currentCategoryLabel}}</text>
+        <view class="category-more" bindtap="goListInCategory">查看 {{categoryCount}} 件全部 ›</view>
+      </view>
+
+      <!-- 子分类 chips（我们的增强） -->
+      <view class="subcategory-bar" wx:if="{{subList.length > 0}}">
+        <view
+          class="sub-chip {{currentSub === '' ? 'active' : ''}}"
+          bindtap="onSubTap"
+          data-sub=""
+        >全部</view>
+        <view
+          class="sub-chip {{currentSub === item ? 'active' : ''}}"
+          wx:for="{{subList}}"
+          wx:key="*this"
+          data-sub="{{item}}"
+          bindtap="onSubTap"
+        >{{item}}</view>
+      </view>
+
+      <!-- 商品列表 -->
+      <block wx:if="{{loading}}">
+        <view class="loading-state">加载中…</view>
+      </block>
+      <block wx:elif="{{items.length === 0}}">
+        <view class="empty-state">这个分类下还没有商品</view>
+      </block>
+      <view wx:else class="product-grid">
+        <view
+          class="product-card"
+          wx:for="{{items}}"
+          wx:key="_id"
+          data-id="{{item._id}}"
+          bindtap="goProduct"
+        >
+          <view class="product-media">
+            <image class="product-image" src="{{item.imageUrl}}" mode="aspectFill" lazy-load></image>
+            <view class="card-heart-btn" catchtap="toggleHeart" data-id="{{item._id}}">
+              <image src="{{wishlistMap[item._id] ? '/images/icons/heart-filled.svg' : '/images/icons/heart.svg'}}" mode="aspectFit" class="card-heart-svg" />
+            </view>
+          </view>
+          <view class="product-body">
+            <text class="product-title">{{item.title}}</text>
+            <text class="product-meta" wx:if="{{item.cardsNeeded > 0}}">兑换积分：{{item.cardsNeeded}} 分</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+</view>

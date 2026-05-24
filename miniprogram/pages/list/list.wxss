@@ -1,0 +1,147 @@
+.page-shell {
+  padding: 16rpx 24rpx 60rpx;
+}
+
+.search-bar {
+  display: flex;
+  gap: 12rpx;
+  padding: 12rpx 0 16rpx;
+}
+
+.search-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1rpx solid rgba(234, 223, 206, 0.9);
+  border-radius: 28rpx;
+  padding: 16rpx 28rpx;
+  font-size: 26rpx;
+  box-shadow: 0 8rpx 24rpx rgba(46, 35, 18, 0.06);
+}
+
+.search-button {
+  background: linear-gradient(135deg, var(--red) 0%, var(--red-deep) 100%);
+  color: #fff;
+  padding: 16rpx 36rpx;
+  border-radius: 22rpx;
+  font-size: 26rpx;
+  font-weight: 700;
+  box-shadow: 0 8rpx 16rpx rgba(214, 75, 42, 0.22);
+}
+
+/* 排序 chip 同排 */
+.sort-chips {
+  display: flex;
+  gap: 12rpx;
+  padding: 8rpx 0 12rpx;
+  flex-wrap: wrap;
+}
+
+.chip-item {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text);
+  font-size: 24rpx;
+  font-weight: 700;
+  padding: 12rpx 26rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid rgba(234, 223, 206, 0.9);
+  box-shadow: 0 4rpx 14rpx rgba(46, 35, 18, 0.05);
+}
+
+.chip-item.active {
+  background: linear-gradient(135deg, var(--red) 0%, var(--red-deep) 100%);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 8rpx 16rpx rgba(214, 75, 42, 0.22);
+}
+
+.category-bar {
+  white-space: nowrap;
+  padding: 8rpx 0 16rpx;
+}
+
+.category-chip {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text);
+  font-size: 24rpx;
+  font-weight: 700;
+  padding: 12rpx 28rpx;
+  border-radius: 999rpx;
+  margin-right: 12rpx;
+  border: 1rpx solid rgba(234, 223, 206, 0.9);
+  box-shadow: 0 4rpx 14rpx rgba(46, 35, 18, 0.05);
+}
+
+.category-chip.active {
+  background: linear-gradient(135deg, var(--red) 0%, var(--red-deep) 100%);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 8rpx 16rpx rgba(214, 75, 42, 0.22);
+}
+
+.product-meta-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4rpx 12rpx;
+  font-size: 22rpx;
+  color: var(--muted);
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18rpx;
+}
+
+.product-card {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1rpx solid rgba(234, 223, 206, 0.9);
+  border-radius: 22rpx;
+  overflow: hidden;
+  box-shadow: 0 10rpx 30rpx rgba(46, 35, 18, 0.08);
+  display: flex;
+  flex-direction: column;
+}
+
+.product-media {
+  position: relative;
+  aspect-ratio: 1 / 1;
+}
+
+.product-image {
+  width: 100%;
+  height: 100%;
+}
+
+.product-body {
+  padding: 18rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.product-title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.product-meta {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: var(--red);
+}
+
+.loading-more {
+  text-align: center;
+  color: var(--muted);
+  font-size: 22rpx;
+  padding: 24rpx 0 40rpx;
+}

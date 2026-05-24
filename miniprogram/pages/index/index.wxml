@@ -1,0 +1,204 @@
+<view class="home-page">
+  <!-- 顶部品牌 + 搜索框（粘性） -->
+  <view class="top-bar top-bar-search">
+    <text class="brand">🏠 加加办卡礼品馆</text>
+    <view class="search-box top-search">
+      <input
+        class="search-input"
+        type="text"
+        placeholder="搜索礼品"
+        value="{{keyword}}"
+        bindinput="onKeywordInput"
+        confirm-type="search"
+        bindconfirm="onSearchSubmit"
+      />
+      <view class="search-btn" bindtap="onSearchSubmit">搜</view>
+    </view>
+  </view>
+
+  <!-- 轮播（点击跳转，与 H5 一致：banner1→心愿单, banner2→获取积分） -->
+  <view class="banner-wrap">
+    <swiper class="banner-swiper" indicator-dots autoplay interval="4500" duration="500" circular indicator-color="rgba(255,255,255,0.4)" indicator-active-color="#fff">
+      <swiper-item>
+        <image
+          class="banner-image"
+          src="/images/banners/promo-1.jpg"
+          mode="aspectFill"
+          bindtap="goWishlist"
+        ></image>
+      </swiper-item>
+      <swiper-item>
+        <image
+          class="banner-image"
+          src="/images/banners/promo-2.png"
+          mode="aspectFill"
+          bindtap="goEarn"
+        ></image>
+      </swiper-item>
+    </swiper>
+  </view>
+
+  <!-- 四个文字入口 -->
+  <view class="text-entries">
+    <view class="text-entry" bindtap="goCardFlow">
+      <view class="text-entry-icon">
+        <image src="/images/icons/card-flow.svg" mode="aspectFit" class="entry-svg" />
+      </view>
+      <text>办卡流程</text>
+    </view>
+    <view class="text-entry" bindtap="goCategory">
+      <view class="text-entry-icon">
+        <image src="/images/icons/category.svg" mode="aspectFit" class="entry-svg" />
+      </view>
+      <text>品牌介绍</text>
+    </view>
+    <view class="text-entry" bindtap="goClaimGuide">
+      <view class="text-entry-icon">
+        <image src="/images/icons/claim-guide.svg" mode="aspectFit" class="entry-svg" />
+      </view>
+      <text>领取须知</text>
+    </view>
+    <view class="text-entry" bindtap="goBankNewUser">
+      <view class="text-entry-icon">
+        <image src="/images/icons/bank-new-user.svg" mode="aspectFit" class="entry-svg" />
+      </view>
+      <text>银行新户</text>
+    </view>
+  </view>
+
+  <!-- 四宫格主入口 -->
+  <view class="home-circles">
+    <view class="circle-item" bindtap="goEarn">
+      <view class="circle-badge circle-badge-red">
+        <image src="/images/icons/earn.svg" mode="aspectFit" class="circle-svg" />
+      </view>
+      <text class="circle-label">获取积分</text>
+    </view>
+    <view class="circle-item" bindtap="goProgress">
+      <view class="circle-badge circle-badge-gold">
+        <image src="/images/icons/progress.svg" mode="aspectFit" class="circle-svg" />
+      </view>
+      <text class="circle-label">进度查询</text>
+    </view>
+    <view class="circle-item" bindtap="showQrcode">
+      <view class="circle-badge circle-badge-pink">
+        <image src="/images/icons/service.svg" mode="aspectFit" class="circle-svg" />
+      </view>
+      <text class="circle-label">小客服</text>
+    </view>
+    <view class="circle-item" bindtap="goPromo">
+      <view class="circle-badge circle-badge-teal">
+        <image src="/images/icons/promo.svg" mode="aspectFit" class="circle-svg" />
+      </view>
+      <text class="circle-label">特惠通知</text>
+    </view>
+  </view>
+
+  <!-- 热门兑换 -->
+  <view class="section">
+    <view class="section-banner">
+      <text class="banner-title-text">热门兑换</text>
+      <text class="banner-more" bindtap="goList">更多 ›</text>
+    </view>
+    <block wx:if="{{loading}}">
+      <view class="loading-state">加载中…</view>
+    </block>
+    <block wx:elif="{{hotList.length === 0}}">
+      <view class="empty-state">还没有商品，请到后台录入</view>
+    </block>
+    <view wx:else class="product-grid product-grid-3">
+      <view
+        class="product-card"
+        wx:for="{{hotList}}"
+        wx:key="_id"
+        data-id="{{item._id}}"
+        bindtap="goProduct"
+      >
+        <view class="product-media">
+          <image class="product-image" src="{{item.imageUrl}}" mode="aspectFill" lazy-load></image>
+          <view class="card-heart-btn" catchtap="toggleHeart" data-id="{{item._id}}">
+            <image src="{{wishlistMap[item._id] ? '/images/icons/heart-filled.svg' : '/images/icons/heart.svg'}}" mode="aspectFit" class="card-heart-svg" />
+          </view>
+        </view>
+        <view class="product-body">
+          <text class="product-title">{{item.title}}</text>
+          <text class="product-meta" wx:if="{{item.cardsNeeded > 0}}">兑换积分：{{item.cardsNeeded}} 分</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 新品速递 -->
+  <view class="section">
+    <view class="section-banner">
+      <text class="banner-title-text">新品速递</text>
+      <text class="banner-more" bindtap="goListNewest">更多 ›</text>
+    </view>
+    <block wx:if="{{loading}}">
+      <view class="loading-state">加载中…</view>
+    </block>
+    <block wx:elif="{{newList.length === 0}}">
+      <view class="empty-state">暂无新品</view>
+    </block>
+    <view wx:else class="product-grid product-grid-3">
+      <view
+        class="product-card"
+        wx:for="{{newList}}"
+        wx:key="_id"
+        data-id="{{item._id}}"
+        bindtap="goProduct"
+      >
+        <view class="product-media">
+          <image class="product-image" src="{{item.imageUrl}}" mode="aspectFill" lazy-load></image>
+          <view class="card-heart-btn" catchtap="toggleHeart" data-id="{{item._id}}">
+            <image src="{{wishlistMap[item._id] ? '/images/icons/heart-filled.svg' : '/images/icons/heart.svg'}}" mode="aspectFit" class="card-heart-svg" />
+          </view>
+        </view>
+        <view class="product-body">
+          <text class="product-title">{{item.title}}</text>
+          <text class="product-meta" wx:if="{{item.cardsNeeded > 0}}">兑换积分：{{item.cardsNeeded}} 分</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 公告 -->
+  <view class="announce">
+    <text class="announce-title">加加办卡礼品馆</text>
+    <text class="announce-item">所有礼品均为正品，活动真实有效，可按专区查看。</text>
+    <text class="announce-item">礼品持续上新，页面内容会同步更新。</text>
+  </view>
+
+  <!-- 常见问题 -->
+  <view class="section">
+    <view class="section-banner">
+      <text class="banner-title-text">常见问题</text>
+    </view>
+    <view class="faq-list">
+      <view class="faq-item">
+        <text class="faq-question">Q1：怎么参与活动？</text>
+        <text class="faq-answer">联系客服微信即可，所有活动都是真实免费办卡。</text>
+      </view>
+      <view class="faq-item">
+        <text class="faq-question">Q2：礼品什么时候发？</text>
+        <text class="faq-answer">通常下卡后 3 个工作日内安排发货，详见活动说明。</text>
+      </view>
+      <view class="faq-item">
+        <text class="faq-question">Q3：怎么查询新户？</text>
+        <text class="faq-answer">直接联系客服核验，确认无误后再办理。</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="bottom-spacer"></view>
+
+  <!-- 二维码弹层 -->
+  <view class="qr-mask" wx:if="{{showQr}}" bindtap="hideQrcode">
+    <view class="qr-card" catchtap="">
+      <text class="qr-title">添加客服微信</text>
+      <image class="qr-image" src="/images/wechat-qr.jpg" mode="aspectFit"></image>
+      <text class="qr-tip">长按二维码 → 识别图中二维码</text>
+      <view class="qr-close" bindtap="hideQrcode">关闭</view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,49 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/list/list",
+    "pages/product/product",
+    "pages/category/category",
+    "pages/wishlist/wishlist",
+    "pages/card-flow/card-flow",
+    "pages/claim-guide/claim-guide",
+    "pages/bank-new-user/bank-new-user",
+    "pages/earn/earn",
+    "pages/progress/progress",
+    "pages/promo/promo"
+  ],
+  "window": {
+    "navigationBarTitleText": "加加办卡礼品馆",
+    "navigationBarBackgroundColor": "#f4f1ea",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f4f1ea",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#72695c",
+    "selectedColor": "#d64b2a",
+    "backgroundColor": "#fffaf3",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/category/category",
+        "text": "分类"
+      },
+      {
+        "pagePath": "pages/list/list",
+        "text": "全部礼品"
+      },
+      {
+        "pagePath": "pages/wishlist/wishlist",
+        "text": "心愿单"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

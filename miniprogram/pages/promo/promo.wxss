@@ -1,0 +1,64 @@
+.promo-page {
+  padding: 16rpx 24rpx 60rpx;
+}
+
+.promo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+}
+
+.promo-notice {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1rpx solid rgba(234, 223, 206, 0.9);
+  border-radius: 22rpx;
+  padding: 28rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  box-shadow: 0 10rpx 30rpx rgba(46, 35, 18, 0.08);
+}
+
+.promo-tag {
+  align-self: flex-start;
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--red) 0%, var(--red-deep) 100%);
+  padding: 6rpx 18rpx;
+  border-radius: 999rpx;
+}
+
+.promo-title {
+  font-size: 30rpx;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.promo-text {
+  font-size: 26rpx;
+  color: #5d5140;
+  line-height: 1.7;
+}
+
+.promo-time {
+  font-size: 22rpx;
+  color: var(--muted);
+}
+
+.bank-tip {
+  margin-top: 24rpx;
+  font-size: 24rpx;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.inline-link {
+  color: var(--red);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.bottom-spacer {
+  height: 32rpx;
+}

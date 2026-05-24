@@ -1,0 +1,24 @@
+<view class="page-shell promo-page">
+  <view class="section">
+    <view class="section-banner">
+      <text class="banner-title-text">特惠通知</text>
+    </view>
+
+    <view class="promo-list">
+      <view class="promo-notice" wx:for="{{promos}}" wx:key="title">
+        <text class="promo-tag">{{item.tag}}</text>
+        <text class="promo-title">{{item.title}}</text>
+        <text class="promo-text">{{item.text}}</text>
+        <text class="promo-time">{{item.time}}</text>
+      </view>
+    </view>
+
+    <view class="bank-tip">
+      <text>如需详细活动信息，</text>
+      <text class="inline-link" bindtap="goWishlist">点这里到心愿单</text>
+      <text>添加客服微信咨询。</text>
+    </view>
+  </view>
+
+  <view class="bottom-spacer"></view>
+</view>

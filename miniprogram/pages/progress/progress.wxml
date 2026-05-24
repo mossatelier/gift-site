@@ -1,0 +1,32 @@
+<view class="page-shell progress-page">
+  <view class="section">
+    <view class="section-banner">
+      <text class="banner-title-text">银行办卡进度查询</text>
+    </view>
+
+    <view class="bank-table">
+      <text class="bank-intro">点击下方银行，复制查询链接到浏览器打开（小程序内不能直接打开外部银行网址）。</text>
+
+      <view class="bank-list">
+        <view
+          class="bank-item"
+          wx:for="{{banks}}"
+          wx:key="key"
+          data-url="{{item.url}}"
+          data-name="{{item.name}}"
+          bindtap="copyUrl"
+        >
+          <view class="bank-left">
+            <image wx:if="{{item.logo}}" class="bank-logo" src="{{item.logo}}" mode="aspectFit"></image>
+            <text class="bank-name">{{item.name}}</text>
+          </view>
+          <text class="bank-arrow">复制链接 ›</text>
+        </view>
+      </view>
+
+      <text class="bank-tip">提示：链接已自动复制到剪贴板，在浏览器粘贴打开即可。如打不开请联系客服微信 <text class="bank-tip-strong">L1916959</text>。</text>
+    </view>
+  </view>
+
+  <view class="bottom-spacer"></view>
+</view>

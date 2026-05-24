@@ -1,0 +1,110 @@
+const { listProducts } = require('../../utils/db.js');
+const { categories, subcategories, labelOfCategory } = require('../../config.js');
+const wishlist = require('../../utils/wishlist.js');
+
+// 左侧不显示 "全部礼品"（all），从第二项开始
+const mainCategories = categories.filter(c => c.value !== 'all');
+
+Page({
+  data: {
+    categories: mainCategories,
+    currentCategory: mainCategories[0] ? mainCategories[0].value : '',
+    currentCategoryLabel: mainCategories[0] ? mainCategories[0].label : '',
+    categoryCount: 0,
+    subList: [],
+    currentSub: '',
+    items: [],
+    wishlistMap: {},
+    keyword: '',
+    loading: false
+  },
+
+  onLoad() {
+    this.updateSubList();
+    this.reload();
+  },
+
+  onShow() {
+    this.setData({ wishlistMap: wishlist.getMap() });
+  },
+
+  updateSubList() {
+    const subs = subcategories[this.data.currentCategory] || [];
+    this.setData({ subList: subs, currentSub: '' });
+  },
+
+  async reload() {
+    this.setData({
+      loading: true,
+      items: [],
+      currentCategoryLabel: labelOfCategory(this.data.currentCategory)
+    });
+    try {
+      const items = await listProducts({
+        category: this.data.currentCategory,
+        subcategory: this.data.currentSub || null,
+        limit: 100
+      });
+      this.setData({ items, categoryCount: items.length, loading: false });
+    } catch (err) {
+      console.error('加载分类商品失败', err);
+      this.setData({ loading: false });
+    }
+  },
+
+  onCategoryTap(e) {
+    const value = e.currentTarget.dataset.value;
+    if (value === this.data.currentCategory) return;
+    this.setData({ currentCategory: value }, () => {
+      this.updateSubList();
+      this.reload();
+    });
+  },
+
+  onSubTap(e) {
+    const sub = e.currentTarget.dataset.sub || '';
+    if (sub === this.data.currentSub) return;
+    this.setData({ currentSub: sub }, () => this.reload());
+  },
+
+  onKeywordInput(e) {
+    this.setData({ keyword: e.detail.value });
+  },
+
+  onSearchSubmit() {
+    const kw = (this.data.keyword || '').trim();
+    if (kw) {
+      getApp().globalData.listSearchIntent = kw;
+    }
+    wx.switchTab({ url: '/pages/list/list' });
+  },
+
+  goListInCategory() {
+    const app = getApp();
+    app.globalData.listCategoryIntent = this.data.currentCategory;
+    wx.switchTab({ url: '/pages/list/list' });
+  },
+
+  goProduct(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.navigateTo({ url: `/pages/product/product?id=${id}` });
+  },
+
+  toggleHeart(e) {
+    const id = e.currentTarget.dataset.id;
+    wishlist.toggle(id);
+    const nowOn = wishlist.has(id);
+    this.setData({ wishlistMap: wishlist.getMap() });
+    wx.showToast({
+      title: nowOn ? '已加入心愿单' : '已移除',
+      icon: 'success'
+    });
+  },
+
+  onShareAppMessage() {
+    return {
+      title: '加加办卡礼品馆 · 商品分类',
+      path: '/pages/category/category'
+    };
+  }
+});
