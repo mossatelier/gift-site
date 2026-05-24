@@ -4,8 +4,11 @@
 //
 // 关键策略：
 // - 按 supabaseId 匹配做 upsert，云开发 _id 不变 → 心愿单引用稳定
-// - viewCount 仅在 insert 时初始化（来自 supabase view_count），update 时不覆盖
-//   这样小程序累加的浏览量不会被同步抹掉
+// - viewCount 用「快照 + 增量」方式合并 H5 和小程序两端的浏览：
+//     cur.supabaseViewCountSnapshot 记录上次同步时 Supabase 的 view_count
+//     delta = supabase.view_count - lastSnapshot  (H5 这次新增的浏览量)
+//     新 viewCount = 云开发当前 viewCount + delta  (保留小程序累加 + 加上 H5 新增)
+//   首次同步（snapshot 缺失）→ 直接用 Supabase 的 view_count 做初始值
 
 const cloud = require('wx-server-sdk');
 const https = require('https');
@@ -51,7 +54,7 @@ function normalizeProduct(p) {
     isActive: p.is_active !== false,
     createdAt: p.created_at || '',
     updatedAt: p.updated_at || '',
-    viewCount: Number(p.view_count) || 0  // 仅用于初次 insert
+    _supabaseViewCount: Number(p.view_count) || 0   // 临时字段，不直接写入
   };
 }
 
@@ -78,52 +81,114 @@ async function fetchAllFromCollection(collection) {
   return all;
 }
 
-// 通用 upsert：preserveFields 列出的字段在 update 时不覆盖（保留云开发现有值）
-async function upsertCollection({
-  collection,
-  incoming,        // 已 normalize 的待写入数据，必须有 supabaseId
-  preserveFields = [],
-  compareFields    // 用于判断是否需要 update 的字段
-}) {
-  const stats = { inserted: 0, updated: 0, skipped: 0, deleted: 0, fetched: incoming.length };
+const PRODUCT_COMPARE_FIELDS = [
+  'title', 'category', 'subcategory', 'price', 'cardsNeeded',
+  'description', 'imageUrl', 'sortOrder', 'isActive', 'updatedAt'
+];
+
+async function syncProducts(supabaseProducts) {
+  const stats = { inserted: 0, updated: 0, skipped: 0, deleted: 0, fetched: supabaseProducts.length };
+
   let existing;
   try {
-    existing = await fetchAllFromCollection(collection);
+    existing = await fetchAllFromCollection('products');
   } catch (err) {
-    console.warn(`[${collection}] 拉取现有数据失败：${err.message}（集合可能不存在，跳过本表同步）`);
     return { ...stats, error: err.message };
   }
 
-  const existingMap = new Map();
+  const map = new Map();
   for (const e of existing) {
-    if (e.supabaseId) existingMap.set(e.supabaseId, e);
+    if (e.supabaseId) map.set(e.supabaseId, e);
   }
 
-  for (const item of incoming) {
-    const cur = existingMap.get(item.supabaseId);
+  for (const sp of supabaseProducts) {
+    const norm = normalizeProduct(sp);
+    const supabaseVC = norm._supabaseViewCount;
+    delete norm._supabaseViewCount;
+
+    const cur = map.get(norm.supabaseId);
     if (cur) {
-      const changed = compareFields.some(k => cur[k] !== item[k]);
-      if (changed) {
-        const updateData = { ...item };
-        for (const f of preserveFields) delete updateData[f];
-        await db.collection(collection).doc(cur._id).update({ data: updateData });
+      // 计算合并后的 viewCount
+      const cloudVC = cur.viewCount;
+      const lastSnap = cur.supabaseViewCountSnapshot;
+      let nextVC;
+      if (cloudVC === undefined || lastSnap === undefined) {
+        // 首次同步 / 回填：用 Supabase 当前 view_count 做基线
+        nextVC = supabaseVC;
+      } else {
+        // H5 这次新增 = supabaseVC - lastSnap（不会负数）
+        const delta = Math.max(0, supabaseVC - lastSnap);
+        nextVC = cloudVC + delta;
+      }
+      norm.viewCount = nextVC;
+      norm.supabaseViewCountSnapshot = supabaseVC;
+
+      // 判断是否真的有变化（业务字段 OR viewCount/snapshot 有变化）
+      const fieldsChanged = PRODUCT_COMPARE_FIELDS.some(k => cur[k] !== norm[k]);
+      const vcChanged = (nextVC !== cloudVC) || (supabaseVC !== lastSnap);
+
+      if (fieldsChanged || vcChanged) {
+        await db.collection('products').doc(cur._id).update({ data: norm });
         stats.updated++;
       } else {
         stats.skipped++;
       }
-      existingMap.delete(item.supabaseId);
+      map.delete(norm.supabaseId);
     } else {
-      await db.collection(collection).add({ data: item });
+      norm.viewCount = supabaseVC;
+      norm.supabaseViewCountSnapshot = supabaseVC;
+      await db.collection('products').add({ data: norm });
       stats.inserted++;
     }
   }
 
   // Supabase 已不存在的 → 删除
-  for (const orphan of existingMap.values()) {
-    await db.collection(collection).doc(orphan._id).remove();
+  for (const orphan of map.values()) {
+    await db.collection('products').doc(orphan._id).remove();
     stats.deleted++;
   }
+  return stats;
+}
 
+const BANK_COMPARE_FIELDS = ['name', 'points', 'sortOrder', 'updatedAt'];
+
+async function syncBanks(supabaseBanks) {
+  const stats = { inserted: 0, updated: 0, skipped: 0, deleted: 0, fetched: supabaseBanks.length };
+
+  let existing;
+  try {
+    existing = await fetchAllFromCollection('banks_earn');
+  } catch (err) {
+    return { ...stats, error: err.message };
+  }
+
+  const map = new Map();
+  for (const e of existing) {
+    if (e.supabaseId) map.set(e.supabaseId, e);
+  }
+
+  for (const sb of supabaseBanks) {
+    const norm = normalizeBank(sb);
+    const cur = map.get(norm.supabaseId);
+    if (cur) {
+      const changed = BANK_COMPARE_FIELDS.some(k => cur[k] !== norm[k]);
+      if (changed) {
+        await db.collection('banks_earn').doc(cur._id).update({ data: norm });
+        stats.updated++;
+      } else {
+        stats.skipped++;
+      }
+      map.delete(norm.supabaseId);
+    } else {
+      await db.collection('banks_earn').add({ data: norm });
+      stats.inserted++;
+    }
+  }
+
+  for (const orphan of map.values()) {
+    await db.collection('banks_earn').doc(orphan._id).remove();
+    stats.deleted++;
+  }
   return stats;
 }
 
@@ -132,7 +197,7 @@ exports.main = async (event, context) => {
   const result = { success: true, products: null, banks: null };
 
   try {
-    // ============ 1. Products 同步 ============
+    // 1. Products
     const supabaseProducts = await httpsGet(
       `${SUPABASE_URL}/rest/v1/products?select=*&limit=1000`,
       {
@@ -140,21 +205,11 @@ exports.main = async (event, context) => {
         Authorization: `Bearer ${SUPABASE_ANON_KEY}`
       }
     );
-    if (Array.isArray(supabaseProducts)) {
-      result.products = await upsertCollection({
-        collection: 'products',
-        incoming: supabaseProducts.map(normalizeProduct),
-        preserveFields: ['viewCount'],   // viewCount 由小程序累加，不要被同步抹掉
-        compareFields: [
-          'title', 'category', 'subcategory', 'price', 'cardsNeeded',
-          'description', 'imageUrl', 'sortOrder', 'isActive', 'updatedAt'
-        ]
-      });
-    } else {
-      result.products = { error: 'Supabase /products did not return an array' };
-    }
+    result.products = Array.isArray(supabaseProducts)
+      ? await syncProducts(supabaseProducts)
+      : { error: 'Supabase /products did not return an array' };
 
-    // ============ 2. Banks (banks_earn) 同步 ============
+    // 2. Banks
     const supabaseBanks = await httpsGet(
       `${SUPABASE_URL}/rest/v1/banks_earn?select=*&limit=200`,
       {
@@ -162,16 +217,9 @@ exports.main = async (event, context) => {
         Authorization: `Bearer ${SUPABASE_ANON_KEY}`
       }
     );
-    if (Array.isArray(supabaseBanks)) {
-      result.banks = await upsertCollection({
-        collection: 'banks_earn',
-        incoming: supabaseBanks.map(normalizeBank),
-        preserveFields: [],
-        compareFields: ['name', 'points', 'sortOrder', 'updatedAt']
-      });
-    } else {
-      result.banks = { error: 'Supabase /banks_earn did not return an array' };
-    }
+    result.banks = Array.isArray(supabaseBanks)
+      ? await syncBanks(supabaseBanks)
+      : { error: 'Supabase /banks_earn did not return an array' };
 
     result.elapsedMs = Date.now() - startedAt;
     console.log('[sync-products] done', result);
