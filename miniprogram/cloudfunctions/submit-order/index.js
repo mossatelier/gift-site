@@ -99,6 +99,9 @@ exports.main = async (event, context) => {
 
   const now = new Date();
   const order = {
+    // 显式写 _openid：云函数（管理员身份）add 不会自动塞这个字段，
+    // 不塞的话用户用 SDK 读时（自动按 _openid 过滤）会读不到
+    _openid: OPENID,
     openid: OPENID,
     items: itemSnapshots,
     address: addressSnapshot,
