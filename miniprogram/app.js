@@ -1,3 +1,5 @@
+const wishlist = require('./utils/wishlist.js');
+
 App({
   onLaunch() {
     if (!wx.cloud) {
@@ -8,6 +10,10 @@ App({
       env: this.globalData.cloudEnvId,
       traceUser: true
     });
+    // 已登录用户启动时尝试拉一次心愿单（多设备同步）
+    setTimeout(() => {
+      wishlist.pullAndMerge();
+    }, 500);
   },
   globalData: {
     cloudEnvId: 'cloud1-d0gtch1v896d24828'

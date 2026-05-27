@@ -49,6 +49,12 @@ async function callLogin({ nickName = '', avatarUrl = '' } = {}) {
   }
   const user = { openid: r.openid, ...(r.user || {}) };
   setCurrentUser(user);
+  // 登录后异步合并心愿单（不阻塞）
+  try {
+    require('./wishlist.js').pullAndMerge();
+  } catch (err) {
+    console.warn('[auth] wishlist merge after login failed', err);
+  }
   return user;
 }
 
