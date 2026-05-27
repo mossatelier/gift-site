@@ -8,7 +8,7 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: '领取须知 · 加加办卡礼品馆',
+      title: '领取须知 · 加加好物图集',
       path: '/pages/claim-guide/claim-guide'
     };
   }

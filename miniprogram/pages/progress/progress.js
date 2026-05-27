@@ -81,7 +81,7 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: '银行办卡进度查询 · 加加办卡礼品馆',
+      title: '银行办卡进度查询 · 加加好物图集',
       path: '/pages/progress/progress'
     };
   }

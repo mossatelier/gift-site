@@ -119,14 +119,14 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: '加加办卡礼品馆 · 办卡即享精选好礼',
+      title: '加加好物图集 · 办卡即享精选好礼',
       path: '/pages/index/index'
     };
   },
 
   onShareTimeline() {
     return {
-      title: '加加办卡礼品馆 · 办卡即享精选好礼'
+      title: '加加好物图集 · 办卡即享精选好礼'
     };
   }
 });

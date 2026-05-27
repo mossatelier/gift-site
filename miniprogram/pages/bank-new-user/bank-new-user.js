@@ -8,7 +8,7 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: '银行新户 · 加加办卡礼品馆',
+      title: '银行新户 · 加加好物图集',
       path: '/pages/bank-new-user/bank-new-user'
     };
   }

@@ -22,7 +22,7 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: '特惠通知 · 加加办卡礼品馆',
+      title: '特惠通知 · 加加好物图集',
       path: '/pages/promo/promo'
     };
   }

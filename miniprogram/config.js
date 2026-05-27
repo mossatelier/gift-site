@@ -33,6 +33,6 @@ module.exports = {
   categories,
   subcategories,
   labelOfCategory,
-  siteName: '加加办卡礼品馆',
+  siteName: '加加好物图集',
   customerServiceQrPath: '/images/wechat-qr.jpg'
 };

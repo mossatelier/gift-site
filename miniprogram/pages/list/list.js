@@ -178,7 +178,7 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: '加加办卡礼品馆 · 全部礼品',
+      title: '加加好物图集 · 全部礼品',
       path: `/pages/list/list?category=${this.data.currentCategory}`
     };
   }

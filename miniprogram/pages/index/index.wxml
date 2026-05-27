@@ -1,7 +1,7 @@
 <view class="home-page">
   <!-- 顶部品牌 + 搜索框（粘性） -->
   <view class="top-bar top-bar-search">
-    <text class="brand">🏠 加加办卡礼品馆</text>
+    <text class="brand">🏠 加加好物图集</text>
     <view class="search-box top-search">
       <input
         class="search-input"
@@ -164,7 +164,7 @@
 
   <!-- 公告 -->
   <view class="announce">
-    <text class="announce-title">加加办卡礼品馆</text>
+    <text class="announce-title">加加好物图集</text>
     <text class="announce-item">所有礼品均为正品，活动真实有效，可按专区查看。</text>
     <text class="announce-item">礼品持续上新，页面内容会同步更新。</text>
   </view>

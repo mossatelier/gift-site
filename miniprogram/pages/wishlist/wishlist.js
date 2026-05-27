@@ -161,7 +161,7 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: '加加办卡礼品馆 · 我的心愿单',
+      title: '加加好物图集 · 我的心愿单',
       path: '/pages/wishlist/wishlist'
     };
   }

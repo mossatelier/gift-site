@@ -100,7 +100,7 @@ Page({
   onShareAppMessage() {
     const p = this.data.product;
     return {
-      title: p ? `${p.title} · 加加办卡礼品馆` : '加加办卡礼品馆',
+      title: p ? `${p.title} · 加加好物图集` : '加加好物图集',
       path: `/pages/product/product?id=${p ? p._id : ''}`,
       imageUrl: p ? p.imageUrl : undefined
     };

@@ -120,7 +120,7 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: '加加办卡礼品馆 · 商品分类',
+      title: '加加好物图集 · 商品分类',
       path: '/pages/category/category'
     };
   }
