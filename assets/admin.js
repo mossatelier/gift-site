@@ -1782,6 +1782,17 @@ function formatStatsTimestamp(d) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} (周${week}) ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
+function formatStatsClockParts(d) {
+  if (!d) return { date: "", week: "", time: "" };
+  const pad = (n) => String(n).padStart(2, "0");
+  const week = ["日", "一", "二", "三", "四", "五", "六"][d.getDay()];
+  return {
+    date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+    week: `周${week}`,
+    time: `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  };
+}
+
 async function loadStats() {
   if (!adminStatsGrid) return;
   if (!activeSession()) {
@@ -1810,10 +1821,19 @@ function renderStats() {
   const periodLabel = PERIOD_LABEL[s.period] || s.period;
   const byStatus = (s.orders && s.orders.byStatus) || {};
   const top = Array.isArray(s.topProducts) ? s.topProducts : [];
+  const clock = formatStatsClockParts(new Date());
 
   adminStatsGrid.innerHTML = `
     <div class="admin-stats-timestamp">
-      <div class="admin-stats-clock" id="adminStatsClock">${escapeHtml(formatStatsTimestamp(new Date()))}</div>
+      <div class="admin-stats-time-head">
+        <span>当前时间</span>
+        <span class="admin-stats-live"><i></i>LIVE</span>
+      </div>
+      <div class="admin-stats-clock" id="adminStatsClockTime">${escapeHtml(clock.time)}</div>
+      <div class="admin-stats-date">
+        <span id="adminStatsClockDate">${escapeHtml(clock.date)}</span>
+        <span id="adminStatsClockWeek">${escapeHtml(clock.week)}</span>
+      </div>
       <div class="admin-stats-loaded">数据更新于 ${escapeHtml(formatStatsTimestamp(state.statsLoadedAt))}</div>
     </div>
     <div class="admin-stats-cards">
@@ -1866,8 +1886,14 @@ adminTabStats?.addEventListener("click", () => {
 
 // 实时时钟：每秒更新数据看板顶部的当前时间显示
 setInterval(() => {
-  const el = document.getElementById("adminStatsClock");
-  if (el) el.textContent = formatStatsTimestamp(new Date());
+  const timeEl = document.getElementById("adminStatsClockTime");
+  const dateEl = document.getElementById("adminStatsClockDate");
+  const weekEl = document.getElementById("adminStatsClockWeek");
+  if (!timeEl && !dateEl && !weekEl) return;
+  const clock = formatStatsClockParts(new Date());
+  if (timeEl) timeEl.textContent = clock.time;
+  if (dateEl) dateEl.textContent = clock.date;
+  if (weekEl) weekEl.textContent = clock.week;
 }, 1000);
 
 adminStatsRefreshButton?.addEventListener("click", () => loadStats());
