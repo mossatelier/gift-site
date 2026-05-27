@@ -2492,14 +2492,24 @@ textarea {
 }
 
 .admin-stats-timestamp {
-  font-size: 12px;
-  color: var(--muted);
   margin-bottom: 14px;
-  padding: 6px 10px;
+  padding: 10px 14px;
   background: rgba(234, 223, 206, 0.35);
-  border-radius: 8px;
+  border-radius: 10px;
   display: inline-block;
   font-family: ui-monospace, Menlo, monospace;
+}
+
+.admin-stats-clock {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.admin-stats-loaded {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
 }
 
 .admin-stats-cards {

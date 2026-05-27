@@ -1813,7 +1813,8 @@ function renderStats() {
 
   adminStatsGrid.innerHTML = `
     <div class="admin-stats-timestamp">
-      数据更新于 ${escapeHtml(formatStatsTimestamp(state.statsLoadedAt))}
+      <div class="admin-stats-clock" id="adminStatsClock">${escapeHtml(formatStatsTimestamp(new Date()))}</div>
+      <div class="admin-stats-loaded">数据更新于 ${escapeHtml(formatStatsTimestamp(state.statsLoadedAt))}</div>
     </div>
     <div class="admin-stats-cards">
       <div class="admin-stats-card">
@@ -1862,6 +1863,12 @@ adminTabStats?.addEventListener("click", () => {
   updatePanelUi();
   loadStats();
 });
+
+// 实时时钟：每秒更新数据看板顶部的当前时间显示
+setInterval(() => {
+  const el = document.getElementById("adminStatsClock");
+  if (el) el.textContent = formatStatsTimestamp(new Date());
+}, 1000);
 
 adminStatsRefreshButton?.addEventListener("click", () => loadStats());
 
