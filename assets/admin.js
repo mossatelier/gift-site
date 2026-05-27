@@ -185,7 +185,8 @@ const state = {
   expandedOrderId: "",
   selectedOrderIds: new Set(),
   statsPeriod: "today",
-  stats: null
+  stats: null,
+  statsLoadedAt: null
 };
 
 function isSupabaseConfigured() {
@@ -1774,6 +1775,13 @@ function setStatsMessage(text, tone = "idle") {
   adminStatsMessage.dataset.tone = tone;
 }
 
+function formatStatsTimestamp(d) {
+  if (!d) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  const week = ["日", "一", "二", "三", "四", "五", "六"][d.getDay()];
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} (周${week}) ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
 async function loadStats() {
   if (!adminStatsGrid) return;
   if (!activeSession()) {
@@ -1785,6 +1793,7 @@ async function loadStats() {
   try {
     const data = await callAdminOrders("stats", { period: state.statsPeriod });
     state.stats = data;
+    state.statsLoadedAt = new Date();
     renderStats();
   } catch (err) {
     adminStatsGrid.innerHTML = `<p class="admin-status-text">${escapeHtml(err.message)}</p>`;
@@ -1803,6 +1812,9 @@ function renderStats() {
   const top = Array.isArray(s.topProducts) ? s.topProducts : [];
 
   adminStatsGrid.innerHTML = `
+    <div class="admin-stats-timestamp">
+      数据更新于 ${escapeHtml(formatStatsTimestamp(state.statsLoadedAt))}
+    </div>
     <div class="admin-stats-cards">
       <div class="admin-stats-card">
         <div class="admin-stats-label">${escapeHtml(periodLabel)}新增用户</div>

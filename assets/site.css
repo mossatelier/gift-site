@@ -2491,6 +2491,17 @@ textarea {
   border-color: var(--red);
 }
 
+.admin-stats-timestamp {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 14px;
+  padding: 6px 10px;
+  background: rgba(234, 223, 206, 0.35);
+  border-radius: 8px;
+  display: inline-block;
+  font-family: ui-monospace, Menlo, monospace;
+}
+
 .admin-stats-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
