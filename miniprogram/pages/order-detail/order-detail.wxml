@@ -1,0 +1,58 @@
+<view class="page-shell order-detail-page">
+  <view class="loading-state" wx:if="{{loading}}">加载中…</view>
+
+  <block wx:elif="{{order}}">
+    <view class="od-status-card">
+      <text class="od-status-label status-{{order.status}}">{{statusLabel}}</text>
+      <text class="od-status-desc" wx:if="{{order.status === 'pending'}}">客服已收到申请，会主动联系你</text>
+      <text class="od-status-desc" wx:elif="{{order.status === 'processing'}}">客服正在为你办理，请保持微信畅通</text>
+      <text class="od-status-desc" wx:elif="{{order.status === 'done'}}">订单已完成，感谢支持</text>
+      <text class="od-status-desc" wx:elif="{{order.status === 'cancelled'}}">订单已取消</text>
+    </view>
+
+    <view class="od-card">
+      <text class="od-card-title">收货信息</text>
+      <text class="od-addr-main">{{order.address.recipient}}　{{order.address.phone}}</text>
+      <text class="od-addr-sub">{{order.address.province}} {{order.address.city}} {{order.address.district}} {{order.address.detail}}</text>
+    </view>
+
+    <view class="od-card">
+      <text class="od-card-title">礼品 ({{order.items.length}})</text>
+      <view class="od-item" wx:for="{{order.items}}" wx:key="productId">
+        <image class="od-item-img" src="{{item.imageUrl}}" mode="aspectFill" lazy-load />
+        <view class="od-item-body">
+          <text class="od-item-title">{{item.title}}</text>
+          <view class="od-item-meta">
+            <text class="od-item-cards" wx:if="{{item.cardsNeeded > 0}}">{{item.cardsNeeded}} 积分</text>
+            <text class="od-item-qty">× {{item.qty}}</text>
+          </view>
+        </view>
+      </view>
+      <view class="od-total" wx:if="{{order.totalCards > 0}}">
+        <text>合计积分</text>
+        <text class="od-total-num">{{order.totalCards}} 分</text>
+      </view>
+    </view>
+
+    <view class="od-card" wx:if="{{order.remark}}">
+      <text class="od-card-title">备注</text>
+      <text class="od-remark">{{order.remark}}</text>
+    </view>
+
+    <view class="od-card">
+      <view class="od-meta-row" bindtap="copyOrderId">
+        <text class="od-meta-label">订单号</text>
+        <text class="od-meta-value">{{order._id}}</text>
+        <text class="od-meta-copy">复制</text>
+      </view>
+      <view class="od-meta-row">
+        <text class="od-meta-label">提交时间</text>
+        <text class="od-meta-value">{{createdText}}</text>
+      </view>
+    </view>
+
+    <button class="primary-btn od-cta" bindtap="contactService">联系客服跟进</button>
+  </block>
+
+  <view class="bottom-spacer"></view>
+</view>

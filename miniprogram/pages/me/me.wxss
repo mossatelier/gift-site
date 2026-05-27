@@ -1,0 +1,159 @@
+.me-page {
+  padding-top: 24rpx;
+}
+
+/* 头部 */
+.me-header {
+  background: linear-gradient(135deg, #fffaf3 0%, #fff 100%);
+  border: 1rpx solid var(--line);
+  border-radius: 24rpx;
+  padding: 36rpx 28rpx;
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  box-shadow: 0 10rpx 30rpx rgba(46, 35, 18, 0.06);
+}
+
+.me-avatar {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background: var(--paper-soft);
+  border: 2rpx solid var(--line);
+  flex-shrink: 0;
+}
+
+.me-avatar.placeholder {
+  padding: 30rpx;
+  box-sizing: border-box;
+  opacity: 0.55;
+}
+
+.me-header-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  min-width: 0;
+}
+
+.me-nick {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.me-sub {
+  font-size: 24rpx;
+  color: var(--muted);
+}
+
+.me-chevron {
+  font-size: 40rpx;
+  color: var(--muted);
+}
+
+/* 区段 */
+.me-section {
+  margin-top: 28rpx;
+  background: var(--paper);
+  border-radius: 24rpx;
+  padding: 28rpx;
+  box-shadow: 0 10rpx 30rpx rgba(46, 35, 18, 0.06);
+}
+
+.me-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.me-section-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.me-section-action {
+  font-size: 24rpx;
+  color: var(--red);
+}
+
+.me-section-body {
+  margin-top: 18rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.me-section-empty {
+  color: var(--muted);
+  font-size: 26rpx;
+}
+
+.addr-line-main {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.addr-line-sub {
+  font-size: 26rpx;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* 菜单 */
+.me-menu {
+  margin-top: 28rpx;
+  background: var(--paper);
+  border-radius: 24rpx;
+  box-shadow: 0 10rpx 30rpx rgba(46, 35, 18, 0.06);
+  overflow: hidden;
+}
+
+.me-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 30rpx 28rpx;
+  border-bottom: 1rpx solid var(--line);
+}
+
+.me-menu-item:last-child {
+  border-bottom: none;
+}
+
+.me-menu-icon {
+  font-size: 36rpx;
+  width: 48rpx;
+}
+
+.me-menu-text {
+  flex: 1;
+  font-size: 28rpx;
+  color: var(--text);
+}
+
+.me-menu-chevron {
+  font-size: 36rpx;
+  color: var(--muted);
+}
+
+/* 退出 */
+.me-logout {
+  margin-top: 40rpx;
+  background: var(--paper);
+  color: var(--red);
+  font-size: 28rpx;
+  border-radius: 24rpx;
+  padding: 24rpx 0;
+  border: 1rpx solid var(--line);
+  box-shadow: 0 8rpx 18rpx rgba(46, 35, 18, 0.04);
+}
+
+.me-logout::after { border: none; }
+
+.bottom-spacer {
+  height: 40rpx;
+}

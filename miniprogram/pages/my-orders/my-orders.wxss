@@ -1,0 +1,120 @@
+.my-orders-page {
+  padding-top: 16rpx;
+}
+
+.orders-empty {
+  padding: 120rpx 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  opacity: 0.4;
+}
+
+.empty-title {
+  font-size: 30rpx;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.empty-text {
+  font-size: 24rpx;
+  color: var(--muted);
+}
+
+.order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  padding-top: 12rpx;
+}
+
+.order-card {
+  background: var(--paper);
+  border-radius: 24rpx;
+  padding: 24rpx;
+  box-shadow: 0 10rpx 30rpx rgba(46, 35, 18, 0.06);
+}
+
+.order-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 18rpx;
+  border-bottom: 1rpx dashed var(--line);
+}
+
+.order-date {
+  font-size: 24rpx;
+  color: var(--muted);
+}
+
+.order-status {
+  font-size: 24rpx;
+  font-weight: 600;
+  padding: 4rpx 16rpx;
+  border-radius: 999rpx;
+}
+
+.status-pending    { color: var(--red);    background: rgba(214, 75, 42, 0.10); }
+.status-processing { color: var(--gold);   background: rgba(224, 172, 77, 0.16); }
+.status-done       { color: var(--green);  background: rgba(22, 122, 97, 0.12); }
+.status-cancelled  { color: var(--muted);  background: rgba(114, 105, 92, 0.10); }
+
+.order-body {
+  margin-top: 18rpx;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.order-thumb {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 16rpx;
+  background: var(--paper-soft);
+  flex-shrink: 0;
+}
+
+.order-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  min-width: 0;
+}
+
+.order-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  line-height: 1.4;
+}
+
+.order-meta {
+  font-size: 24rpx;
+  color: var(--muted);
+}
+
+.order-cards {
+  font-size: 24rpx;
+  color: var(--red);
+  font-weight: 600;
+}
+
+.order-chevron {
+  font-size: 40rpx;
+  color: var(--muted);
+}
+
+.bottom-spacer {
+  height: 40rpx;
+}

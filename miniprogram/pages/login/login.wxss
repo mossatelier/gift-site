@@ -1,0 +1,93 @@
+.login-page {
+  min-height: 100vh;
+  padding-top: 60rpx;
+}
+
+.login-card {
+  background: var(--paper);
+  border-radius: 24rpx;
+  padding: 48rpx 36rpx 40rpx;
+  box-shadow: 0 10rpx 30rpx rgba(46, 35, 18, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.login-title {
+  font-size: 38rpx;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.login-sub {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: var(--muted);
+  text-align: center;
+}
+
+.avatar-btn {
+  margin-top: 40rpx;
+  background: transparent;
+  padding: 0;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.4;
+}
+
+.avatar-btn::after { border: none; }
+
+.avatar-img {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  background: var(--paper-soft);
+  border: 2rpx solid var(--line);
+}
+
+.avatar-tip {
+  margin-top: 14rpx;
+  font-size: 24rpx;
+  color: var(--muted);
+}
+
+.field {
+  width: 100%;
+  margin-top: 32rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.field-label {
+  font-size: 26rpx;
+  color: var(--muted);
+}
+
+.field-input {
+  background: var(--paper-soft);
+  border: 1rpx solid var(--line);
+  border-radius: 16rpx;
+  padding: 22rpx 24rpx;
+  font-size: 30rpx;
+  color: var(--text);
+}
+
+.login-submit {
+  margin-top: 48rpx;
+  width: 100%;
+}
+
+.login-submit.disabled {
+  opacity: 0.6;
+}
+
+.login-fineprint {
+  margin-top: 24rpx;
+  font-size: 22rpx;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.5;
+}

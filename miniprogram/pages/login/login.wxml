@@ -1,0 +1,39 @@
+<view class="page-shell login-page">
+  <view class="login-card">
+    <text class="login-title">微信登录</text>
+    <text class="login-sub">填写头像和昵称后可提交申请、管理订单</text>
+
+    <button
+      class="avatar-btn"
+      open-type="chooseAvatar"
+      bindchooseavatar="onChooseAvatar"
+    >
+      <image
+        class="avatar-img"
+        src="{{avatarUrl || '/images/icons/service.svg'}}"
+        mode="aspectFill"
+      />
+      <text class="avatar-tip">{{avatarUrl ? '点击更换头像' : '点击选择头像'}}</text>
+    </button>
+
+    <view class="field">
+      <text class="field-label">昵称</text>
+      <input
+        class="field-input"
+        type="nickname"
+        placeholder="请输入昵称"
+        value="{{nickName}}"
+        bindinput="onNickInput"
+        maxlength="20"
+      />
+    </view>
+
+    <button
+      class="primary-btn login-submit {{submitting ? 'disabled' : ''}}"
+      bindtap="onSubmit"
+      disabled="{{submitting}}"
+    >{{submitting ? '提交中…' : '确认登录'}}</button>
+
+    <text class="login-fineprint">登录即表示同意将昵称、头像与微信号关联，用于礼品申请与发放沟通</text>
+  </view>
+</view>

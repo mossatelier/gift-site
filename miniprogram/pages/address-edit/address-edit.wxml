@@ -1,0 +1,53 @@
+<view class="page-shell address-edit-page">
+  <view class="loading-state" wx:if="{{loading}}">加载中…</view>
+
+  <view class="addr-card" wx:else>
+    <view class="addr-row">
+      <text class="addr-label">收件人</text>
+      <input class="addr-input" placeholder="姓名" value="{{recipient}}" bindinput="onRecipient" maxlength="20" />
+    </view>
+
+    <view class="addr-row">
+      <text class="addr-label">手机号</text>
+      <input
+        class="addr-input"
+        type="number"
+        placeholder="11 位手机号"
+        value="{{phone}}"
+        bindinput="onPhone"
+        maxlength="11"
+      />
+    </view>
+
+    <picker
+      mode="region"
+      value="{{region}}"
+      bindchange="onRegionChange"
+    >
+      <view class="addr-row">
+        <text class="addr-label">所在地区</text>
+        <view class="addr-picker {{regionText ? '' : 'placeholder'}}">
+          {{regionText || '点击选择省 / 市 / 区'}}
+        </view>
+      </view>
+    </picker>
+
+    <view class="addr-row addr-row-multiline">
+      <text class="addr-label">详细地址</text>
+      <textarea
+        class="addr-textarea"
+        placeholder="街道、楼栋号、门牌号等"
+        value="{{detail}}"
+        bindinput="onDetail"
+        maxlength="200"
+        auto-height
+      />
+    </view>
+
+    <button
+      class="primary-btn addr-submit {{submitting ? 'disabled' : ''}}"
+      bindtap="onSubmit"
+      disabled="{{submitting}}"
+    >{{submitting ? '保存中…' : '保存地址'}}</button>
+  </view>
+</view>

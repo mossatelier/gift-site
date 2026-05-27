@@ -1,0 +1,66 @@
+.address-edit-page {
+  padding-top: 24rpx;
+}
+
+.addr-card {
+  background: var(--paper);
+  border-radius: 24rpx;
+  padding: 12rpx 28rpx 28rpx;
+  box-shadow: 0 10rpx 30rpx rgba(46, 35, 18, 0.08);
+}
+
+.addr-row {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  padding: 28rpx 0;
+  border-bottom: 1rpx solid var(--line);
+}
+
+.addr-row-multiline {
+  align-items: flex-start;
+}
+
+.addr-row:last-of-type {
+  border-bottom: none;
+}
+
+.addr-label {
+  flex: 0 0 130rpx;
+  font-size: 28rpx;
+  color: var(--muted);
+}
+
+.addr-input {
+  flex: 1;
+  font-size: 30rpx;
+  color: var(--text);
+}
+
+.addr-picker {
+  flex: 1;
+  font-size: 30rpx;
+  color: var(--text);
+}
+
+.addr-picker.placeholder {
+  color: #b8b1a4;
+}
+
+.addr-textarea {
+  flex: 1;
+  font-size: 30rpx;
+  color: var(--text);
+  min-height: 120rpx;
+  padding-top: 6rpx;
+  width: auto;
+}
+
+.addr-submit {
+  margin-top: 40rpx;
+  width: 100%;
+}
+
+.addr-submit.disabled {
+  opacity: 0.6;
+}

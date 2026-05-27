@@ -1,0 +1,9 @@
+{
+  "name": "submit-order",
+  "version": "1.0.0",
+  "description": "Validate wishlist + address and create an order with server-side snapshots",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}

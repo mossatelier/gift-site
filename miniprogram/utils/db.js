@@ -147,6 +147,66 @@ function normalize(item) {
   };
 }
 
+// ============ 地址（addresses 集合，一人一份） ============
+
+async function getMyAddress(openid) {
+  if (!openid) return null;
+  const res = await db().collection('addresses')
+    .where({ openid })
+    .limit(1)
+    .get();
+  return res.data[0] || null;
+}
+
+async function upsertMyAddress(openid, patch) {
+  if (!openid) throw new Error('未登录');
+  const now = new Date();
+  const cleaned = {
+    recipient: (patch.recipient || '').trim(),
+    phone: (patch.phone || '').trim(),
+    province: (patch.province || '').trim(),
+    city: (patch.city || '').trim(),
+    district: (patch.district || '').trim(),
+    detail: (patch.detail || '').trim()
+  };
+  if (!cleaned.recipient) throw new Error('请填写收件人姓名');
+  if (!/^1\d{10}$/.test(cleaned.phone)) throw new Error('手机号格式不正确');
+  if (!cleaned.province || !cleaned.city) throw new Error('请选择所在地区');
+  if (!cleaned.detail) throw new Error('请填写详细地址');
+
+  const existing = await getMyAddress(openid);
+  if (existing) {
+    await db().collection('addresses').doc(existing._id).update({
+      data: { ...cleaned, updatedAt: now }
+    });
+    return { ...existing, ...cleaned, updatedAt: now };
+  }
+  const doc = { openid, ...cleaned, createdAt: now, updatedAt: now };
+  const add = await db().collection('addresses').add({ data: doc });
+  return { _id: add._id, ...doc };
+}
+
+// ============ 订单（orders 集合，写靠云函数，读靠 SDK） ============
+
+async function listMyOrders(openid, { limit = 20, skip = 0 } = {}) {
+  if (!openid) return [];
+  const res = await db().collection('orders')
+    .where({ openid })
+    .orderBy('createdAt', 'desc')
+    .skip(skip)
+    .limit(limit)
+    .get();
+  return res.data;
+}
+
+async function getMyOrder(openid, id) {
+  if (!openid || !id) return null;
+  const r = await db().collection('orders').doc(id).get();
+  const order = r && r.data;
+  if (!order || order.openid !== openid) return null;
+  return order;
+}
+
 module.exports = {
   listProducts,
   countProducts,
@@ -154,5 +214,9 @@ module.exports = {
   getProductsByIds,
   listHotProducts,
   listNewProducts,
-  listBanks
+  listBanks,
+  getMyAddress,
+  upsertMyAddress,
+  listMyOrders,
+  getMyOrder
 };

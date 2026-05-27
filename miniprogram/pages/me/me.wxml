@@ -1,0 +1,66 @@
+<view class="page-shell me-page">
+
+  <!-- 头部：未登录 -->
+  <view class="me-header" wx:if="{{!user}}" bindtap="goLogin">
+    <image class="me-avatar placeholder" src="/images/icons/service.svg" mode="aspectFit" />
+    <view class="me-header-text">
+      <text class="me-nick">点击登录</text>
+      <text class="me-sub">登录后可提交申请、管理收货地址</text>
+    </view>
+    <text class="me-chevron">›</text>
+  </view>
+
+  <!-- 头部：已登录 -->
+  <view class="me-header" wx:else>
+    <image class="me-avatar" src="{{user.avatarUrl || '/images/icons/service.svg'}}" mode="aspectFill" />
+    <view class="me-header-text">
+      <text class="me-nick">{{user.nickName || '微信用户'}}</text>
+      <text class="me-sub">已登录</text>
+    </view>
+  </view>
+
+  <!-- 收货地址摘要 -->
+  <view class="me-section" bindtap="goAddress">
+    <view class="me-section-head">
+      <text class="me-section-title">📍 收货地址</text>
+      <text class="me-section-action">{{address ? '编辑' : '去填写'}} ›</text>
+    </view>
+    <view class="me-section-body" wx:if="{{user && address}}">
+      <text class="addr-line addr-line-main">{{address.recipient}}　{{address.phone}}</text>
+      <text class="addr-line addr-line-sub">{{address.province}} {{address.city}} {{address.district}} {{address.detail}}</text>
+    </view>
+    <view class="me-section-body me-section-empty" wx:elif="{{user && !address}}">
+      <text>还没有收货地址，点击填写</text>
+    </view>
+    <view class="me-section-body me-section-empty" wx:else>
+      <text>登录后可填写收货地址</text>
+    </view>
+  </view>
+
+  <!-- 功能入口 -->
+  <view class="me-menu">
+    <view class="me-menu-item" bindtap="goOrders">
+      <text class="me-menu-icon">📦</text>
+      <text class="me-menu-text">我的订单</text>
+      <text class="me-menu-chevron">›</text>
+    </view>
+    <view class="me-menu-item" bindtap="goWishlist">
+      <text class="me-menu-icon">❤</text>
+      <text class="me-menu-text">心愿单</text>
+      <text class="me-menu-chevron">›</text>
+    </view>
+    <view class="me-menu-item" bindtap="goService">
+      <text class="me-menu-icon">💬</text>
+      <text class="me-menu-text">联系客服</text>
+      <text class="me-menu-chevron">›</text>
+    </view>
+  </view>
+
+  <button
+    wx:if="{{user}}"
+    class="me-logout"
+    bindtap="logout"
+  >退出登录</button>
+
+  <view class="bottom-spacer"></view>
+</view>

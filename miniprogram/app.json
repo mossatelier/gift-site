@@ -5,6 +5,11 @@
     "pages/product/product",
     "pages/category/category",
     "pages/wishlist/wishlist",
+    "pages/me/me",
+    "pages/login/login",
+    "pages/address-edit/address-edit",
+    "pages/my-orders/my-orders",
+    "pages/order-detail/order-detail",
     "pages/card-flow/card-flow",
     "pages/claim-guide/claim-guide",
     "pages/bank-new-user/bank-new-user",
@@ -40,6 +45,10 @@
       {
         "pagePath": "pages/wishlist/wishlist",
         "text": "心愿单"
+      },
+      {
+        "pagePath": "pages/me/me",
+        "text": "我的"
       }
     ]
   },
