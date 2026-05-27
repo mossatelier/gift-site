@@ -2409,6 +2409,214 @@ textarea {
   min-height: 36px;
 }
 
+.admin-orders-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  background: rgba(234, 223, 206, 0.35);
+  border-radius: 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+
+.admin-bulk-checkbox-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.admin-bulk-checkbox-wrap input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--red);
+}
+
+.admin-bulk-selected {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.admin-order-checkbox {
+  margin-right: 12px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--red);
+}
+
+.admin-orders-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 18px 8px 4px;
+  flex-wrap: wrap;
+}
+
+.admin-pagination-info {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.admin-orders-pagination button[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* === Admin: stats panel === */
+.admin-stats-period {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 14px 0 18px;
+}
+
+.admin-stats-chip {
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(234, 223, 206, 0.95);
+  background: #fff;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-stats-chip.active {
+  background: var(--red);
+  color: #fff;
+  border-color: var(--red);
+}
+
+.admin-stats-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.admin-stats-card {
+  background: #fff;
+  border: 1px solid rgba(234, 223, 206, 0.9);
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.admin-stats-label {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.admin-stats-value {
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--text);
+  margin-top: 8px;
+  line-height: 1.1;
+}
+
+.admin-stats-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.admin-stats-status-grid {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-stats-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.admin-stats-section {
+  margin-top: 18px;
+}
+
+.admin-stats-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 12px;
+}
+
+.admin-stats-top-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-stats-top-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid rgba(234, 223, 206, 0.9);
+  border-radius: 12px;
+}
+
+.admin-stats-rank {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--red);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.admin-stats-top-item:nth-child(n+4) .admin-stats-rank {
+  background: var(--muted);
+}
+
+.admin-stats-top-item img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #f4f1ea;
+  flex-shrink: 0;
+}
+
+.admin-stats-top-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-stats-top-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.admin-stats-top-meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
 /* === Earn page === */
 .bank-table {
   margin: 0 0 12px;

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>加多宝礼品屋 · 商品录入后台</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="assets/site.css?v=7">
+  <link rel="stylesheet" href="assets/site.css?v=9">
 </head>
 <body class="admin-page">
   <main class="admin-shell">
@@ -59,6 +59,7 @@
         <button class="admin-panel-tab" id="adminTabEdit" type="button">编辑礼品</button>
         <button class="admin-panel-tab" id="adminTabBanks" type="button">银行积分</button>
         <button class="admin-panel-tab" id="adminTabOrders" type="button">申请管理</button>
+        <button class="admin-panel-tab" id="adminTabStats" type="button">数据看板</button>
       </section>
 
       <section class="admin-card" id="adminCreatePanel">
@@ -214,10 +215,43 @@
           <input id="adminOrdersSearchInput" type="search" placeholder="搜索：礼品名/收件人/手机/备注">
           <span class="admin-orders-count" id="adminOrdersCount"></span>
         </div>
+        <div class="admin-orders-bulk-bar" id="adminOrdersBulkBar" hidden>
+          <label class="admin-bulk-checkbox-wrap">
+            <input id="adminOrdersSelectAll" type="checkbox">
+            <span>全选本页</span>
+          </label>
+          <span class="admin-bulk-selected" id="adminOrdersSelectedCount">已选 0 单</span>
+          <select id="adminOrdersBulkStatus">
+            <option value="">改为…</option>
+            <option value="pending">待处理</option>
+            <option value="processing">处理中</option>
+            <option value="done">已完成</option>
+            <option value="cancelled">已取消</option>
+          </select>
+          <button class="admin-secondary-btn" id="adminOrdersBulkApply" type="button">批量更新</button>
+          <button class="admin-secondary-btn" id="adminOrdersBulkClear" type="button">取消选择</button>
+        </div>
         <div class="admin-orders-list" id="adminOrdersList">
           <p class="admin-status-text">加载中…</p>
         </div>
         <p class="admin-inline-message" id="adminOrdersMessage"></p>
+      </section>
+
+      <section class="admin-card" id="adminStatsPanel" hidden>
+        <div class="admin-status-head">
+          <h2 class="admin-section-title">数据看板</h2>
+          <button class="admin-secondary-btn" id="adminStatsRefreshButton" type="button">刷新</button>
+        </div>
+        <div class="admin-stats-period" id="adminStatsPeriod">
+          <button class="admin-stats-chip active" data-stats-period="today" type="button">今日</button>
+          <button class="admin-stats-chip" data-stats-period="week" type="button">本周</button>
+          <button class="admin-stats-chip" data-stats-period="month" type="button">本月</button>
+          <button class="admin-stats-chip" data-stats-period="all" type="button">全部</button>
+        </div>
+        <div class="admin-stats-grid" id="adminStatsGrid">
+          <p class="admin-status-text">加载中…</p>
+        </div>
+        <p class="admin-inline-message" id="adminStatsMessage"></p>
       </section>
 
       <section class="admin-card" id="adminBanksPanel" hidden>
@@ -234,7 +268,7 @@
     </div>
   </main>
 
-  <script src="assets/config.js?v=2"></script>
-  <script src="assets/admin.js?v=2"></script>
+  <script src="assets/config.js?v=4"></script>
+  <script src="assets/admin.js?v=4"></script>
 </body>
 </html>

@@ -130,6 +130,111 @@ async function updateOrderStatus({ orderId, status, adminNote }) {
   return r.data;
 }
 
+// 周期统计
+async function getStats({ period = 'today' }) {
+  const now = new Date();
+  let since = null;
+  if (period === 'today') {
+    since = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  } else if (period === 'week') {
+    // 周一为本周起点
+    const dow = now.getDay() || 7; // 周日=0 → 7
+    since = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 1);
+  } else if (period === 'month') {
+    since = new Date(now.getFullYear(), now.getMonth(), 1);
+  }
+
+  // 用户
+  const usersTotal = (await db.collection('users').count()).total || 0;
+  const usersNew = since
+    ? ((await db.collection('users').where({ createdAt: _.gte(since) }).count()).total || 0)
+    : usersTotal;
+
+  // 订单：拉周期内 + 取总数
+  const orderWhere = since ? { createdAt: _.gte(since) } : {};
+  const ordersTotal = (await db.collection('orders').where(orderWhere).count()).total || 0;
+  const orderRes = await db.collection('orders')
+    .where(orderWhere)
+    .orderBy('createdAt', 'desc')
+    .limit(1000)
+    .get();
+  const orders = orderRes.data;
+
+  // 按状态分布
+  const byStatus = { pending: 0, processing: 0, done: 0, cancelled: 0 };
+  for (const o of orders) {
+    if (byStatus[o.status] !== undefined) byStatus[o.status]++;
+  }
+
+  // Top 5 申请最多的礼品（按 qty 累计）
+  const productCounts = {};
+  for (const o of orders) {
+    if (Array.isArray(o.items)) {
+      for (const it of o.items) {
+        const key = it.productId || it.title;
+        if (!key) continue;
+        if (!productCounts[key]) {
+          productCounts[key] = {
+            productId: it.productId || '',
+            title: it.title || '(未命名)',
+            imageUrl: it.imageUrl || '',
+            count: 0,
+            cards: 0
+          };
+        }
+        const qty = it.qty || 1;
+        productCounts[key].count += qty;
+        productCounts[key].cards += (it.cardsNeeded || 0) * qty;
+      }
+    }
+  }
+  const topProducts = Object.values(productCounts)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  // 总积分（周期内）
+  const totalCards = orders.reduce((sum, o) => sum + (o.totalCards || 0), 0);
+
+  return {
+    period,
+    since: since ? since.toISOString() : null,
+    users: { total: usersTotal, newInPeriod: usersNew },
+    orders: {
+      total: ordersTotal,
+      byStatus,
+      totalCards,
+      sampleSize: orders.length // 用了多少条数据做聚合（受 1000 上限）
+    },
+    topProducts
+  };
+}
+
+async function updateOrderStatusBulk({ orderIds, status }) {
+  if (!Array.isArray(orderIds) || orderIds.length === 0) {
+    throw new Error('缺少 orderIds');
+  }
+  if (orderIds.length > 200) throw new Error('单次最多 200 单');
+  if (!ALLOWED_STATUS.includes(status)) throw new Error('非法状态');
+  const now = new Date();
+  // 并发 20 一批
+  const BATCH = 20;
+  let updated = 0;
+  let failed = 0;
+  for (let i = 0; i < orderIds.length; i += BATCH) {
+    const slice = orderIds.slice(i, i + BATCH);
+    const results = await Promise.allSettled(slice.map(id =>
+      db.collection('orders').doc(id).update({
+        data: { status, updatedAt: now }
+      })
+    ));
+    results.forEach(r => {
+      if (r.status === 'fulfilled') updated++;
+      else failed++;
+    });
+  }
+  return { updated, failed, total: orderIds.length };
+}
+
 // ---------- Entry ----------
 
 function buildResponse(statusCode, payload) {
@@ -182,6 +287,12 @@ exports.main = async (event) => {
         break;
       case 'update-status':
         data = await updateOrderStatus(body);
+        break;
+      case 'update-status-bulk':
+        data = await updateOrderStatusBulk(body);
+        break;
+      case 'stats':
+        data = await getStats(body);
         break;
       default:
         return buildResponse(400, { ok: false, error: '未知 action' });

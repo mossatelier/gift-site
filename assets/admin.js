@@ -56,6 +56,18 @@ const adminOrdersStatusFilter = document.getElementById("adminOrdersStatusFilter
 const adminOrdersSearchInput = document.getElementById("adminOrdersSearchInput");
 const adminOrdersCount = document.getElementById("adminOrdersCount");
 const adminOrdersRefreshButton = document.getElementById("adminOrdersRefreshButton");
+const adminOrdersBulkBar = document.getElementById("adminOrdersBulkBar");
+const adminOrdersSelectAll = document.getElementById("adminOrdersSelectAll");
+const adminOrdersSelectedCount = document.getElementById("adminOrdersSelectedCount");
+const adminOrdersBulkStatus = document.getElementById("adminOrdersBulkStatus");
+const adminOrdersBulkApply = document.getElementById("adminOrdersBulkApply");
+const adminOrdersBulkClear = document.getElementById("adminOrdersBulkClear");
+const adminTabStats = document.getElementById("adminTabStats");
+const adminStatsPanel = document.getElementById("adminStatsPanel");
+const adminStatsPeriod = document.getElementById("adminStatsPeriod");
+const adminStatsGrid = document.getElementById("adminStatsGrid");
+const adminStatsMessage = document.getElementById("adminStatsMessage");
+const adminStatsRefreshButton = document.getElementById("adminStatsRefreshButton");
 
 const subcategoriesMap = config.subcategories || {};
 const TITLE_HISTORY_KEY = "gift-site-admin-title-history";
@@ -168,7 +180,12 @@ const state = {
   ordersTotal: 0,
   ordersStatus: "pending",
   ordersSearch: "",
-  expandedOrderId: ""
+  ordersPage: 0,
+  ordersPageSize: 50,
+  expandedOrderId: "",
+  selectedOrderIds: new Set(),
+  statsPeriod: "today",
+  stats: null
 };
 
 function isSupabaseConfigured() {
@@ -415,13 +432,15 @@ function updatePanelUi() {
     create: adminCreatePanel,
     edit: adminEditPanel,
     banks: adminBanksPanel,
-    orders: adminOrdersPanel
+    orders: adminOrdersPanel,
+    stats: adminStatsPanel
   };
   const tabs = {
     create: adminTabCreate,
     edit: adminTabEdit,
     banks: adminTabBanks,
-    orders: adminTabOrders
+    orders: adminTabOrders,
+    stats: adminTabStats
   };
 
   Object.keys(panels).forEach((key) => {
@@ -1452,13 +1471,22 @@ async function loadOrders() {
   setOrdersMessage("");
   try {
     const status = state.ordersStatus === "all" ? "" : state.ordersStatus;
+    const skip = state.ordersPage * state.ordersPageSize;
     const data = await callAdminOrders("list", {
       status,
       search: state.ordersSearch,
-      limit: 200
+      limit: state.ordersPageSize,
+      skip
     });
     state.orders = Array.isArray(data && data.items) ? data.items : [];
     state.ordersTotal = (data && data.total) || 0;
+
+    // 翻到了空页面（比如刚才那页的订单都被改状态搬走了）→ 回退一页重拉
+    const totalPages = Math.max(1, Math.ceil(state.ordersTotal / state.ordersPageSize));
+    if (state.orders.length === 0 && state.ordersPage > 0 && state.ordersPage >= totalPages) {
+      state.ordersPage = totalPages - 1;
+      return loadOrders();
+    }
     renderOrdersList();
   } catch (err) {
     adminOrdersList.innerHTML = `<p class="admin-status-text">${escapeHtml(err.message)}</p>`;
@@ -1476,21 +1504,40 @@ function formatOrderDate(d) {
   }
 }
 
+function renderOrdersPagination() {
+  const total = state.ordersTotal;
+  const size = state.ordersPageSize;
+  const page = state.ordersPage;
+  const totalPages = Math.max(1, Math.ceil(total / size));
+  const start = total === 0 ? 0 : page * size + 1;
+  const end = Math.min(total, (page + 1) * size);
+  const prevDisabled = page <= 0 ? "disabled" : "";
+  const nextDisabled = page >= totalPages - 1 ? "disabled" : "";
+  return `
+    <div class="admin-orders-pagination">
+      <button class="admin-secondary-btn" data-page-prev type="button" ${prevDisabled}>‹ 上一页</button>
+      <span class="admin-pagination-info">${start}-${end} / 共 ${total} 单 · 第 ${page + 1} / ${totalPages} 页</span>
+      <button class="admin-secondary-btn" data-page-next type="button" ${nextDisabled}>下一页 ›</button>
+    </div>
+  `;
+}
+
 function renderOrdersList() {
   if (!adminOrdersList) return;
   if (adminOrdersCount) {
     const showing = state.orders.length;
-    adminOrdersCount.textContent = `当前筛选 ${state.ordersTotal} 单，显示 ${showing}`;
+    adminOrdersCount.textContent = `当前筛选 ${state.ordersTotal} 单`;
   }
   if (state.orders.length === 0) {
     adminOrdersList.innerHTML = "<p class=\"admin-status-text\">没有符合条件的订单。</p>";
     return;
   }
 
-  adminOrdersList.innerHTML = state.orders.map((o) => {
+  const cardsHtml = state.orders.map((o) => {
     const addr = o.address || {};
     const items = Array.isArray(o.items) ? o.items : [];
     const isOpen = state.expandedOrderId === o._id;
+    const isChecked = state.selectedOrderIds.has(o._id);
     const itemsHtml = items.map((it) => `
       <div class="admin-order-item">
         ${it.imageUrl ? `<img src="${escapeHtml(it.imageUrl)}" alt="">` : ""}
@@ -1512,6 +1559,7 @@ function renderOrdersList() {
     return `
       <div class="admin-order-card${isOpen ? " admin-order-open" : ""}">
         <div class="admin-order-head" data-toggle-order="${escapeHtml(o._id)}">
+          <input type="checkbox" class="admin-order-checkbox" data-select-order="${escapeHtml(o._id)}"${isChecked ? " checked" : ""}>
           <div class="admin-order-head-left">
             <span class="admin-order-recipient">${escapeHtml(addr.recipient || "(无收件人)")}</span>
             <span class="admin-order-summary">${escapeHtml(items.length)} 件 / ${escapeHtml(o.totalCards || 0)} 分</span>
@@ -1546,6 +1594,46 @@ function renderOrdersList() {
       </div>
     `;
   }).join("");
+  adminOrdersList.innerHTML = cardsHtml + renderOrdersPagination();
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  if (!adminOrdersBulkBar) return;
+  const selectedOnPage = state.orders.filter(o => state.selectedOrderIds.has(o._id)).length;
+  const total = state.orders.length;
+  adminOrdersBulkBar.hidden = total === 0;
+  if (adminOrdersSelectAll) {
+    adminOrdersSelectAll.checked = total > 0 && selectedOnPage === total;
+    adminOrdersSelectAll.indeterminate = selectedOnPage > 0 && selectedOnPage < total;
+  }
+  if (adminOrdersSelectedCount) {
+    adminOrdersSelectedCount.textContent = `已选 ${state.selectedOrderIds.size} 单`;
+  }
+}
+
+async function handleBulkUpdate() {
+  const status = adminOrdersBulkStatus ? adminOrdersBulkStatus.value : "";
+  if (!status) {
+    setOrdersMessage("请选择要改成的状态。", "error");
+    return;
+  }
+  const ids = Array.from(state.selectedOrderIds);
+  if (ids.length === 0) {
+    setOrdersMessage("请先勾选订单。", "error");
+    return;
+  }
+  if (!confirm(`确认把 ${ids.length} 单改为「${ORDER_STATUS_LABEL[status]}」？`)) return;
+  setOrdersMessage("批量更新中…");
+  try {
+    const res = await callAdminOrders("update-status-bulk", { orderIds: ids, status });
+    state.selectedOrderIds.clear();
+    if (adminOrdersBulkStatus) adminOrdersBulkStatus.value = "";
+    setOrdersMessage(`成功 ${res.updated} 单，失败 ${res.failed || 0} 单。`, "success");
+    loadOrders();
+  } catch (err) {
+    setOrdersMessage(err.message, "error");
+  }
 }
 
 async function handleOrderStatusChange(select) {
@@ -1595,6 +1683,7 @@ adminOrdersRefreshButton?.addEventListener("click", () => loadOrders());
 
 adminOrdersStatusFilter?.addEventListener("change", () => {
   state.ordersStatus = adminOrdersStatusFilter.value || "all";
+  state.ordersPage = 0;
   loadOrders();
 });
 
@@ -1603,13 +1692,42 @@ adminOrdersSearchInput?.addEventListener("input", () => {
   clearTimeout(ordersSearchTimer);
   ordersSearchTimer = setTimeout(() => {
     state.ordersSearch = adminOrdersSearchInput.value || "";
+    state.ordersPage = 0;
     loadOrders();
   }, 300);
 });
 
 adminOrdersList?.addEventListener("click", (event) => {
+  const checkbox = event.target.closest("[data-select-order]");
+  if (checkbox) {
+    event.stopPropagation();
+    const id = checkbox.dataset.selectOrder;
+    if (checkbox.checked) state.selectedOrderIds.add(id);
+    else state.selectedOrderIds.delete(id);
+    updateBulkBar();
+    return;
+  }
+  const prev = event.target.closest("[data-page-prev]");
+  const next = event.target.closest("[data-page-next]");
   const toggle = event.target.closest("[data-toggle-order]");
   const copy = event.target.closest("[data-copy-order]");
+  if (prev) {
+    if (state.ordersPage > 0) {
+      state.ordersPage--;
+      state.expandedOrderId = "";
+      loadOrders();
+    }
+    return;
+  }
+  if (next) {
+    const totalPages = Math.max(1, Math.ceil(state.ordersTotal / state.ordersPageSize));
+    if (state.ordersPage < totalPages - 1) {
+      state.ordersPage++;
+      state.expandedOrderId = "";
+      loadOrders();
+    }
+    return;
+  }
   if (copy) {
     event.stopPropagation();
     copyOrderAddress(copy.dataset.copyOrder);
@@ -1626,6 +1744,125 @@ adminOrdersList?.addEventListener("change", (event) => {
   const sel = event.target.closest(".admin-order-status-select");
   if (!sel) return;
   handleOrderStatusChange(sel);
+});
+
+adminOrdersSelectAll?.addEventListener("change", () => {
+  const checked = adminOrdersSelectAll.checked;
+  if (checked) {
+    state.orders.forEach(o => state.selectedOrderIds.add(o._id));
+  } else {
+    state.orders.forEach(o => state.selectedOrderIds.delete(o._id));
+  }
+  renderOrdersList();
+});
+
+adminOrdersBulkApply?.addEventListener("click", handleBulkUpdate);
+
+adminOrdersBulkClear?.addEventListener("click", () => {
+  state.selectedOrderIds.clear();
+  if (adminOrdersBulkStatus) adminOrdersBulkStatus.value = "";
+  renderOrdersList();
+});
+
+// ============ 数据看板 ============
+
+const PERIOD_LABEL = { today: "今日", week: "本周", month: "本月", all: "全部" };
+
+function setStatsMessage(text, tone = "idle") {
+  if (!adminStatsMessage) return;
+  adminStatsMessage.textContent = text;
+  adminStatsMessage.dataset.tone = tone;
+}
+
+async function loadStats() {
+  if (!adminStatsGrid) return;
+  if (!activeSession()) {
+    adminStatsGrid.innerHTML = "<p class=\"admin-status-text\">请先登录管理员账号。</p>";
+    return;
+  }
+  adminStatsGrid.innerHTML = "<p class=\"admin-status-text\">加载中…</p>";
+  setStatsMessage("");
+  try {
+    const data = await callAdminOrders("stats", { period: state.statsPeriod });
+    state.stats = data;
+    renderStats();
+  } catch (err) {
+    adminStatsGrid.innerHTML = `<p class="admin-status-text">${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function renderStats() {
+  if (!adminStatsGrid) return;
+  const s = state.stats;
+  if (!s) {
+    adminStatsGrid.innerHTML = "";
+    return;
+  }
+  const periodLabel = PERIOD_LABEL[s.period] || s.period;
+  const byStatus = (s.orders && s.orders.byStatus) || {};
+  const top = Array.isArray(s.topProducts) ? s.topProducts : [];
+
+  adminStatsGrid.innerHTML = `
+    <div class="admin-stats-cards">
+      <div class="admin-stats-card">
+        <div class="admin-stats-label">${escapeHtml(periodLabel)}新增用户</div>
+        <div class="admin-stats-value">${escapeHtml(s.users.newInPeriod)}</div>
+        <div class="admin-stats-sub">累计 ${escapeHtml(s.users.total)} 个用户</div>
+      </div>
+      <div class="admin-stats-card">
+        <div class="admin-stats-label">${escapeHtml(periodLabel)}申请订单</div>
+        <div class="admin-stats-value">${escapeHtml(s.orders.total)}</div>
+        <div class="admin-stats-sub">合计 ${escapeHtml(s.orders.totalCards || 0)} 积分</div>
+      </div>
+      <div class="admin-stats-card">
+        <div class="admin-stats-label">订单状态分布</div>
+        <div class="admin-stats-status-grid">
+          <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-pending">待处理</span><span>${escapeHtml(byStatus.pending || 0)}</span></div>
+          <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-processing">处理中</span><span>${escapeHtml(byStatus.processing || 0)}</span></div>
+          <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-done">已完成</span><span>${escapeHtml(byStatus.done || 0)}</span></div>
+          <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-cancelled">已取消</span><span>${escapeHtml(byStatus.cancelled || 0)}</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="admin-stats-section">
+      <h3 class="admin-stats-section-title">最受欢迎礼品 TOP 5</h3>
+      ${top.length === 0
+        ? '<p class="admin-status-text">该周期内没有申请记录。</p>'
+        : `<div class="admin-stats-top-list">${top.map((p, i) => `
+            <div class="admin-stats-top-item">
+              <span class="admin-stats-rank">${i + 1}</span>
+              ${p.imageUrl ? `<img src="${escapeHtml(p.imageUrl)}" alt="">` : ""}
+              <div class="admin-stats-top-body">
+                <div class="admin-stats-top-title">${escapeHtml(p.title)}</div>
+                <div class="admin-stats-top-meta">${escapeHtml(p.count)} 次申请 · ${escapeHtml(p.cards || 0)} 积分</div>
+              </div>
+            </div>
+          `).join("")}</div>`}
+    </div>
+    ${s.orders.sampleSize >= 1000
+      ? '<p class="admin-status-text" style="margin-top:12px;font-size:12px;">该周期订单数过多（≥1000），TOP 5 基于最近 1000 单聚合。</p>'
+      : ""}
+  `;
+}
+
+adminTabStats?.addEventListener("click", () => {
+  state.activePanel = "stats";
+  updatePanelUi();
+  loadStats();
+});
+
+adminStatsRefreshButton?.addEventListener("click", () => loadStats());
+
+adminStatsPeriod?.addEventListener("click", (event) => {
+  const chip = event.target.closest("[data-stats-period]");
+  if (!chip) return;
+  const p = chip.dataset.statsPeriod;
+  if (p === state.statsPeriod) return;
+  state.statsPeriod = p;
+  adminStatsPeriod.querySelectorAll(".admin-stats-chip").forEach(el => {
+    el.classList.toggle("active", el === chip);
+  });
+  loadStats();
 });
 
 fillCategoryOptions();
