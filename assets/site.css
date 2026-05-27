@@ -819,6 +819,77 @@ textarea {
   padding: 20px 16px 40px;
 }
 
+.admin-header-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+/* ===== 电脑视图模式：拉宽布局，多栏统计卡，订单列表更舒展 ===== */
+body.admin-desktop-mode .admin-shell {
+  max-width: 1280px;
+  padding: 28px 36px 60px;
+}
+
+body.admin-desktop-mode .admin-title {
+  font-size: 34px;
+}
+
+body.admin-desktop-mode .admin-card {
+  padding: 28px 32px;
+}
+
+body.admin-desktop-mode .admin-stats-cards {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+body.admin-desktop-mode .admin-stats-clock {
+  font-size: clamp(40px, 4vw, 64px);
+}
+
+body.admin-desktop-mode .admin-stats-top-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+body.admin-desktop-mode .admin-orders-toolbar {
+  gap: 16px;
+}
+
+body.admin-desktop-mode .admin-orders-toolbar input {
+  min-width: 320px;
+}
+
+body.admin-desktop-mode .admin-order-head {
+  padding: 18px 24px;
+}
+
+body.admin-desktop-mode .admin-order-body {
+  padding: 4px 24px 22px;
+}
+
+body.admin-desktop-mode .admin-panel-nav {
+  display: flex;
+  gap: 8px;
+}
+
+/* 在窄屏（< 720px）即使开了 desktop-mode 也保持移动布局，避免溢出 */
+@media (max-width: 720px) {
+  body.admin-desktop-mode .admin-shell {
+    padding: 20px 16px 40px;
+  }
+  body.admin-desktop-mode .admin-stats-cards {
+    grid-template-columns: 1fr;
+  }
+  body.admin-desktop-mode .admin-stats-top-list {
+    grid-template-columns: 1fr;
+  }
+}
+
 .admin-header {
   display: flex;
   align-items: flex-start;
