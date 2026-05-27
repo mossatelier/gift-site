@@ -5,6 +5,19 @@ const wishlist = require('../../utils/wishlist.js');
 // 左侧不显示 "全部礼品"（all），从第二项开始
 const mainCategories = categories.filter(c => c.value !== 'all');
 
+// 分类页商品卡片的副标题文案
+// - 推荐有礼分类：根据 subcategory "推荐2人" 提取数字，显示"推荐 2 人可领"
+//   （避免和"剩余积分"混淆——推荐有礼是按推荐人数发礼品，不是按积分）
+// - 其他分类：照旧显示"兑换积分：N 分"
+function buildCategoryMetaText(item, currentCategory) {
+  if (currentCategory === 'referral' && item.subcategory) {
+    const m = String(item.subcategory).match(/推荐\s*(\d+)\s*人/);
+    if (m) return `推荐 ${m[1]} 人可领`;
+  }
+  if (item.cardsNeeded > 0) return `兑换积分：${item.cardsNeeded} 分`;
+  return '';
+}
+
 Page({
   data: {
     categories: mainCategories,
@@ -40,11 +53,15 @@ Page({
       currentCategoryLabel: labelOfCategory(this.data.currentCategory)
     });
     try {
-      const items = await listProducts({
+      const raw = await listProducts({
         category: this.data.currentCategory,
         subcategory: this.data.currentSub || null,
         limit: 100
       });
+      const items = raw.map(it => ({
+        ...it,
+        _metaText: buildCategoryMetaText(it, this.data.currentCategory)
+      }));
       this.setData({ items, categoryCount: items.length, loading: false });
     } catch (err) {
       console.error('加载分类商品失败', err);
