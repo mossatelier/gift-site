@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>加多宝礼品屋 · 商品录入后台</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="assets/site.css?v=6">
+  <link rel="stylesheet" href="assets/site.css?v=7">
 </head>
 <body class="admin-page">
   <main class="admin-shell">
@@ -58,6 +58,7 @@
         <button class="admin-panel-tab active" id="adminTabCreate" type="button">录入礼品</button>
         <button class="admin-panel-tab" id="adminTabEdit" type="button">编辑礼品</button>
         <button class="admin-panel-tab" id="adminTabBanks" type="button">银行积分</button>
+        <button class="admin-panel-tab" id="adminTabOrders" type="button">申请管理</button>
       </section>
 
       <section class="admin-card" id="adminCreatePanel">
@@ -195,6 +196,28 @@
         <div class="admin-recent-list" id="adminRecentList">
           <p class="admin-status-text">登录管理员账号后，这里会显示最近录入的商品。</p>
         </div>
+      </section>
+
+      <section class="admin-card" id="adminOrdersPanel" hidden>
+        <div class="admin-status-head">
+          <h2 class="admin-section-title">用户申请订单</h2>
+          <button class="admin-secondary-btn" id="adminOrdersRefreshButton" type="button">刷新</button>
+        </div>
+        <div class="admin-orders-toolbar">
+          <select id="adminOrdersStatusFilter">
+            <option value="all">全部状态</option>
+            <option value="pending" selected>待处理</option>
+            <option value="processing">处理中</option>
+            <option value="done">已完成</option>
+            <option value="cancelled">已取消</option>
+          </select>
+          <input id="adminOrdersSearchInput" type="search" placeholder="搜索：礼品名/收件人/手机/备注">
+          <span class="admin-orders-count" id="adminOrdersCount"></span>
+        </div>
+        <div class="admin-orders-list" id="adminOrdersList">
+          <p class="admin-status-text">加载中…</p>
+        </div>
+        <p class="admin-inline-message" id="adminOrdersMessage"></p>
       </section>
 
       <section class="admin-card" id="adminBanksPanel" hidden>

@@ -7,6 +7,9 @@ window.APP_CONFIG = {
   productsTable: "products",
   storageBucket: "product-images",
   storageFolder: "products",
+  // 云开发 admin-orders 云函数的 HTTP 触发器 URL
+  // 部署完云函数后在云开发控制台开启 HTTP 触发器，把那个 https://xxx 地址填到这里
+  adminOrdersUrl: "",
   categories: [
     { value: "all", label: "全部礼品" },
     { value: "referral", label: "推荐有礼" },

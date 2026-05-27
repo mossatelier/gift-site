@@ -48,6 +48,14 @@ const adminTitleInput = document.getElementById("adminTitleInput");
 const adminTitleHistory = document.getElementById("adminTitleHistory");
 const adminSubcategoryField = document.getElementById("adminSubcategoryField");
 const adminSubcategorySelect = document.getElementById("adminSubcategorySelect");
+const adminTabOrders = document.getElementById("adminTabOrders");
+const adminOrdersPanel = document.getElementById("adminOrdersPanel");
+const adminOrdersList = document.getElementById("adminOrdersList");
+const adminOrdersMessage = document.getElementById("adminOrdersMessage");
+const adminOrdersStatusFilter = document.getElementById("adminOrdersStatusFilter");
+const adminOrdersSearchInput = document.getElementById("adminOrdersSearchInput");
+const adminOrdersCount = document.getElementById("adminOrdersCount");
+const adminOrdersRefreshButton = document.getElementById("adminOrdersRefreshButton");
 
 const subcategoriesMap = config.subcategories || {};
 const TITLE_HISTORY_KEY = "gift-site-admin-title-history";
@@ -155,7 +163,12 @@ const state = {
   filterCategory: "all",
   pendingProductId: "",
   banks: [],
-  activeImageSlotCount: 1
+  activeImageSlotCount: 1,
+  orders: [],
+  ordersTotal: 0,
+  ordersStatus: "pending",
+  ordersSearch: "",
+  expandedOrderId: ""
 };
 
 function isSupabaseConfigured() {
@@ -401,12 +414,14 @@ function updatePanelUi() {
   const panels = {
     create: adminCreatePanel,
     edit: adminEditPanel,
-    banks: adminBanksPanel
+    banks: adminBanksPanel,
+    orders: adminOrdersPanel
   };
   const tabs = {
     create: adminTabCreate,
     edit: adminTabEdit,
-    banks: adminTabBanks
+    banks: adminTabBanks,
+    orders: adminTabOrders
   };
 
   Object.keys(panels).forEach((key) => {
@@ -1382,6 +1397,235 @@ adminRecentList?.addEventListener("click", (event) => {
 
 adminCancelEditButton?.addEventListener("click", () => {
   resetEditor();
+});
+
+// ============ 申请管理（订单） ============
+
+const ORDER_STATUS_LABEL = {
+  pending: "待处理",
+  processing: "处理中",
+  done: "已完成",
+  cancelled: "已取消"
+};
+
+function setOrdersMessage(text, tone = "idle") {
+  if (!adminOrdersMessage) return;
+  adminOrdersMessage.textContent = text;
+  adminOrdersMessage.dataset.tone = tone;
+}
+
+async function callAdminOrders(action, payload = {}) {
+  if (!config.adminOrdersUrl) {
+    throw new Error("尚未配置 adminOrdersUrl，请在 assets/config.js 填入云函数 HTTP 触发器地址");
+  }
+  const session = activeSession();
+  if (!session) {
+    throw new Error("请先登录管理员账号");
+  }
+  const res = await fetch(config.adminOrdersUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`
+    },
+    body: JSON.stringify({ action, ...payload })
+  });
+  let json;
+  try {
+    json = await res.json();
+  } catch {
+    throw new Error(`返回不是 JSON（HTTP ${res.status}）`);
+  }
+  if (!res.ok || !json.ok) {
+    throw new Error(json && json.error ? json.error : `HTTP ${res.status}`);
+  }
+  return json.data;
+}
+
+async function loadOrders() {
+  if (!adminOrdersList) return;
+  if (!activeSession()) {
+    adminOrdersList.innerHTML = "<p class=\"admin-status-text\">请先登录管理员账号。</p>";
+    return;
+  }
+  adminOrdersList.innerHTML = "<p class=\"admin-status-text\">加载中…</p>";
+  setOrdersMessage("");
+  try {
+    const status = state.ordersStatus === "all" ? "" : state.ordersStatus;
+    const data = await callAdminOrders("list", {
+      status,
+      search: state.ordersSearch,
+      limit: 200
+    });
+    state.orders = Array.isArray(data && data.items) ? data.items : [];
+    state.ordersTotal = (data && data.total) || 0;
+    renderOrdersList();
+  } catch (err) {
+    adminOrdersList.innerHTML = `<p class="admin-status-text">${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function formatOrderDate(d) {
+  if (!d) return "";
+  try {
+    const date = new Date(d);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  } catch {
+    return "";
+  }
+}
+
+function renderOrdersList() {
+  if (!adminOrdersList) return;
+  if (adminOrdersCount) {
+    const showing = state.orders.length;
+    adminOrdersCount.textContent = `当前筛选 ${state.ordersTotal} 单，显示 ${showing}`;
+  }
+  if (state.orders.length === 0) {
+    adminOrdersList.innerHTML = "<p class=\"admin-status-text\">没有符合条件的订单。</p>";
+    return;
+  }
+
+  adminOrdersList.innerHTML = state.orders.map((o) => {
+    const addr = o.address || {};
+    const items = Array.isArray(o.items) ? o.items : [];
+    const isOpen = state.expandedOrderId === o._id;
+    const itemsHtml = items.map((it) => `
+      <div class="admin-order-item">
+        ${it.imageUrl ? `<img src="${escapeHtml(it.imageUrl)}" alt="">` : ""}
+        <div class="admin-order-item-body">
+          <span class="admin-order-item-title">${escapeHtml(it.title || "")}</span>
+          <span class="admin-order-item-meta">${escapeHtml(it.cardsNeeded || 0)} 积分 × ${escapeHtml(it.qty || 1)}</span>
+        </div>
+      </div>
+    `).join("");
+
+    const statusSelect = `
+      <select class="admin-order-status-select" data-order-id="${escapeHtml(o._id)}">
+        ${Object.keys(ORDER_STATUS_LABEL).map(s =>
+          `<option value="${s}"${s === o.status ? " selected" : ""}>${escapeHtml(ORDER_STATUS_LABEL[s])}</option>`
+        ).join("")}
+      </select>
+    `;
+
+    return `
+      <div class="admin-order-card${isOpen ? " admin-order-open" : ""}">
+        <div class="admin-order-head" data-toggle-order="${escapeHtml(o._id)}">
+          <div class="admin-order-head-left">
+            <span class="admin-order-recipient">${escapeHtml(addr.recipient || "(无收件人)")}</span>
+            <span class="admin-order-summary">${escapeHtml(items.length)} 件 / ${escapeHtml(o.totalCards || 0)} 分</span>
+          </div>
+          <div class="admin-order-head-right">
+            <span class="admin-order-status admin-order-status-${escapeHtml(o.status)}">${escapeHtml(ORDER_STATUS_LABEL[o.status] || o.status || "")}</span>
+            <span class="admin-order-date">${escapeHtml(formatOrderDate(o.createdAt))}</span>
+          </div>
+        </div>
+        ${isOpen ? `
+          <div class="admin-order-body">
+            <div class="admin-order-section">
+              <strong>收货信息</strong>
+              <p>${escapeHtml(addr.recipient || "")}　${escapeHtml(addr.phone || "")}</p>
+              <p>${escapeHtml(addr.province || "")} ${escapeHtml(addr.city || "")} ${escapeHtml(addr.district || "")} ${escapeHtml(addr.detail || "")}</p>
+              <button class="admin-secondary-btn admin-order-copy" data-copy-order="${escapeHtml(o._id)}" type="button">复制收件信息</button>
+            </div>
+            <div class="admin-order-section">
+              <strong>礼品清单</strong>
+              <div class="admin-order-items">${itemsHtml}</div>
+            </div>
+            ${o.remark ? `<div class="admin-order-section"><strong>备注</strong><p class="admin-order-remark">${escapeHtml(o.remark)}</p></div>` : ""}
+            <div class="admin-order-section">
+              <strong>订单号</strong>
+              <p class="admin-order-id">${escapeHtml(o._id)}</p>
+            </div>
+            <div class="admin-order-section admin-order-actions">
+              <label>更新状态：${statusSelect}</label>
+            </div>
+          </div>
+        ` : ""}
+      </div>
+    `;
+  }).join("");
+}
+
+async function handleOrderStatusChange(select) {
+  const orderId = select.dataset.orderId;
+  const status = select.value;
+  if (!orderId) return;
+  setOrdersMessage("正在保存…");
+  try {
+    await callAdminOrders("update-status", { orderId, status });
+    // 局部更新
+    const idx = state.orders.findIndex((o) => o._id === orderId);
+    if (idx >= 0) {
+      state.orders[idx].status = status;
+      // 如果按状态过滤，且新状态不匹配，移出列表
+      if (state.ordersStatus !== "all" && state.ordersStatus !== status) {
+        state.orders.splice(idx, 1);
+        state.ordersTotal = Math.max(0, state.ordersTotal - 1);
+      }
+    }
+    renderOrdersList();
+    setOrdersMessage("已更新。", "success");
+  } catch (err) {
+    setOrdersMessage(err.message, "error");
+    // 失败时还原 select 显示
+    loadOrders();
+  }
+}
+
+function copyOrderAddress(orderId) {
+  const o = state.orders.find((x) => x._id === orderId);
+  if (!o) return;
+  const a = o.address || {};
+  const text = `${a.recipient || ""} ${a.phone || ""}\n${a.province || ""} ${a.city || ""} ${a.district || ""} ${a.detail || ""}`;
+  navigator.clipboard?.writeText(text).then(
+    () => setOrdersMessage("已复制收件信息。", "success"),
+    () => setOrdersMessage("复制失败，请手动选中。", "error")
+  );
+}
+
+adminTabOrders?.addEventListener("click", () => {
+  state.activePanel = "orders";
+  updatePanelUi();
+  loadOrders();
+});
+
+adminOrdersRefreshButton?.addEventListener("click", () => loadOrders());
+
+adminOrdersStatusFilter?.addEventListener("change", () => {
+  state.ordersStatus = adminOrdersStatusFilter.value || "all";
+  loadOrders();
+});
+
+let ordersSearchTimer = null;
+adminOrdersSearchInput?.addEventListener("input", () => {
+  clearTimeout(ordersSearchTimer);
+  ordersSearchTimer = setTimeout(() => {
+    state.ordersSearch = adminOrdersSearchInput.value || "";
+    loadOrders();
+  }, 300);
+});
+
+adminOrdersList?.addEventListener("click", (event) => {
+  const toggle = event.target.closest("[data-toggle-order]");
+  const copy = event.target.closest("[data-copy-order]");
+  if (copy) {
+    event.stopPropagation();
+    copyOrderAddress(copy.dataset.copyOrder);
+    return;
+  }
+  if (toggle) {
+    const id = toggle.dataset.toggleOrder;
+    state.expandedOrderId = state.expandedOrderId === id ? "" : id;
+    renderOrdersList();
+  }
+});
+
+adminOrdersList?.addEventListener("change", (event) => {
+  const sel = event.target.closest(".admin-order-status-select");
+  if (!sel) return;
+  handleOrderStatusChange(sel);
 });
 
 fillCategoryOptions();

@@ -1,0 +1,9 @@
+{
+  "name": "admin-orders",
+  "version": "1.0.0",
+  "description": "Admin-side order management (list/get/update-status) via HTTP trigger, gated by Supabase admin auth",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}
