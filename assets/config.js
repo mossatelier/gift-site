@@ -7,9 +7,9 @@ window.APP_CONFIG = {
   productsTable: "products",
   storageBucket: "product-images",
   storageFolder: "products",
-  // 云开发 admin-orders 云函数的 HTTP 触发器 URL
-  // 部署完云函数后在云开发控制台开启 HTTP 触发器，把那个 https://xxx 地址填到这里
-  adminOrdersUrl: "",
+  // 云开发 admin-orders 云函数的 HTTP 访问 URL
+  // 在云开发控制台 → 环境管理 → HTTP 访问服务 → 添加路由 /admin-orders 关联 admin-orders 函数
+  adminOrdersUrl: "https://cloud1-d0gtch1v896d24828-1436264391.ap-shanghai.app.tcloudbase.com/admin-orders",
   categories: [
     { value: "all", label: "全部礼品" },
     { value: "referral", label: "推荐有礼" },
