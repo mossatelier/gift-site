@@ -38,10 +38,10 @@
 
     <!-- 提交申请区（有 items 时才显示） -->
     <view class="wishlist-submit" wx:if="{{!loading && items.length > 0}}">
-      <view class="submit-addr" bindtap="goAddressEdit">
+      <view class="submit-addr" bindtap="goAddress">
         <view class="submit-addr-head">
           <text class="submit-addr-title">📍 收货地址</text>
-          <text class="submit-addr-action">{{address ? '编辑' : (user ? '去填写' : '登录后填写')}} ›</text>
+          <text class="submit-addr-action">{{addressCount > 1 ? '更换 (' + addressCount + ')' : (address ? '编辑' : (user ? '去填写' : '登录后填写'))}} ›</text>
         </view>
         <view wx:if="{{address}}" class="submit-addr-body">
           <text class="submit-addr-main">{{address.recipient}}　{{address.phone}}</text>

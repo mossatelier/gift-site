@@ -1,0 +1,139 @@
+.address-list-page {
+  padding-top: 16rpx;
+  padding-bottom: 140rpx;
+}
+
+.addr-empty {
+  padding: 120rpx 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  opacity: 0.5;
+}
+
+.empty-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.empty-text {
+  font-size: 24rpx;
+  color: var(--muted);
+}
+
+.empty-cta {
+  margin-top: 16rpx;
+  background: linear-gradient(135deg, var(--red) 0%, var(--red-deep) 100%);
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 700;
+  padding: 18rpx 44rpx;
+  border-radius: 999rpx;
+  box-shadow: 0 10rpx 20rpx rgba(214, 75, 42, 0.25);
+}
+
+.addr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+  padding-top: 8rpx;
+}
+
+.addr-card {
+  background: var(--paper);
+  border: 1rpx solid var(--line);
+  border-radius: 22rpx;
+  padding: 24rpx;
+  box-shadow: 0 10rpx 24rpx rgba(46, 35, 18, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.addr-card-picker {
+  cursor: pointer;
+}
+
+.addr-main {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.addr-name {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.addr-phone {
+  font-size: 26rpx;
+  color: var(--text);
+}
+
+.addr-tag {
+  font-size: 20rpx;
+  background: var(--red);
+  color: #fff;
+  padding: 2rpx 12rpx;
+  border-radius: 999rpx;
+  font-weight: 600;
+}
+
+.addr-detail {
+  font-size: 26rpx;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.addr-actions {
+  margin-top: 12rpx;
+  display: flex;
+  gap: 16rpx;
+  border-top: 1rpx dashed var(--line);
+  padding-top: 16rpx;
+  flex-wrap: wrap;
+}
+
+.addr-action {
+  font-size: 24rpx;
+  color: var(--text);
+  padding: 8rpx 18rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid var(--line);
+}
+
+.addr-action-danger {
+  color: var(--red);
+  border-color: rgba(214, 75, 42, 0.4);
+}
+
+.addr-action-disabled {
+  opacity: 0.4;
+}
+
+.addr-fab {
+  position: fixed;
+  left: 50%;
+  bottom: 40rpx;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, var(--red) 0%, var(--red-deep) 100%);
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 700;
+  padding: 22rpx 60rpx;
+  border-radius: 999rpx;
+  box-shadow: 0 10rpx 24rpx rgba(214, 75, 42, 0.3);
+  z-index: 10;
+}
+
+.bottom-spacer {
+  height: 100rpx;
+}

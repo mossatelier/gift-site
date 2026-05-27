@@ -1,4 +1,4 @@
-const { getProductsByIds, getMyAddress } = require('../../utils/db.js');
+const { getProductsByIds, listMyAddresses, getDefaultAddress } = require('../../utils/db.js');
 const wishlist = require('../../utils/wishlist.js');
 const auth = require('../../utils/auth.js');
 
@@ -9,6 +9,7 @@ Page({
     openFlow: 'credit',
     user: null,
     address: null,
+    addressCount: 0,
     remark: '',
     submitting: false
   },
@@ -29,13 +30,21 @@ Page({
 
     if (user) {
       try {
-        const address = await getMyAddress(user.openid);
-        this.setData({ address });
+        const addresses = await listMyAddresses(user.openid);
+        // 当前选中的地址：维持已选；否则取默认
+        let address = null;
+        if (this._pickedAddressId) {
+          address = addresses.find(a => a._id === this._pickedAddressId) || null;
+        }
+        if (!address) {
+          address = addresses[0] || null;
+        }
+        this.setData({ address, addressCount: addresses.length });
       } catch (err) {
         console.warn('load address failed', err);
       }
     } else {
-      this.setData({ address: null });
+      this.setData({ address: null, addressCount: 0 });
     }
 
     if (ids.length === 0) {
@@ -86,9 +95,25 @@ Page({
     this.setData({ remark: e.detail.value });
   },
 
-  goAddressEdit() {
+  // 点收货地址卡：
+  // - 无地址 → 跳新增
+  // - 有 1 个 → 跳编辑
+  // - 多个 → 跳列表选择
+  goAddress() {
     if (!auth.ensureLogin('/pages/wishlist/wishlist')) return;
-    wx.navigateTo({ url: '/pages/address-edit/address-edit?redirect=' + encodeURIComponent('/pages/wishlist/wishlist') });
+    const count = this.data.addressCount;
+    if (count === 0) {
+      wx.navigateTo({
+        url: '/pages/address-edit/address-edit?redirect=' + encodeURIComponent('/pages/wishlist/wishlist')
+      });
+    } else {
+      wx.navigateTo({ url: '/pages/address-list/address-list?picker=1' });
+    }
+  },
+
+  // 来自 address-list picker 模式的回传
+  onPickAddress(addressId) {
+    this._pickedAddressId = addressId;
   },
 
   async submitOrder() {
@@ -141,9 +166,9 @@ Page({
           if (!r || !r.success) {
             throw new Error((r && r.error) || '提交失败');
           }
-          // 清空心愿单 + 跳订单页
           wishlist.saveList([]);
           this.setData({ items: [], remark: '' });
+          this._pickedAddressId = null;
           wx.showToast({ title: '提交成功', icon: 'success' });
           setTimeout(() => {
             wx.navigateTo({ url: `/pages/order-detail/order-detail?id=${r.orderId}` });

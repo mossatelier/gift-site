@@ -1,0 +1,43 @@
+<view class="page-shell address-list-page">
+  <view class="loading-state" wx:if="{{loading}}">加载中…</view>
+
+  <view class="addr-empty" wx:elif="{{addresses.length === 0}}">
+    <text class="empty-icon">📍</text>
+    <text class="empty-title">还没有收货地址</text>
+    <text class="empty-text">添加地址后才能提交申请</text>
+    <view class="empty-cta" bindtap="goAdd">+ 新增地址</view>
+  </view>
+
+  <view class="addr-list" wx:else>
+    <view
+      class="addr-card {{picker ? 'addr-card-picker' : ''}}"
+      wx:for="{{addresses}}"
+      wx:key="_id"
+      data-id="{{item._id}}"
+      bindtap="pick"
+    >
+      <view class="addr-main">
+        <text class="addr-name">{{item.recipient}}</text>
+        <text class="addr-phone">{{item.phone}}</text>
+        <text class="addr-tag" wx:if="{{item.isDefault}}">默认</text>
+      </view>
+      <text class="addr-detail">{{item.province}} {{item.city}} {{item.district}} {{item.detail}}</text>
+      <view class="addr-actions" catchtap="">
+        <view
+          class="addr-action {{item.isDefault ? 'addr-action-disabled' : ''}}"
+          catchtap="setDefault"
+          data-id="{{item._id}}"
+          wx:if="{{!item.isDefault}}"
+        >设为默认</view>
+        <view class="addr-action" catchtap="goEdit" data-id="{{item._id}}">编辑</view>
+        <view class="addr-action addr-action-danger" catchtap="remove" data-id="{{item._id}}">删除</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="addr-fab" bindtap="goAdd" wx:if="{{!loading && addresses.length > 0}}">
+    <text>+ 新增地址</text>
+  </view>
+
+  <view class="bottom-spacer"></view>
+</view>

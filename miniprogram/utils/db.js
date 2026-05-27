@@ -147,20 +147,11 @@ function normalize(item) {
   };
 }
 
-// ============ 地址（addresses 集合，一人一份） ============
+// ============ 地址（addresses 集合，一人多份） ============
 
-async function getMyAddress(openid) {
-  if (!openid) return null;
-  const res = await db().collection('addresses')
-    .where({ openid })
-    .limit(1)
-    .get();
-  return res.data[0] || null;
-}
+const ADDRESS_MAX = 10;
 
-async function upsertMyAddress(openid, patch) {
-  if (!openid) throw new Error('未登录');
-  const now = new Date();
+function _cleanAddress(patch) {
   const cleaned = {
     recipient: (patch.recipient || '').trim(),
     phone: (patch.phone || '').trim(),
@@ -173,17 +164,99 @@ async function upsertMyAddress(openid, patch) {
   if (!/^1\d{10}$/.test(cleaned.phone)) throw new Error('手机号格式不正确');
   if (!cleaned.province || !cleaned.city) throw new Error('请选择所在地区');
   if (!cleaned.detail) throw new Error('请填写详细地址');
+  return cleaned;
+}
 
-  const existing = await getMyAddress(openid);
-  if (existing) {
-    await db().collection('addresses').doc(existing._id).update({
-      data: { ...cleaned, updatedAt: now }
-    });
-    return { ...existing, ...cleaned, updatedAt: now };
+async function listMyAddresses(openid) {
+  if (!openid) return [];
+  // 默认地址排前，其次按更新时间倒序
+  const res = await db().collection('addresses')
+    .where({ openid })
+    .orderBy('isDefault', 'desc')
+    .orderBy('updatedAt', 'desc')
+    .limit(50)
+    .get();
+  return res.data;
+}
+
+// 默认地址：isDefault=true 的，没有就最近编辑的
+async function getDefaultAddress(openid) {
+  const list = await listMyAddresses(openid);
+  return list[0] || null;
+}
+
+// 兼容旧调用：返回默认地址
+async function getMyAddress(openid) {
+  return getDefaultAddress(openid);
+}
+
+async function addAddress(openid, patch) {
+  if (!openid) throw new Error('未登录');
+  const list = await listMyAddresses(openid);
+  if (list.length >= ADDRESS_MAX) {
+    throw new Error(`最多 ${ADDRESS_MAX} 个地址`);
   }
-  const doc = { openid, ...cleaned, createdAt: now, updatedAt: now };
+  const cleaned = _cleanAddress(patch);
+  const now = new Date();
+  const doc = {
+    openid,
+    ...cleaned,
+    isDefault: list.length === 0, // 第一个自动为默认
+    createdAt: now,
+    updatedAt: now
+  };
   const add = await db().collection('addresses').add({ data: doc });
   return { _id: add._id, ...doc };
+}
+
+async function updateAddress(addressId, patch) {
+  if (!addressId) throw new Error('缺少地址 ID');
+  const cleaned = _cleanAddress(patch);
+  const now = new Date();
+  await db().collection('addresses').doc(addressId).update({
+    data: { ...cleaned, updatedAt: now }
+  });
+  return { _id: addressId, ...cleaned, updatedAt: now };
+}
+
+async function deleteAddress(addressId, openid) {
+  if (!addressId) throw new Error('缺少地址 ID');
+  // 删之前先看是不是默认地址
+  const cur = await db().collection('addresses').doc(addressId).get();
+  const wasDefault = cur.data && cur.data.isDefault;
+  await db().collection('addresses').doc(addressId).remove();
+  // 删完后若没有默认地址，把第一条设为默认
+  if (wasDefault && openid) {
+    const remain = await listMyAddresses(openid);
+    if (remain.length > 0 && !remain[0].isDefault) {
+      await db().collection('addresses').doc(remain[0]._id).update({
+        data: { isDefault: true }
+      });
+    }
+  }
+}
+
+async function setDefaultAddress(addressId, openid) {
+  if (!addressId || !openid) throw new Error('参数不全');
+  const _ = db().command;
+  // 取消其他默认
+  await db().collection('addresses')
+    .where({ openid, isDefault: true, _id: _.neq(addressId) })
+    .update({ data: { isDefault: false } });
+  // 设置目标为默认
+  await db().collection('addresses').doc(addressId).update({
+    data: { isDefault: true }
+  });
+}
+
+// 兼容旧调用：第一次填地址走 add，已经有地址走 update（默认那个）
+async function upsertMyAddress(openid, patch) {
+  if (!openid) throw new Error('未登录');
+  const existing = await getDefaultAddress(openid);
+  if (existing) {
+    return updateAddress(existing._id, patch);
+  }
+  return addAddress(openid, patch);
 }
 
 // ============ 订单（orders 集合，写靠云函数，读靠 SDK） ============
@@ -215,8 +288,16 @@ module.exports = {
   listHotProducts,
   listNewProducts,
   listBanks,
+  // addresses
+  listMyAddresses,
+  getDefaultAddress,
   getMyAddress,
   upsertMyAddress,
+  addAddress,
+  updateAddress,
+  deleteAddress,
+  setDefaultAddress,
+  // orders
   listMyOrders,
   getMyOrder
 };

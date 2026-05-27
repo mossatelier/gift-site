@@ -23,7 +23,7 @@
   <view class="me-section" bindtap="goAddress">
     <view class="me-section-head">
       <text class="me-section-title">📍 收货地址</text>
-      <text class="me-section-action">{{address ? '编辑' : '去填写'}} ›</text>
+      <text class="me-section-action">{{addressCount > 0 ? '管理 ' + addressCount + ' 个地址' : (user ? '去填写' : '登录后填写')}} ›</text>
     </view>
     <view class="me-section-body" wx:if="{{user && address}}">
       <text class="addr-line addr-line-main">{{address.recipient}}　{{address.phone}}</text>

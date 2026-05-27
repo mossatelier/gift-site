@@ -8,6 +8,7 @@
     "pages/me/me",
     "pages/login/login",
     "pages/address-edit/address-edit",
+    "pages/address-list/address-list",
     "pages/my-orders/my-orders",
     "pages/order-detail/order-detail",
     "pages/card-flow/card-flow",

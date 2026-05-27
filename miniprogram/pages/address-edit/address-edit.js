@@ -1,47 +1,48 @@
 const auth = require('../../utils/auth.js');
-const { getMyAddress, upsertMyAddress } = require('../../utils/db.js');
+const { addAddress, updateAddress } = require('../../utils/db.js');
 
 Page({
   data: {
-    loading: true,
+    loading: false,
     submitting: false,
     redirect: '',
+    id: '',             // 编辑模式时存在
     recipient: '',
     phone: '',
-    region: [],          // [省, 市, 区]
+    region: [],
     regionText: '',
     detail: ''
   },
 
   onLoad(query) {
     const redirect = query && query.redirect ? decodeURIComponent(query.redirect) : '';
-    this.setData({ redirect });
-    const back = `/pages/address-edit/address-edit${redirect ? '?redirect=' + encodeURIComponent(redirect) : ''}`;
+    const id = query && query.id ? query.id : '';
+    this.setData({ redirect, id });
+    const back = `/pages/address-edit/address-edit${id ? '?id=' + id : ''}${redirect ? (id ? '&' : '?') + 'redirect=' + encodeURIComponent(redirect) : ''}`;
     if (!auth.ensureLogin(back)) return;
-    this.loadExisting();
+    if (id) this.loadOne(id);
   },
 
-  async loadExisting() {
-    const user = auth.getCurrentUser();
-    if (!user) return;
+  async loadOne(id) {
+    this.setData({ loading: true });
     try {
-      const a = await getMyAddress(user.openid);
-      if (a) {
-        const region = [a.province || '', a.city || '', a.district || ''].filter(Boolean);
-        this.setData({
-          loading: false,
-          recipient: a.recipient || '',
-          phone: a.phone || '',
-          region,
-          regionText: region.join(' '),
-          detail: a.detail || ''
-        });
-      } else {
-        this.setData({ loading: false });
-      }
+      const db = wx.cloud.database();
+      const r = await db.collection('addresses').doc(id).get();
+      const a = r.data;
+      if (!a) return;
+      const region = [a.province || '', a.city || '', a.district || ''].filter(Boolean);
+      this.setData({
+        loading: false,
+        recipient: a.recipient || '',
+        phone: a.phone || '',
+        region,
+        regionText: region.join(' '),
+        detail: a.detail || ''
+      });
     } catch (err) {
       console.error(err);
       this.setData({ loading: false });
+      wx.showToast({ title: '加载失败', icon: 'none' });
     }
   },
 
@@ -62,14 +63,19 @@ Page({
       return;
     }
     const [province = '', city = '', district = ''] = this.data.region || [];
+    const patch = {
+      recipient: this.data.recipient,
+      phone: this.data.phone,
+      province, city, district,
+      detail: this.data.detail
+    };
     this.setData({ submitting: true });
     try {
-      await upsertMyAddress(user.openid, {
-        recipient: this.data.recipient,
-        phone: this.data.phone,
-        province, city, district,
-        detail: this.data.detail
-      });
+      if (this.data.id) {
+        await updateAddress(this.data.id, patch);
+      } else {
+        await addAddress(user.openid, patch);
+      }
       wx.showToast({ title: '已保存', icon: 'success' });
       setTimeout(() => {
         const target = this.data.redirect;

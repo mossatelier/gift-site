@@ -1,10 +1,11 @@
 const auth = require('../../utils/auth.js');
-const { getMyAddress } = require('../../utils/db.js');
+const { getDefaultAddress, listMyAddresses } = require('../../utils/db.js');
 
 Page({
   data: {
     user: null,
-    address: null
+    address: null,
+    addressCount: 0
   },
 
   onShow() {
@@ -16,13 +17,16 @@ Page({
     this.setData({ user });
     if (user) {
       try {
-        const address = await getMyAddress(user.openid);
-        this.setData({ address });
+        const addresses = await listMyAddresses(user.openid);
+        this.setData({
+          address: addresses[0] || null,
+          addressCount: addresses.length
+        });
       } catch (err) {
         console.warn('load address failed', err);
       }
     } else {
-      this.setData({ address: null });
+      this.setData({ address: null, addressCount: 0 });
     }
   },
 
@@ -31,8 +35,8 @@ Page({
   },
 
   goAddress() {
-    if (!auth.ensureLogin('/pages/address-edit/address-edit')) return;
-    wx.navigateTo({ url: '/pages/address-edit/address-edit' });
+    if (!auth.ensureLogin('/pages/address-list/address-list')) return;
+    wx.navigateTo({ url: '/pages/address-list/address-list' });
   },
 
   goOrders() {
