@@ -389,6 +389,8 @@ function updateAuthUi() {
   const session = activeSession();
   const loggedIn = Boolean(session);
 
+  document.body.classList.toggle("admin-logged-in", loggedIn);
+
   adminAuthState.textContent = loggedIn ? "已登录" : "未登录";
   adminAuthState.classList.remove("admin-status-pill-soft", "admin-status-pill-success", "admin-status-pill-error");
   adminAuthState.classList.add(loggedIn ? "admin-status-pill-success" : "admin-status-pill-soft");
