@@ -5,49 +5,49 @@ const BANKS = [
     key: 'citic',
     name: '中信银行',
     logo: '/images/banks/citic.jpg',
-    qr: '/images/progress/citic-qr.jpg',
+    qr: '/images/progress/citic-qr.png',
     url: 'https://e.creditcard.ecitic.com/citiccard/ebank-ocp/bsvc-card/index.html#/cardInput'
   },
   {
     key: 'pingan',
     name: '平安银行',
     logo: '/images/banks/pingan.jpg',
-    qr: '/images/progress/pingan-qr.jpg',
+    qr: '/images/progress/pingan-qr.png',
     url: 'https://bank-static.pingan.com.cn/ca/ccBooking/ccBookingHtml/query/index.html'
   },
   {
     key: 'spdb',
     name: '浦发银行',
     logo: '/images/banks/spdb.jpg',
-    qr: '/images/progress/spdb-qr.jpg',
+    qr: '/images/progress/spdb-qr.png',
     url: 'https://adsp.spdbccc.com.cn/adsp/view/mobile/phoneCheck.html?ciphertext=E85B42DFBE1844DA0392D08EC07186A1FE1FA5ACAFDF0319739C36E5A24A958E1D7CA7516A994BE28301511984F668EF11AB915BD1C47ABCFEEB9616A14D26D0'
   },
   {
     key: 'bocom',
     name: '交通银行',
     logo: '/images/banks/bocom.jpg',
-    qr: '/images/progress/bocom-qr.jpg',
+    qr: '/images/progress/bocom-qr.png',
     url: 'https://creditcardapp.bankcomm.com/cpqweb/apply/status/preinquiry.html'
   },
   {
     key: 'cmb',
     name: '招商银行',
     logo: '/images/banks/cmb.jpg',
-    qr: '/images/progress/cmb-qr.jpg',
+    qr: '/images/progress/cmb-qr.png',
     url: 'https://xyk.cmbchina.com/card-management-site/progress-query'
   },
   {
     key: 'cib',
     name: '兴业银行',
     logo: '/images/banks/cib.jpg',
-    qr: '/images/progress/cib-qr.jpg',
+    qr: '/images/progress/cib-qr.png',
     url: ''
   },
   {
     key: 'cmbc',
     name: '民生银行',
     logo: '/images/banks/cmbc.jpg',
-    qr: '/images/progress/cmbc-qr.jpg',
+    qr: '/images/progress/cmbc-qr.png',
     url: 'https://wx.creditcard.cmbc.com.cn/front/creditGetProgressSeaNew'
   }
 ];
