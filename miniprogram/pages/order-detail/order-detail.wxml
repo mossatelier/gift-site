@@ -10,6 +10,16 @@
       <text class="od-status-desc" wx:elif="{{order.status === 'cancelled'}}">订单已取消</text>
     </view>
 
+    <view class="od-card od-track-card" wx:if="{{order.trackingNo}}">
+      <text class="od-card-title">物流信息</text>
+      <view class="od-track-line">
+        <text class="od-track-company">{{order.trackingCompany || '快递'}}</text>
+        <text class="od-track-no">{{order.trackingNo}}</text>
+      </view>
+      <button class="od-track-copy" bindtap="copyTracking">复制单号去查物流</button>
+      <text class="od-track-tip">复制后可在微信「我-服务」或快递100 / 菜鸟等查询轨迹</text>
+    </view>
+
     <view class="od-card">
       <text class="od-card-title">收货信息</text>
       <text class="od-addr-main">{{order.address.recipient}}　{{order.address.phone}}</text>

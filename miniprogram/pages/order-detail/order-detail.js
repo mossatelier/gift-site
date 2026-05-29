@@ -56,6 +56,15 @@ Page({
     });
   },
 
+  copyTracking() {
+    const no = this.data.order && this.data.order.trackingNo;
+    if (!no) return;
+    wx.setClipboardData({
+      data: no,
+      success: () => wx.showToast({ title: '单号已复制，可去物流平台查询', icon: 'none' })
+    });
+  },
+
   contactService() {
     wx.previewImage({
       urls: ['/images/wishlist-wechat-qr.jpg'],

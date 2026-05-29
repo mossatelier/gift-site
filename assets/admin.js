@@ -1619,6 +1619,14 @@ function renderOrdersList() {
               <strong>订单号</strong>
               <p class="admin-order-id">${escapeHtml(o._id)}</p>
             </div>
+            <div class="admin-order-section">
+              <strong>快递单号</strong>
+              <div class="admin-tracking-row">
+                <input class="admin-tracking-company" type="text" placeholder="快递公司(可选)" value="${escapeHtml(o.trackingCompany || "")}" data-tracking-company="${escapeHtml(o._id)}">
+                <input class="admin-tracking-no" type="text" placeholder="快递单号" value="${escapeHtml(o.trackingNo || "")}" data-tracking-no="${escapeHtml(o._id)}">
+                <button class="admin-secondary-btn admin-tracking-save" data-save-tracking="${escapeHtml(o._id)}" type="button">保存单号</button>
+              </div>
+            </div>
             <div class="admin-order-section admin-order-actions">
               <label>更新状态：${statusSelect}</label>
             </div>
@@ -1695,6 +1703,31 @@ async function handleOrderStatusChange(select) {
   }
 }
 
+async function handleTrackingSave(orderId) {
+  if (!orderId) return;
+  const noInput = adminOrdersList.querySelector(`[data-tracking-no="${orderId}"]`);
+  const companyInput = adminOrdersList.querySelector(`[data-tracking-company="${orderId}"]`);
+  const trackingNo = noInput ? noInput.value.trim() : "";
+  const trackingCompany = companyInput ? companyInput.value.trim() : "";
+  if (!trackingNo) {
+    setOrdersMessage("请填写快递单号。", "error");
+    return;
+  }
+  setOrdersMessage("正在保存单号…");
+  try {
+    await callAdminOrders("update-tracking", { orderId, trackingNo, trackingCompany });
+    // 就地写回，避免重渲染丢失展开态
+    const idx = state.orders.findIndex((o) => o._id === orderId);
+    if (idx >= 0) {
+      state.orders[idx].trackingNo = trackingNo;
+      state.orders[idx].trackingCompany = trackingCompany;
+    }
+    setOrdersMessage("单号已保存，用户端即可查看。", "success");
+  } catch (err) {
+    setOrdersMessage(err.message, "error");
+  }
+}
+
 function copyOrderAddress(orderId) {
   const o = state.orders.find((x) => x._id === orderId);
   if (!o) return;
@@ -1740,6 +1773,12 @@ adminOrdersList?.addEventListener("click", (event) => {
     if (checkbox.checked) state.selectedOrderIds.add(id);
     else state.selectedOrderIds.delete(id);
     updateBulkBar();
+    return;
+  }
+  const saveTracking = event.target.closest("[data-save-tracking]");
+  if (saveTracking) {
+    event.stopPropagation();
+    handleTrackingSave(saveTracking.dataset.saveTracking);
     return;
   }
   const prev = event.target.closest("[data-page-prev]");

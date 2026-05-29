@@ -2549,6 +2549,42 @@ body.admin-desktop-mode .admin-panel-nav {
   min-height: 36px;
 }
 
+.admin-tracking-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-tracking-company {
+  width: 130px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(234, 223, 206, 0.95);
+  background: #fff;
+  color: var(--text);
+  font-size: 14px;
+  min-height: 36px;
+}
+
+.admin-tracking-no {
+  flex: 1;
+  min-width: 160px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(234, 223, 206, 0.95);
+  background: #fff;
+  color: var(--text);
+  font-size: 14px;
+  min-height: 36px;
+}
+
+.admin-tracking-save {
+  min-height: 36px;
+  min-width: auto;
+  padding: 0 18px;
+}
+
 .admin-orders-bulk-bar {
   display: flex;
   align-items: center;

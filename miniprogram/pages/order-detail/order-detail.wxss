@@ -48,6 +48,49 @@
   margin-bottom: 8rpx;
 }
 
+.od-track-line {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  flex-wrap: wrap;
+}
+
+.od-track-company {
+  font-size: 24rpx;
+  color: #fff;
+  background: var(--blue, #2e78b7);
+  padding: 4rpx 16rpx;
+  border-radius: 999rpx;
+}
+
+.od-track-no {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--text);
+  font-family: ui-monospace, Menlo, monospace;
+  word-break: break-all;
+}
+
+.od-track-copy {
+  margin-top: 16rpx;
+  background: linear-gradient(135deg, var(--red) 0%, var(--red-deep) 100%);
+  color: #fff;
+  font-size: 26rpx;
+  font-weight: 700;
+  border-radius: 999rpx;
+  padding: 16rpx 0;
+}
+
+.od-track-copy::after { border: none; }
+
+.od-track-tip {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .od-addr-main {
   font-size: 28rpx;
   font-weight: 600;

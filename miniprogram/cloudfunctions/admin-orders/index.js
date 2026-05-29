@@ -393,6 +393,19 @@ async function updateOrderStatusBulk({ orderIds, status }) {
   return { updated, failed, total: orderIds.length };
 }
 
+// 更新快递信息
+async function updateTracking({ orderId, trackingNo, trackingCompany }) {
+  if (!orderId) throw new Error('缺少 orderId');
+  const patch = {
+    trackingNo: String(trackingNo || '').trim().slice(0, 50),
+    trackingCompany: String(trackingCompany || '').trim().slice(0, 30),
+    updatedAt: new Date()
+  };
+  await db.collection('orders').doc(orderId).update({ data: patch });
+  const r = await db.collection('orders').doc(orderId).get();
+  return r.data;
+}
+
 // ---------- Entry ----------
 
 function buildResponse(statusCode, payload) {
@@ -448,6 +461,9 @@ exports.main = async (event) => {
         break;
       case 'update-status-bulk':
         data = await updateOrderStatusBulk(body);
+        break;
+      case 'update-tracking':
+        data = await updateTracking(body);
         break;
       case 'stats':
         data = await getStats(body);
