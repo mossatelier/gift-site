@@ -515,7 +515,7 @@ function filteredRecentProducts() {
 
   return state.recentProducts.filter((item) => {
     const categoryLabel = categoryOptions.find((option) => option.value === item.category)?.label || item.category || "";
-    const matchesKeyword = !keyword || `${item.title || ""} ${categoryLabel}`.toLowerCase().includes(keyword);
+    const matchesKeyword = !keyword || `${item.title || ""} ${categoryLabel} ${item.subcategory || ""} ${item.description || ""}`.toLowerCase().includes(keyword);
     const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
     return matchesKeyword && matchesCategory;
   });
@@ -908,7 +908,7 @@ async function loadRecentProducts() {
     const primaryParams = new URLSearchParams({
       select: "id,title,category,subcategory,price,cards_needed,description,image_url,images,sort_order,created_at,is_active",
       order: "updated_at.desc",
-      limit: "50"
+      limit: "1000"
     });
 
     let response = await authedFetch(
@@ -919,7 +919,7 @@ async function loadRecentProducts() {
       const fallbackParams = new URLSearchParams({
         select: "id,title,category,price,image_url,sort_order,created_at,is_active",
         order: "created_at.desc",
-        limit: "50"
+        limit: "1000"
       });
 
       response = await authedFetch(

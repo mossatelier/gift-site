@@ -106,7 +106,7 @@
     <block wx:elif="{{hotList.length === 0}}">
       <view class="empty-state">还没有商品，请到后台录入</view>
     </block>
-    <view wx:else class="product-grid product-grid-3">
+    <view wx:else class="product-grid product-grid-2">
       <view
         class="product-card"
         wx:for="{{hotList}}"
@@ -140,7 +140,7 @@
     <block wx:elif="{{newList.length === 0}}">
       <view class="empty-state">暂无新品</view>
     </block>
-    <view wx:else class="product-grid product-grid-3">
+    <view wx:else class="product-grid product-grid-2">
       <view
         class="product-card"
         wx:for="{{newList}}"

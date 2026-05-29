@@ -216,11 +216,15 @@
 
 .product-grid {
   display: grid;
-  gap: 16rpx;
+  gap: 20rpx;
 }
 
 .product-grid-3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.product-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .product-card {

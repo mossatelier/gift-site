@@ -93,8 +93,13 @@ Page({
     wx.navigateTo({ url: '/pages/earn/earn' });
   },
 
+  // 用 previewImage 打开客服二维码：预览模式下长按才能「识别图中二维码」
+  // （自定义弹层里的 image 长按无法识别二维码）
   showQrcode() {
-    this.setData({ showQr: true });
+    wx.previewImage({
+      urls: ['/images/wechat-qr.jpg'],
+      current: '/images/wechat-qr.jpg'
+    });
   },
 
   hideQrcode() {
