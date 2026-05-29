@@ -5,26 +5,38 @@
     </view>
 
     <view class="bank-table">
-      <text class="bank-intro">点击下方银行，复制查询链接到浏览器打开（小程序内不能直接打开外部银行网址）。</text>
+      <text class="bank-intro">点击对应银行展开二维码，长按二维码识别即可跳转官方进度查询页。</text>
 
       <view class="bank-list">
-        <view
-          class="bank-item"
-          wx:for="{{banks}}"
-          wx:key="key"
-          data-url="{{item.url}}"
-          data-name="{{item.name}}"
-          bindtap="copyUrl"
-        >
-          <view class="bank-left">
-            <image wx:if="{{item.logo}}" class="bank-logo" src="{{item.logo}}" mode="aspectFit"></image>
-            <text class="bank-name">{{item.name}}</text>
+        <view class="bank-card" wx:for="{{banks}}" wx:key="key">
+          <view
+            class="bank-item"
+            data-qr="{{item.qr}}"
+            bindtap="showQr"
+          >
+            <view class="bank-left">
+              <image class="bank-logo" src="{{item.logo}}" mode="aspectFit"></image>
+              <text class="bank-name">{{item.name}}</text>
+            </view>
+            <text class="bank-arrow">查看二维码 ›</text>
           </view>
-          <text class="bank-arrow">复制链接 ›</text>
+
+          <view class="bank-qr-wrap" data-qr="{{item.qr}}" bindtap="showQr">
+            <image class="bank-qr" src="{{item.qr}}" mode="aspectFit"></image>
+            <text class="bank-qr-tip">长按二维码识别，跳转{{item.name}}查询</text>
+          </view>
+
+          <view
+            wx:if="{{item.url}}"
+            class="bank-copy"
+            data-url="{{item.url}}"
+            data-name="{{item.name}}"
+            bindtap="copyUrl"
+          >复制查询链接（识别不了时用）›</view>
         </view>
       </view>
 
-      <text class="bank-tip">提示：链接已自动复制到剪贴板，在浏览器粘贴打开即可。如打不开请联系客服微信 <text class="bank-tip-strong">L1916959</text>。</text>
+      <text class="bank-tip">如二维码无法识别，请联系客服微信 <text class="bank-tip-strong">L1916959</text>。</text>
     </view>
   </view>
 

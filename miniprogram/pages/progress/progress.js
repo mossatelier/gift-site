@@ -1,63 +1,47 @@
+// 银行办卡进度查询：列表显示 logo，点击弹二维码大图（长按识别跳转），保留复制链接兜底
+// 顺序：中信 / 平安 / 浦发 / 交通 / 招商 / 兴业
 const BANKS = [
   {
     key: 'citic',
     name: '中信银行',
     logo: '/images/banks/citic.jpg',
+    qr: '/images/progress/citic-qr.jpg',
     url: 'https://e.creditcard.ecitic.com/citiccard/ebank-ocp/bsvc-card/index.html#/cardInput'
   },
   {
     key: 'pingan',
     name: '平安银行',
     logo: '/images/banks/pingan.jpg',
+    qr: '/images/progress/pingan-qr.jpg',
     url: 'https://bank-static.pingan.com.cn/ca/ccBooking/ccBookingHtml/query/index.html'
-  },
-  {
-    key: 'bocom',
-    name: '交通银行',
-    logo: '/images/banks/bocom.jpg',
-    url: 'https://creditcardapp.bankcomm.com/cpqweb/apply/status/preinquiry.html'
   },
   {
     key: 'spdb',
     name: '浦发银行',
     logo: '/images/banks/spdb.jpg',
+    qr: '/images/progress/spdb-qr.jpg',
     url: 'https://adsp.spdbccc.com.cn/adsp/view/mobile/phoneCheck.html?ciphertext=E85B42DFBE1844DA0392D08EC07186A1FE1FA5ACAFDF0319739C36E5A24A958E1D7CA7516A994BE28301511984F668EF11AB915BD1C47ABCFEEB9616A14D26D0'
+  },
+  {
+    key: 'bocom',
+    name: '交通银行',
+    logo: '/images/banks/bocom.jpg',
+    qr: '/images/progress/bocom-qr.jpg',
+    url: 'https://creditcardapp.bankcomm.com/cpqweb/apply/status/preinquiry.html'
   },
   {
     key: 'cmb',
     name: '招商银行',
     logo: '/images/banks/cmb.jpg',
+    qr: '/images/progress/cmb-qr.jpg',
     url: 'https://xyk.cmbchina.com/card-management-site/progress-query'
   },
   {
-    key: 'cmbc',
-    name: '民生银行',
-    logo: '',
-    url: 'https://wx.creditcard.cmbc.com.cn/front/creditGetProgressSeaNew'
-  },
-  {
-    key: 'hxb',
-    name: '华夏银行',
-    logo: '',
-    url: 'https://wxstatic.creditcard.hxb.com.cn/nwxhx/6304/#/identityVerification/identityVerification'
-  },
-  {
-    key: 'ceb',
-    name: '光大银行',
-    logo: '',
-    url: 'http://t.cn/A667YPJ1'
-  },
-  {
-    key: 'fubon',
-    name: '富邦华一银行',
-    logo: '',
-    url: 'https://creditapply.fubonchina.com/ws-gateway/mvue/m/#/queryInfo?business=CJ04'
-  },
-  {
-    key: 'cgb',
-    name: '广发银行',
-    logo: '',
-    url: 'https://wap.cgbchina.com.cn/h5-mobilebank-web/h5/ws/subfield/index?srcChannel=WS&mbp_subcode=200003112'
+    key: 'cib',
+    name: '兴业银行',
+    logo: '/images/banks/cib.jpg',
+    qr: '/images/progress/cib-qr.jpg',
+    url: ''
   }
 ];
 
@@ -66,15 +50,27 @@ Page({
     banks: BANKS
   },
 
+  // 点击银行 → 放大二维码，长按可识别跳转
+  showQr(e) {
+    const qr = e.currentTarget.dataset.qr;
+    if (!qr) return;
+    wx.previewImage({
+      urls: [qr],
+      current: qr
+    });
+  },
+
+  // 兜底：复制查询链接到剪贴板
   copyUrl(e) {
     const { url, name } = e.currentTarget.dataset;
+    if (!url) {
+      wx.showToast({ title: '请长按二维码识别查询', icon: 'none' });
+      return;
+    }
     wx.setClipboardData({
       data: url,
       success: () => {
-        wx.showToast({
-          title: `${name}链接已复制`,
-          icon: 'success'
-        });
+        wx.showToast({ title: `${name}链接已复制`, icon: 'success' });
       }
     });
   },

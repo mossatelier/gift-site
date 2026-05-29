@@ -21,7 +21,14 @@
 .bank-list {
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
+  gap: 20rpx;
+}
+
+.bank-card {
+  background: var(--paper-soft);
+  border: 1rpx solid rgba(234, 223, 206, 0.7);
+  border-radius: 18rpx;
+  overflow: hidden;
 }
 
 .bank-item {
@@ -29,9 +36,36 @@
   align-items: center;
   justify-content: space-between;
   padding: 18rpx 24rpx;
-  background: var(--paper-soft);
-  border: 1rpx solid rgba(234, 223, 206, 0.7);
+}
+
+.bank-qr-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+  padding: 8rpx 24rpx 24rpx;
+}
+
+.bank-qr {
+  width: 360rpx;
+  height: 360rpx;
+  background: #fff;
   border-radius: 16rpx;
+  border: 1rpx solid rgba(234, 223, 206, 0.7);
+}
+
+.bank-qr-tip {
+  font-size: 24rpx;
+  color: var(--muted);
+}
+
+.bank-copy {
+  text-align: center;
+  font-size: 24rpx;
+  color: var(--red);
+  font-weight: 600;
+  padding: 18rpx;
+  border-top: 1rpx dashed rgba(234, 223, 206, 0.9);
 }
 
 .bank-left {
