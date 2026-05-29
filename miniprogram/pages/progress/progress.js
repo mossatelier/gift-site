@@ -5,49 +5,49 @@ const BANKS = [
     key: 'citic',
     name: '中信银行',
     logo: '/images/banks/citic.jpg',
-    qr: 'https://ukoqffocqjokcroilyyv.supabase.co/storage/v1/object/public/progress/citic-qr.png',
+    qr: 'https://ukoqffocqjokcroilyyv.supabase.co/storage/v1/object/public/product-images/citic-qr.png',
     url: 'https://e.creditcard.ecitic.com/citiccard/ebank-ocp/bsvc-card/index.html#/cardInput'
   },
   {
     key: 'pingan',
     name: '平安银行',
     logo: '/images/banks/pingan.jpg',
-    qr: 'https://ukoqffocqjokcroilyyv.supabase.co/storage/v1/object/public/progress/pingan-qr.png',
+    qr: 'https://ukoqffocqjokcroilyyv.supabase.co/storage/v1/object/public/product-images/pingan-qr.png',
     url: 'https://bank-static.pingan.com.cn/ca/ccBooking/ccBookingHtml/query/index.html'
   },
   {
     key: 'spdb',
     name: '浦发银行',
     logo: '/images/banks/spdb.jpg',
-    qr: 'https://ukoqffocqjokcroilyyv.supabase.co/storage/v1/object/public/progress/spdb-qr.png',
+    qr: 'https://ukoqffocqjokcroilyyv.supabase.co/storage/v1/object/public/product-images/spdb-qr.png',
     url: 'https://adsp.spdbccc.com.cn/adsp/view/mobile/phoneCheck.html?ciphertext=E85B42DFBE1844DA0392D08EC07186A1FE1FA5ACAFDF0319739C36E5A24A958E1D7CA7516A994BE28301511984F668EF11AB915BD1C47ABCFEEB9616A14D26D0'
   },
   {
     key: 'bocom',
     name: '交通银行',
     logo: '/images/banks/bocom.jpg',
-    qr: 'https://ukoqffocqjokcroilyyv.supabase.co/storage/v1/object/public/progress/bocom-qr.png',
+    qr: 'https://ukoqffocqjokcroilyyv.supabase.co/storage/v1/object/public/product-images/bocom-qr.png',
     url: 'https://creditcardapp.bankcomm.com/cpqweb/apply/status/preinquiry.html'
   },
   {
     key: 'cmb',
     name: '招商银行',
     logo: '/images/banks/cmb.jpg',
-    qr: 'https://ukoqffocqjokcroilyyv.supabase.co/storage/v1/object/public/progress/cmb-qr.png',
+    qr: 'https://ukoqffocqjokcroilyyv.supabase.co/storage/v1/object/public/product-images/cmb-qr.png',
     url: 'https://xyk.cmbchina.com/card-management-site/progress-query'
   },
   {
     key: 'cib',
     name: '兴业银行',
     logo: '/images/banks/cib.jpg',
-    qr: 'https://ukoqffocqjokcroilyyv.supabase.co/storage/v1/object/public/progress/cib-qr.png',
+    qr: 'https://ukoqffocqjokcroilyyv.supabase.co/storage/v1/object/public/product-images/cib-qr.png',
     url: ''
   },
   {
     key: 'cmbc',
     name: '民生银行',
     logo: '/images/banks/cmbc.jpg',
-    qr: 'https://ukoqffocqjokcroilyyv.supabase.co/storage/v1/object/public/progress/cmbc-qr.png',
+    qr: 'https://ukoqffocqjokcroilyyv.supabase.co/storage/v1/object/public/product-images/cmbc-qr.png',
     url: 'https://wx.creditcard.cmbc.com.cn/front/creditGetProgressSeaNew'
   }
 ];
