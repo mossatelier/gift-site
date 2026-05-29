@@ -1,5 +1,5 @@
-// 银行办卡进度查询：列表显示 logo，点击弹二维码大图（长按识别跳转），保留复制链接兜底
-// 顺序：中信 / 平安 / 浦发 / 交通 / 招商 / 兴业
+// 银行办卡进度查询：列表显示 logo，点「查看二维码」才展开二维码，长按识别跳转，复制链接兜底
+// 顺序：中信 / 平安 / 浦发 / 交通 / 招商 / 兴业 / 民生
 const BANKS = [
   {
     key: 'citic',
@@ -42,22 +42,33 @@ const BANKS = [
     logo: '/images/banks/cib.jpg',
     qr: '/images/progress/cib-qr.jpg',
     url: ''
+  },
+  {
+    key: 'cmbc',
+    name: '民生银行',
+    logo: '/images/banks/cmbc.jpg',
+    qr: '/images/progress/cmbc-qr.jpg',
+    url: 'https://wx.creditcard.cmbc.com.cn/front/creditGetProgressSeaNew'
   }
 ];
 
 Page({
   data: {
-    banks: BANKS
+    banks: BANKS,
+    openKey: ''   // 当前展开二维码的银行 key
   },
 
-  // 点击银行 → 放大二维码，长按可识别跳转
-  showQr(e) {
+  // 点「查看二维码」：展开/收起对应银行的二维码
+  toggleQr(e) {
+    const key = e.currentTarget.dataset.key;
+    this.setData({ openKey: this.data.openKey === key ? '' : key });
+  },
+
+  // 点二维码本身 → 放大，长按可识别跳转
+  previewQr(e) {
     const qr = e.currentTarget.dataset.qr;
     if (!qr) return;
-    wx.previewImage({
-      urls: [qr],
-      current: qr
-    });
+    wx.previewImage({ urls: [qr], current: qr });
   },
 
   // 兜底：复制查询链接到剪贴板
@@ -69,9 +80,7 @@ Page({
     }
     wx.setClipboardData({
       data: url,
-      success: () => {
-        wx.showToast({ title: `${name}链接已复制`, icon: 'success' });
-      }
+      success: () => wx.showToast({ title: `${name}链接已复制`, icon: 'success' })
     });
   },
 

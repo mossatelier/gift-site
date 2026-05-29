@@ -5,34 +5,36 @@
     </view>
 
     <view class="bank-table">
-      <text class="bank-intro">点击对应银行展开二维码，长按二维码识别即可跳转官方进度查询页。</text>
+      <text class="bank-intro">点「查看二维码」展开对应银行二维码，长按二维码识别即可跳转官方进度查询页。</text>
 
       <view class="bank-list">
         <view class="bank-card" wx:for="{{banks}}" wx:key="key">
           <view
             class="bank-item"
-            data-qr="{{item.qr}}"
-            bindtap="showQr"
+            data-key="{{item.key}}"
+            bindtap="toggleQr"
           >
             <view class="bank-left">
               <image class="bank-logo" src="{{item.logo}}" mode="aspectFit"></image>
               <text class="bank-name">{{item.name}}</text>
             </view>
-            <text class="bank-arrow">查看二维码 ›</text>
+            <text class="bank-arrow">{{openKey === item.key ? '收起 ▴' : '查看二维码 ›'}}</text>
           </view>
 
-          <view class="bank-qr-wrap" data-qr="{{item.qr}}" bindtap="showQr">
-            <image class="bank-qr" src="{{item.qr}}" mode="aspectFit"></image>
-            <text class="bank-qr-tip">长按二维码识别，跳转{{item.name}}查询</text>
-          </view>
+          <block wx:if="{{openKey === item.key}}">
+            <view class="bank-qr-wrap" data-qr="{{item.qr}}" bindtap="previewQr">
+              <image class="bank-qr" src="{{item.qr}}" mode="aspectFit"></image>
+              <text class="bank-qr-tip">长按二维码识别，跳转{{item.name}}查询</text>
+            </view>
 
-          <view
-            wx:if="{{item.url}}"
-            class="bank-copy"
-            data-url="{{item.url}}"
-            data-name="{{item.name}}"
-            bindtap="copyUrl"
-          >复制查询链接（识别不了时用）›</view>
+            <view
+              wx:if="{{item.url}}"
+              class="bank-copy"
+              data-url="{{item.url}}"
+              data-name="{{item.name}}"
+              bindtap="copyUrl"
+            >复制查询链接（识别不了时用）›</view>
+          </block>
         </view>
       </view>
 
