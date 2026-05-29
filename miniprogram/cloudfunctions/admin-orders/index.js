@@ -130,35 +130,65 @@ async function updateOrderStatus({ orderId, status, adminNote }) {
   return r.data;
 }
 
+// 北京时间偏移（云函数运行环境为 UTC，统一按 UTC+8 计算周期边界）
+const BJ_OFFSET_MS = 8 * 3600 * 1000;
+
+// 取「北京时间的当前墙上时刻」对应的各字段（用 getUTC* 读出来即是北京时间）
+function bjParts(nowMs) {
+  const d = new Date(nowMs + BJ_OFFSET_MS);
+  return {
+    year: d.getUTCFullYear(),
+    month: d.getUTCMonth(),
+    date: d.getUTCDate(),
+    dow: d.getUTCDay() || 7, // 周日(0) → 7
+    hour: d.getUTCHours()
+  };
+}
+
+// 给定北京时间的 (年,月,日)，返回该北京零点对应的真实 UTC 毫秒
+function bjMidnightToUtcMs(year, month, date) {
+  return Date.UTC(year, month, date) - BJ_OFFSET_MS;
+}
+
 // 周期统计
 async function getStats({ period = 'today' }) {
-  const now = new Date();
-  let since = null;
+  const nowMs = Date.now();
+  const bj = bjParts(nowMs);
+
+  // 当前周期起点（按北京时间）
+  let sinceMs = null;
   if (period === 'today') {
-    since = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    sinceMs = bjMidnightToUtcMs(bj.year, bj.month, bj.date);
   } else if (period === 'week') {
-    const dow = now.getDay() || 7;
-    since = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 1);
+    sinceMs = bjMidnightToUtcMs(bj.year, bj.month, bj.date - bj.dow + 1);
   } else if (period === 'month') {
-    since = new Date(now.getFullYear(), now.getMonth(), 1);
+    sinceMs = bjMidnightToUtcMs(bj.year, bj.month, 1);
   }
 
-  // 上期起点（用于同比）
-  let prevSince = null;
-  let prevUntil = since; // 当前周期起点 = 上期周期终点
-  if (since) {
+  // 上期同比：与本期【等长且对齐到当前进度】，避免「整段上期 vs 本期至今」口径不对等
+  // today/week 用固定毫秒回退一个周期；month 回退一个日历月
+  let prevSinceMs = null;
+  let prevUntilMs = null;
+  if (sinceMs !== null) {
     if (period === 'today') {
-      prevSince = new Date(since.getTime() - 24 * 3600 * 1000);
+      prevSinceMs = sinceMs - 24 * 3600 * 1000;
+      prevUntilMs = nowMs - 24 * 3600 * 1000;
     } else if (period === 'week') {
-      prevSince = new Date(since.getTime() - 7 * 24 * 3600 * 1000);
+      prevSinceMs = sinceMs - 7 * 24 * 3600 * 1000;
+      prevUntilMs = nowMs - 7 * 24 * 3600 * 1000;
     } else if (period === 'month') {
-      prevSince = new Date(since.getFullYear(), since.getMonth() - 1, since.getDate());
+      // 上月同一日同一时刻（北京时间），月末日溢出由 Date.UTC 自动进位
+      const prevMonthSince = bjMidnightToUtcMs(bj.year, bj.month - 1, 1);
+      const elapsed = nowMs - sinceMs; // 本月已过去的时长
+      prevSinceMs = prevMonthSince;
+      prevUntilMs = prevMonthSince + elapsed;
     }
   }
 
+  const since = sinceMs !== null ? new Date(sinceMs) : null;
   const orderWhere = since ? { createdAt: _.gte(since) } : {};
-  const prevWhere = prevSince && prevUntil
-    ? { createdAt: _.and(_.gte(prevSince), _.lt(prevUntil)) }
+  const prevWhere = prevSinceMs !== null
+    ? { createdAt: _.and(_.gte(new Date(prevSinceMs)), _.lt(new Date(prevUntilMs))) }
     : null;
 
   // 并发拉取
@@ -225,12 +255,12 @@ async function getStats({ period = 'today' }) {
 
   const totalCards = orders.reduce((sum, o) => sum + (o.totalCards || 0), 0);
 
-  // 时段分布（周期内订单按小时）
+  // 时段分布（周期内订单按北京时间小时）
   const hourly = new Array(24).fill(0);
   for (const o of orders) {
     if (o.createdAt) {
       try {
-        const h = new Date(o.createdAt).getHours();
+        const h = new Date(new Date(o.createdAt).getTime() + BJ_OFFSET_MS).getUTCHours();
         if (h >= 0 && h < 24) hourly[h]++;
       } catch {}
     }

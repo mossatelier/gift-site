@@ -1450,18 +1450,38 @@ async function callAdminOrders(action, payload = {}) {
   if (!config.adminOrdersUrl) {
     throw new Error("尚未配置 adminOrdersUrl，请在 assets/config.js 填入云函数 HTTP 触发器地址");
   }
-  const session = activeSession();
+  let session = activeSession();
   if (!session) {
     throw new Error("请先登录管理员账号");
   }
-  const res = await fetch(config.adminOrdersUrl, {
+
+  const doFetch = (token) => fetch(config.adminOrdersUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${session.access_token}`
+      Authorization: `Bearer ${token}`
     },
     body: JSON.stringify({ action, ...payload })
   });
+
+  let res = await doFetch(session.access_token);
+
+  // token 过期 → 刷新一次重试（与 authedFetch 对 Supabase 的处理一致）
+  if (res.status === 401 && session.refresh_token) {
+    try {
+      const refreshed = await refreshSession(session.refresh_token);
+      const user = await fetchCurrentUser(refreshed.access_token);
+      session = { ...refreshed, user };
+      saveSession(session);
+    } catch {
+      saveSession(null);
+      updateAuthUi();
+      updateFormAccess();
+      throw new Error("登录已过期，请重新登录");
+    }
+    res = await doFetch(session.access_token);
+  }
+
   let json;
   try {
     json = await res.json();
@@ -1656,18 +1676,18 @@ async function handleOrderStatusChange(select) {
   setOrdersMessage("正在保存…");
   try {
     await callAdminOrders("update-status", { orderId, status });
-    // 局部更新
-    const idx = state.orders.findIndex((o) => o._id === orderId);
-    if (idx >= 0) {
-      state.orders[idx].status = status;
-      // 如果按状态过滤，且新状态不匹配，移出列表
-      if (state.ordersStatus !== "all" && state.ordersStatus !== status) {
-        state.orders.splice(idx, 1);
-        state.ordersTotal = Math.max(0, state.ordersTotal - 1);
-      }
-    }
-    renderOrdersList();
     setOrdersMessage("已更新。", "success");
+    // 过滤态下改状态会让该单移出当前筛选 → 直接重拉，复用分页/空页回退逻辑，
+    // 避免本地 splice + ordersTotal-- 造成的页码错位、当前页卡空
+    if (state.ordersStatus !== "all" && state.ordersStatus !== status) {
+      state.expandedOrderId = "";
+      loadOrders();
+    } else {
+      // 状态仍在当前筛选内（或全部），就地更新即可
+      const idx = state.orders.findIndex((o) => o._id === orderId);
+      if (idx >= 0) state.orders[idx].status = status;
+      renderOrdersList();
+    }
   } catch (err) {
     setOrdersMessage(err.message, "error");
     // 失败时还原 select 显示
@@ -1697,6 +1717,7 @@ adminOrdersRefreshButton?.addEventListener("click", () => loadOrders());
 adminOrdersStatusFilter?.addEventListener("change", () => {
   state.ordersStatus = adminOrdersStatusFilter.value || "all";
   state.ordersPage = 0;
+  state.selectedOrderIds.clear();
   loadOrders();
 });
 
@@ -1706,6 +1727,7 @@ adminOrdersSearchInput?.addEventListener("input", () => {
   ordersSearchTimer = setTimeout(() => {
     state.ordersSearch = adminOrdersSearchInput.value || "";
     state.ordersPage = 0;
+    state.selectedOrderIds.clear();
     loadOrders();
   }, 300);
 });
@@ -1728,6 +1750,7 @@ adminOrdersList?.addEventListener("click", (event) => {
     if (state.ordersPage > 0) {
       state.ordersPage--;
       state.expandedOrderId = "";
+      state.selectedOrderIds.clear(); // 批量选择仅在本页有效，翻页即清空，避免跨页幽灵 ID
       loadOrders();
     }
     return;
@@ -1737,6 +1760,7 @@ adminOrdersList?.addEventListener("click", (event) => {
     if (state.ordersPage < totalPages - 1) {
       state.ordersPage++;
       state.expandedOrderId = "";
+      state.selectedOrderIds.clear();
       loadOrders();
     }
     return;
