@@ -1823,6 +1823,59 @@ async function loadStats() {
   }
 }
 
+function renderDelta(curr, prev) {
+  if (prev === undefined || prev === null) return "";
+  const c = Number(curr) || 0;
+  const p = Number(prev) || 0;
+  if (p === 0 && c === 0) return `<span class="admin-stats-delta admin-stats-delta-flat">—</span>`;
+  if (p === 0) return `<span class="admin-stats-delta admin-stats-delta-up">↑ 新增</span>`;
+  const pct = Math.round(((c - p) / p) * 100);
+  if (pct === 0) return `<span class="admin-stats-delta admin-stats-delta-flat">持平</span>`;
+  const cls = pct > 0 ? "admin-stats-delta-up" : "admin-stats-delta-down";
+  const arrow = pct > 0 ? "↑" : "↓";
+  return `<span class="admin-stats-delta ${cls}">${arrow} ${Math.abs(pct)}%</span>`;
+}
+
+function renderTopList(list, kind) {
+  if (!Array.isArray(list) || list.length === 0) {
+    return '<p class="admin-status-text">暂无数据。</p>';
+  }
+  const unitText = (p) => {
+    if (kind === 'viewed') return `${escapeHtml(p.count)} 次浏览`;
+    if (kind === 'wishlisted') return `${escapeHtml(p.count)} 人加心愿`;
+    return `${escapeHtml(p.count)} 次申请 · ${escapeHtml(p.cards || 0)} 积分`;
+  };
+  return `<div class="admin-stats-top-list">${list.map((p, i) => `
+    <div class="admin-stats-top-item">
+      <span class="admin-stats-rank">${i + 1}</span>
+      ${p.imageUrl ? `<img src="${escapeHtml(p.imageUrl)}" alt="">` : ""}
+      <div class="admin-stats-top-body">
+        <div class="admin-stats-top-title">${escapeHtml(p.title)}</div>
+        <div class="admin-stats-top-meta">${unitText(p)}</div>
+      </div>
+    </div>
+  `).join("")}</div>`;
+}
+
+function renderHourlyChart(hourly) {
+  const arr = Array.isArray(hourly) ? hourly : new Array(24).fill(0);
+  const max = Math.max(1, ...arr);
+  return `
+    <div class="admin-stats-hours">
+      ${arr.map((v, h) => `
+        <div class="admin-stats-hour">
+          <div class="admin-stats-hour-bar-wrap">
+            <div class="admin-stats-hour-bar" style="height:${(v / max) * 100}%" title="${h}:00 — ${v} 单"></div>
+          </div>
+          <div class="admin-stats-hour-val">${v || ""}</div>
+          <div class="admin-stats-hour-label">${h}</div>
+        </div>
+      `).join("")}
+    </div>
+    <div class="admin-stats-hours-axis">小时（0-23）</div>
+  `;
+}
+
 function renderStats() {
   if (!adminStatsGrid) return;
   const s = state.stats;
@@ -1833,6 +1886,11 @@ function renderStats() {
   const periodLabel = PERIOD_LABEL[s.period] || s.period;
   const byStatus = (s.orders && s.orders.byStatus) || {};
   const top = Array.isArray(s.topProducts) ? s.topProducts : [];
+  const topViewed = Array.isArray(s.topViewed) ? s.topViewed : [];
+  const topWishlisted = Array.isArray(s.topWishlisted) ? s.topWishlisted : [];
+  const dist = s.addressDistribution || { provinces: [], cities: [], total: 0 };
+  const comp = s.comparison;
+  const productsNew = (s.products && s.products.newInPeriod) || 0;
   const clock = formatStatsClockParts(new Date());
 
   adminStatsGrid.innerHTML = `
@@ -1848,16 +1906,22 @@ function renderStats() {
       </div>
       <div class="admin-stats-loaded">数据更新于 ${escapeHtml(formatStatsTimestamp(state.statsLoadedAt))}</div>
     </div>
+
     <div class="admin-stats-cards">
       <div class="admin-stats-card">
-        <div class="admin-stats-label">${escapeHtml(periodLabel)}新增用户</div>
+        <div class="admin-stats-label">${escapeHtml(periodLabel)}新增用户 ${comp ? renderDelta(s.users.newInPeriod, comp.users) : ""}</div>
         <div class="admin-stats-value">${escapeHtml(s.users.newInPeriod)}</div>
         <div class="admin-stats-sub">累计 ${escapeHtml(s.users.total)} 个用户</div>
       </div>
       <div class="admin-stats-card">
-        <div class="admin-stats-label">${escapeHtml(periodLabel)}申请订单</div>
+        <div class="admin-stats-label">${escapeHtml(periodLabel)}申请订单 ${comp ? renderDelta(s.orders.total, comp.orders) : ""}</div>
         <div class="admin-stats-value">${escapeHtml(s.orders.total)}</div>
-        <div class="admin-stats-sub">合计 ${escapeHtml(s.orders.totalCards || 0)} 积分</div>
+        <div class="admin-stats-sub">合计 ${escapeHtml(s.orders.totalCards || 0)} 积分 ${comp ? renderDelta(s.orders.totalCards || 0, comp.cards) : ""}</div>
+      </div>
+      <div class="admin-stats-card">
+        <div class="admin-stats-label">${escapeHtml(periodLabel)}新上礼品</div>
+        <div class="admin-stats-value">${escapeHtml(productsNew)}</div>
+        <div class="admin-stats-sub">${s.period === "all" ? "—" : "周期内 admin 录入数"}</div>
       </div>
       <div class="admin-stats-card">
         <div class="admin-stats-label">订单状态分布</div>
@@ -1869,23 +1933,57 @@ function renderStats() {
         </div>
       </div>
     </div>
+
     <div class="admin-stats-section">
-      <h3 class="admin-stats-section-title">最受欢迎礼品 TOP 5</h3>
-      ${top.length === 0
-        ? '<p class="admin-status-text">该周期内没有申请记录。</p>'
-        : `<div class="admin-stats-top-list">${top.map((p, i) => `
-            <div class="admin-stats-top-item">
-              <span class="admin-stats-rank">${i + 1}</span>
-              ${p.imageUrl ? `<img src="${escapeHtml(p.imageUrl)}" alt="">` : ""}
-              <div class="admin-stats-top-body">
-                <div class="admin-stats-top-title">${escapeHtml(p.title)}</div>
-                <div class="admin-stats-top-meta">${escapeHtml(p.count)} 次申请 · ${escapeHtml(p.cards || 0)} 积分</div>
-              </div>
-            </div>
-          `).join("")}</div>`}
+      <h3 class="admin-stats-section-title">${escapeHtml(periodLabel)}下单时段分布（24h）</h3>
+      ${renderHourlyChart(s.hourly)}
     </div>
+
+    <div class="admin-stats-section">
+      <h3 class="admin-stats-section-title">${escapeHtml(periodLabel)}最受申请礼品 TOP 5</h3>
+      ${renderTopList(top, 'requested')}
+    </div>
+
+    <div class="admin-stats-doublerow">
+      <div class="admin-stats-section">
+        <h3 class="admin-stats-section-title">浏览 TOP 10 <span class="admin-stats-section-tag">累计</span></h3>
+        ${renderTopList(topViewed, 'viewed')}
+      </div>
+      <div class="admin-stats-section">
+        <h3 class="admin-stats-section-title">心愿 TOP 10 <span class="admin-stats-section-tag">未变现意向</span></h3>
+        ${renderTopList(topWishlisted, 'wishlisted')}
+      </div>
+    </div>
+
+    <div class="admin-stats-doublerow">
+      <div class="admin-stats-section">
+        <h3 class="admin-stats-section-title">省份 TOP 5 <span class="admin-stats-section-tag">累计 ${escapeHtml(dist.total)} 个地址</span></h3>
+        ${dist.provinces.length === 0
+          ? '<p class="admin-status-text">暂无地址数据。</p>'
+          : `<div class="admin-stats-region-list">${dist.provinces.map((p, i) => `
+              <div class="admin-stats-region-row">
+                <span class="admin-stats-rank">${i + 1}</span>
+                <span class="admin-stats-region-name">${escapeHtml(p.name)}</span>
+                <span class="admin-stats-region-count">${escapeHtml(p.count)} 人</span>
+              </div>
+            `).join("")}</div>`}
+      </div>
+      <div class="admin-stats-section">
+        <h3 class="admin-stats-section-title">城市 TOP 10</h3>
+        ${dist.cities.length === 0
+          ? '<p class="admin-status-text">暂无地址数据。</p>'
+          : `<div class="admin-stats-region-list">${dist.cities.map((c, i) => `
+              <div class="admin-stats-region-row">
+                <span class="admin-stats-rank">${i + 1}</span>
+                <span class="admin-stats-region-name">${escapeHtml(c.name)}</span>
+                <span class="admin-stats-region-count">${escapeHtml(c.count)} 人</span>
+              </div>
+            `).join("")}</div>`}
+      </div>
+    </div>
+
     ${s.orders.sampleSize >= 1000
-      ? '<p class="admin-status-text" style="margin-top:12px;font-size:12px;">该周期订单数过多（≥1000），TOP 5 基于最近 1000 单聚合。</p>'
+      ? '<p class="admin-status-text" style="margin-top:12px;font-size:12px;">该周期订单数过多（≥1000），TOP 5 / 时段分布基于最近 1000 单聚合。</p>'
       : ""}
   `;
 }

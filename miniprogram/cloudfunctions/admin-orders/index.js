@@ -137,36 +137,70 @@ async function getStats({ period = 'today' }) {
   if (period === 'today') {
     since = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   } else if (period === 'week') {
-    // 周一为本周起点
-    const dow = now.getDay() || 7; // 周日=0 → 7
+    const dow = now.getDay() || 7;
     since = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 1);
   } else if (period === 'month') {
     since = new Date(now.getFullYear(), now.getMonth(), 1);
   }
 
-  // 用户
-  const usersTotal = (await db.collection('users').count()).total || 0;
-  const usersNew = since
-    ? ((await db.collection('users').where({ createdAt: _.gte(since) }).count()).total || 0)
-    : usersTotal;
+  // 上期起点（用于同比）
+  let prevSince = null;
+  let prevUntil = since; // 当前周期起点 = 上期周期终点
+  if (since) {
+    if (period === 'today') {
+      prevSince = new Date(since.getTime() - 24 * 3600 * 1000);
+    } else if (period === 'week') {
+      prevSince = new Date(since.getTime() - 7 * 24 * 3600 * 1000);
+    } else if (period === 'month') {
+      prevSince = new Date(since.getFullYear(), since.getMonth() - 1, since.getDate());
+    }
+  }
 
-  // 订单：拉周期内 + 取总数
   const orderWhere = since ? { createdAt: _.gte(since) } : {};
-  const ordersTotal = (await db.collection('orders').where(orderWhere).count()).total || 0;
-  const orderRes = await db.collection('orders')
-    .where(orderWhere)
-    .orderBy('createdAt', 'desc')
-    .limit(1000)
-    .get();
-  const orders = orderRes.data;
+  const prevWhere = prevSince && prevUntil
+    ? { createdAt: _.and(_.gte(prevSince), _.lt(prevUntil)) }
+    : null;
 
-  // 按状态分布
+  // 并发拉取
+  const [
+    usersTotalRes,
+    usersNewRes,
+    ordersTotalRes,
+    ordersRes,
+    productsNewRes,
+    topViewedRes,
+    allWishlists,
+    allAddresses,
+    prevUsersRes,
+    prevOrdersTotalRes,
+    prevOrdersDataRes
+  ] = await Promise.all([
+    db.collection('users').count(),
+    since ? db.collection('users').where({ createdAt: _.gte(since) }).count() : Promise.resolve({ total: 0 }),
+    db.collection('orders').where(orderWhere).count(),
+    db.collection('orders').where(orderWhere).orderBy('createdAt', 'desc').limit(1000).get(),
+    since ? db.collection('products').where({ createdAt: _.gte(since) }).count() : Promise.resolve({ total: 0 }),
+    db.collection('products').where({ isActive: true }).orderBy('viewCount', 'desc').limit(10).get(),
+    fetchAll(db.collection('wishlists'), 5000),
+    fetchAll(db.collection('addresses'), 5000),
+    prevWhere ? db.collection('users').where(prevWhere).count() : Promise.resolve({ total: 0 }),
+    prevWhere ? db.collection('orders').where(prevWhere).count() : Promise.resolve({ total: 0 }),
+    prevWhere ? db.collection('orders').where(prevWhere).orderBy('createdAt', 'desc').limit(1000).get() : Promise.resolve({ data: [] })
+  ]);
+
+  const usersTotal = usersTotalRes.total || 0;
+  const usersNew = since ? (usersNewRes.total || 0) : usersTotal;
+  const ordersTotal = ordersTotalRes.total || 0;
+  const orders = ordersRes.data || [];
+  const productsNew = since ? (productsNewRes.total || 0) : 0;
+
+  // 状态分布
   const byStatus = { pending: 0, processing: 0, done: 0, cancelled: 0 };
   for (const o of orders) {
     if (byStatus[o.status] !== undefined) byStatus[o.status]++;
   }
 
-  // Top 5 申请最多的礼品（按 qty 累计）
+  // TOP 5 申请
   const productCounts = {};
   for (const o of orders) {
     if (Array.isArray(o.items)) {
@@ -175,11 +209,8 @@ async function getStats({ period = 'today' }) {
         if (!key) continue;
         if (!productCounts[key]) {
           productCounts[key] = {
-            productId: it.productId || '',
-            title: it.title || '(未命名)',
-            imageUrl: it.imageUrl || '',
-            count: 0,
-            cards: 0
+            productId: it.productId || '', title: it.title || '(未命名)',
+            imageUrl: it.imageUrl || '', count: 0, cards: 0
           };
         }
         const qty = it.qty || 1;
@@ -192,21 +223,118 @@ async function getStats({ period = 'today' }) {
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
-  // 总积分（周期内）
   const totalCards = orders.reduce((sum, o) => sum + (o.totalCards || 0), 0);
+
+  // 时段分布（周期内订单按小时）
+  const hourly = new Array(24).fill(0);
+  for (const o of orders) {
+    if (o.createdAt) {
+      try {
+        const h = new Date(o.createdAt).getHours();
+        if (h >= 0 && h < 24) hourly[h]++;
+      } catch {}
+    }
+  }
+
+  // TOP 10 浏览（累计）
+  const topViewed = (topViewedRes.data || []).map(p => ({
+    productId: p._id,
+    title: p.title || '(未命名)',
+    imageUrl: (Array.isArray(p.images) && p.images[0]) || p.imageUrl || '',
+    count: Number(p.viewCount) || 0
+  }));
+
+  // TOP 10 心愿单（累计）
+  const wishCount = {};
+  for (const w of allWishlists) {
+    if (Array.isArray(w.productIds)) {
+      for (const id of w.productIds) {
+        if (!id) continue;
+        wishCount[id] = (wishCount[id] || 0) + 1;
+      }
+    }
+  }
+  const topWishlistIds = Object.entries(wishCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+  let prodMap = {};
+  if (topWishlistIds.length > 0) {
+    const ids = topWishlistIds.map(x => x[0]);
+    const prodRes = await db.collection('products').where({ _id: _.in(ids) }).limit(50).get();
+    prodRes.data.forEach(p => { prodMap[p._id] = p; });
+  }
+  const topWishlisted = topWishlistIds.map(([id, count]) => {
+    const p = prodMap[id];
+    return {
+      productId: id,
+      title: p ? p.title : '(已下架/找不到)',
+      imageUrl: p ? ((Array.isArray(p.images) && p.images[0]) || p.imageUrl || '') : '',
+      count
+    };
+  });
+
+  // 地域分布（累计）
+  const provCount = {};
+  const cityCount = {};
+  for (const a of allAddresses) {
+    if (a.province) provCount[a.province] = (provCount[a.province] || 0) + 1;
+    if (a.province && a.city) {
+      const key = `${a.province} ${a.city}`;
+      cityCount[key] = (cityCount[key] || 0) + 1;
+    }
+  }
+  const provinces = Object.entries(provCount)
+    .sort((a, b) => b[1] - a[1]).slice(0, 5)
+    .map(([name, count]) => ({ name, count }));
+  const cities = Object.entries(cityCount)
+    .sort((a, b) => b[1] - a[1]).slice(0, 10)
+    .map(([name, count]) => ({ name, count }));
+
+  // 同比
+  let comparison = null;
+  if (prevWhere) {
+    const prevOrders = (prevOrdersDataRes && prevOrdersDataRes.data) || [];
+    const prevCards = prevOrders.reduce((sum, o) => sum + (o.totalCards || 0), 0);
+    comparison = {
+      users: prevUsersRes.total || 0,
+      orders: prevOrdersTotalRes.total || 0,
+      cards: prevCards
+    };
+  }
 
   return {
     period,
     since: since ? since.toISOString() : null,
     users: { total: usersTotal, newInPeriod: usersNew },
     orders: {
-      total: ordersTotal,
-      byStatus,
-      totalCards,
-      sampleSize: orders.length // 用了多少条数据做聚合（受 1000 上限）
+      total: ordersTotal, byStatus, totalCards,
+      sampleSize: orders.length
     },
-    topProducts
+    products: { newInPeriod: productsNew },
+    topProducts,
+    topViewed,
+    topWishlisted,
+    addressDistribution: {
+      total: allAddresses.length,
+      provinces,
+      cities
+    },
+    hourly,
+    comparison
   };
+}
+
+async function fetchAll(query, limit = 5000) {
+  const PAGE = 100;
+  let all = [];
+  let skip = 0;
+  while (skip < limit) {
+    const res = await query.skip(skip).limit(PAGE).get();
+    all = all.concat(res.data);
+    if (res.data.length < PAGE) break;
+    skip += PAGE;
+  }
+  return all;
 }
 
 async function updateOrderStatusBulk({ orderIds, status }) {
