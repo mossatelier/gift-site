@@ -2,9 +2,25 @@
   <view class="loading-state" wx:if="{{loading}}">加载中…</view>
 
   <view class="addr-card" wx:else>
+    <!-- 智能粘贴识别 -->
+    <view class="addr-paste">
+      <textarea
+        class="addr-paste-input"
+        placeholder="粘贴整段信息自动识别，例如：张三 13800138000 广东省深圳市南山区科技园路1号"
+        value="{{pasteText}}"
+        bindinput="onPasteInput"
+        maxlength="300"
+        auto-height
+      />
+      <view class="addr-paste-actions">
+        <view class="addr-paste-clear" wx:if="{{pasteText}}" bindtap="onClearPaste">清空</view>
+        <view class="addr-paste-btn" bindtap="onParsePaste">识别填入</view>
+      </view>
+    </view>
+
     <view class="addr-row">
       <text class="addr-label">收件人</text>
-      <input class="addr-input" placeholder="姓名" value="{{recipient}}" bindinput="onRecipient" maxlength="20" />
+      <input class="addr-input" placeholder="请正确输入办卡人名字" placeholder-class="addr-placeholder" value="{{recipient}}" bindinput="onRecipient" maxlength="20" />
     </view>
 
     <view class="addr-row">

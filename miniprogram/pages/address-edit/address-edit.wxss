@@ -9,6 +9,51 @@
   box-shadow: 0 10rpx 30rpx rgba(46, 35, 18, 0.08);
 }
 
+/* 智能粘贴识别 */
+.addr-paste {
+  background: var(--paper-soft);
+  border: 1rpx dashed rgba(224, 172, 77, 0.6);
+  border-radius: 16rpx;
+  padding: 20rpx;
+  margin: 16rpx 0 8rpx;
+}
+
+.addr-paste-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 26rpx;
+  color: var(--text);
+  min-height: 80rpx;
+  line-height: 1.5;
+}
+
+.addr-paste-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16rpx;
+  margin-top: 12rpx;
+}
+
+.addr-paste-clear {
+  font-size: 24rpx;
+  color: var(--muted);
+  padding: 10rpx 24rpx;
+}
+
+.addr-paste-btn {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--gold) 0%, #c8932f 100%);
+  padding: 12rpx 36rpx;
+  border-radius: 999rpx;
+}
+
+.addr-placeholder {
+  color: #b8b1a4;
+}
+
 .addr-row {
   display: flex;
   align-items: center;

@@ -137,6 +137,33 @@
   border-radius: 999rpx;
 }
 
+.points-rule-btn {
+  margin-top: 20rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 18rpx 22rpx;
+  background: linear-gradient(135deg, #fff7e3 0%, #fff2d2 100%);
+  border: 1rpx solid rgba(224, 172, 77, 0.5);
+  border-radius: 16rpx;
+}
+
+.points-rule-icon {
+  font-size: 30rpx;
+}
+
+.points-rule-text {
+  flex: 1;
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #8a5a14;
+}
+
+.points-rule-arrow {
+  font-size: 34rpx;
+  color: var(--gold);
+}
+
 .section-mini-title {
   font-size: 28rpx;
   font-weight: 800;

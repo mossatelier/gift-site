@@ -70,6 +70,11 @@
       <text class="product-tag" wx:if="{{categoryLabel}}">{{categoryLabel}}</text>
       <text class="product-tag" wx:if="{{product.subcategory}}">{{product.subcategory}}</text>
     </view>
+    <view class="points-rule-btn" bindtap="goEarn">
+      <text class="points-rule-icon">📋</text>
+      <text class="points-rule-text">本月积分获得规则</text>
+      <text class="points-rule-arrow">›</text>
+    </view>
   </view>
 
   <!-- 套餐描述 -->

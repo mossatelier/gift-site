@@ -89,6 +89,10 @@ Page({
     });
   },
 
+  goEarn() {
+    wx.navigateTo({ url: '/pages/earn/earn' });
+  },
+
   showQrcode() {
     this.setData({ showQr: true });
   },
