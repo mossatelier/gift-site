@@ -56,7 +56,8 @@ Page({
       const raw = await listProducts({
         category: this.data.currentCategory,
         subcategory: this.data.currentSub || null,
-        limit: 100
+        limit: 100,
+        sort: 'hot'   // 按点击量(viewCount)从高到低
       });
       const items = raw.map(it => ({
         ...it,

@@ -34,7 +34,7 @@ function _buildWhere({ category, subcategory, keyword }) {
   return cond;
 }
 
-// 列表查询：sort 支持 default | newest | cards-asc | cards-desc
+// 列表查询：sort 支持 default | newest | cards-asc | cards-desc | hot
 async function listProducts({
   category = null,
   subcategory = null,
@@ -51,6 +51,8 @@ async function listProducts({
     q = q.orderBy('cardsNeeded', 'asc').orderBy('sortOrder', 'asc');
   } else if (sort === 'cards-desc') {
     q = q.orderBy('cardsNeeded', 'desc').orderBy('sortOrder', 'asc');
+  } else if (sort === 'hot') {
+    q = q.orderBy('viewCount', 'desc').orderBy('sortOrder', 'asc');
   } else {
     q = q.orderBy('sortOrder', 'asc').orderBy('createdAt', 'desc');
   }
