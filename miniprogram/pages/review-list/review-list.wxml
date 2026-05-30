@@ -1,0 +1,48 @@
+<view class="page-shell review-list-page">
+  <view class="loading-state" wx:if="{{loading}}">加载中…</view>
+
+  <view class="rl-empty" wx:elif="{{reviews.length === 0}}">
+    <text class="rl-empty-icon">🌱</text>
+    <text class="rl-empty-title">还没有人晒图</text>
+    <text class="rl-empty-text">完成兑换后来晒图，做第一个种草的人～</text>
+  </view>
+
+  <view class="rl-list" wx:else>
+    <view class="rl-card" wx:for="{{reviews}}" wx:key="_id">
+      <view class="rl-head">
+        <image class="rl-avatar" src="{{item.avatarUrl || '/images/icons/service.svg'}}" mode="aspectFill" />
+        <view class="rl-head-text">
+          <text class="rl-nick">{{item.nickName}}</text>
+          <view class="rl-stars">
+            <text class="rl-star {{item.rating >= s ? 'on' : ''}}" wx:for="{{[1,2,3,4,5]}}" wx:for-item="s" wx:key="*this">★</text>
+          </view>
+        </view>
+        <text class="rl-date">{{item.createdText}}</text>
+      </view>
+
+      <text class="rl-content" wx:if="{{item.content}}">{{item.content}}</text>
+
+      <view class="rl-images" wx:if="{{item.images.length > 0}}">
+        <image
+          class="rl-image"
+          wx:for="{{item.images}}"
+          wx:for-item="img"
+          wx:key="*this"
+          src="{{img}}"
+          mode="aspectFill"
+          lazy-load
+          data-urls="{{item.images}}"
+          data-current="{{img}}"
+          bindtap="previewImage"
+        />
+      </view>
+
+      <view class="rl-product" wx:if="{{item.productTitle}}" data-id="{{item.productId}}" bindtap="goProduct">
+        <text class="rl-product-tag">🎁 {{item.productTitle}}</text>
+        <text class="rl-product-arrow" wx:if="{{item.productId}}">去看看 ›</text>
+      </view>
+    </view>
+
+    <view class="rl-foot">{{noMore ? '没有更多了' : '加载中…'}}</view>
+  </view>
+</view>

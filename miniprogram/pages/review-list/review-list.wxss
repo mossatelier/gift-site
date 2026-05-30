@@ -1,0 +1,123 @@
+.review-list-page {
+  padding-top: 16rpx;
+}
+
+.rl-empty {
+  padding: 120rpx 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.rl-empty-icon { font-size: 80rpx; }
+.rl-empty-title { font-size: 30rpx; font-weight: 700; color: var(--text); }
+.rl-empty-text { font-size: 24rpx; color: var(--muted); }
+
+.rl-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  padding-top: 8rpx;
+}
+
+.rl-card {
+  background: var(--paper);
+  border-radius: 22rpx;
+  padding: 24rpx;
+  box-shadow: 0 8rpx 22rpx rgba(46, 35, 18, 0.06);
+}
+
+.rl-head {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.rl-avatar {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  background: var(--paper-soft);
+  flex-shrink: 0;
+}
+
+.rl-head-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  min-width: 0;
+}
+
+.rl-nick {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.rl-stars { display: flex; gap: 2rpx; }
+.rl-star { font-size: 26rpx; color: #d9d2c4; }
+.rl-star.on { color: var(--gold); }
+
+.rl-date {
+  font-size: 22rpx;
+  color: var(--muted);
+}
+
+.rl-content {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 28rpx;
+  color: var(--text);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.rl-images {
+  margin-top: 16rpx;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10rpx;
+}
+
+.rl-image {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 12rpx;
+  background: var(--paper-soft);
+}
+
+.rl-product {
+  margin-top: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  padding: 14rpx 18rpx;
+  background: var(--paper-soft);
+  border-radius: 14rpx;
+}
+
+.rl-product-tag {
+  font-size: 24rpx;
+  color: var(--text);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rl-product-arrow {
+  font-size: 24rpx;
+  color: var(--red);
+  flex-shrink: 0;
+}
+
+.rl-foot {
+  text-align: center;
+  font-size: 24rpx;
+  color: var(--muted);
+  padding: 30rpx 0 50rpx;
+}

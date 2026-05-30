@@ -1,4 +1,4 @@
-const { listHotProducts, listNewProducts } = require('../../utils/db.js');
+const { listHotProducts, listNewProducts, listApprovedReviews } = require('../../utils/db.js');
 const wishlist = require('../../utils/wishlist.js');
 
 Page({
@@ -6,6 +6,7 @@ Page({
     loading: true,
     hotList: [],
     newList: [],
+    reviews: [],
     wishlistMap: {},
     keyword: '',
     showQr: false
@@ -28,14 +29,24 @@ Page({
     try {
       const results = await Promise.all([
         listHotProducts(6),
-        listNewProducts(6)
+        listNewProducts(6),
+        listApprovedReviews({ limit: 10 }).catch(() => [])
       ]);
-      this.setData({ hotList: results[0], newList: results[1], loading: false });
+      this.setData({
+        hotList: results[0],
+        newList: results[1],
+        reviews: results[2] || [],
+        loading: false
+      });
     } catch (err) {
       console.error('加载首页商品失败', err);
       this.setData({ loading: false });
       wx.showToast({ title: '加载失败', icon: 'none' });
     }
+  },
+
+  goReviewList() {
+    wx.navigateTo({ url: '/pages/review-list/review-list' });
   },
 
   onKeywordInput(e) {

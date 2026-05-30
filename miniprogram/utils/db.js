@@ -282,6 +282,31 @@ async function getMyOrder(openid, id) {
   return order;
 }
 
+// ============ 晒图（reviews 集合） ============
+
+// 首页/广场展示：已通过审核的晒图，按时间倒序
+async function listApprovedReviews({ limit = 20, skip = 0, productId = null } = {}) {
+  const where = { status: 'approved' };
+  if (productId) where.productId = productId;
+  const res = await db().collection('reviews')
+    .where(where)
+    .orderBy('createdAt', 'desc')
+    .skip(skip)
+    .limit(limit)
+    .get();
+  return res.data;
+}
+
+// 查某订单是否已晒过（控制入口按钮状态）
+async function getMyReviewForOrder(openid, orderId) {
+  if (!openid || !orderId) return null;
+  const res = await db().collection('reviews')
+    .where({ openid, orderId })
+    .limit(1)
+    .get();
+  return res.data[0] || null;
+}
+
 module.exports = {
   listProducts,
   countProducts,
@@ -301,5 +326,8 @@ module.exports = {
   setDefaultAddress,
   // orders
   listMyOrders,
-  getMyOrder
+  getMyOrder,
+  // reviews
+  listApprovedReviews,
+  getMyReviewForOrder
 };

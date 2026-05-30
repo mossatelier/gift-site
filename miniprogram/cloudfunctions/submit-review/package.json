@@ -1,0 +1,9 @@
+{
+  "name": "submit-review",
+  "version": "1.0.0",
+  "description": "Submit a user showcase review (images + text + rating) with content-safety check, pending moderation",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}

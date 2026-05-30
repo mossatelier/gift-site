@@ -1,5 +1,5 @@
 const auth = require('../../utils/auth.js');
-const { getMyOrder } = require('../../utils/db.js');
+const { getMyOrder, getMyReviewForOrder } = require('../../utils/db.js');
 
 const STATUS_LABEL = {
   pending: '待处理',
@@ -13,13 +13,20 @@ Page({
     loading: true,
     order: null,
     statusLabel: '',
-    createdText: ''
+    createdText: '',
+    canReview: false,   // 已完成且未晒过
+    reviewed: false     // 已晒过
   },
 
   onLoad(query) {
     this.orderId = query && query.id;
     if (!auth.ensureLogin(`/pages/order-detail/order-detail?id=${this.orderId || ''}`)) return;
     this.load();
+  },
+
+  onShow() {
+    // 从晒图页返回时刷新晒图状态
+    if (this.orderId && this.data.order) this.refreshReviewState();
   },
 
   async load() {
@@ -41,11 +48,38 @@ Page({
         createdText: formatDate(order.createdAt),
         loading: false
       });
+      this.refreshReviewState();
     } catch (err) {
       console.error(err);
       this.setData({ loading: false });
       wx.showToast({ title: '加载失败', icon: 'none' });
     }
+  },
+
+  async refreshReviewState() {
+    const user = auth.getCurrentUser();
+    const order = this.data.order;
+    if (!user || !order || order.status !== 'done') {
+      this.setData({ canReview: false, reviewed: false });
+      return;
+    }
+    try {
+      const existing = await getMyReviewForOrder(user.openid, this.orderId);
+      this.setData({ reviewed: !!existing, canReview: !existing });
+    } catch (err) {
+      this.setData({ canReview: true, reviewed: false });
+    }
+  },
+
+  goReview() {
+    const order = this.data.order;
+    const first = order && Array.isArray(order.items) && order.items[0];
+    const title = first ? encodeURIComponent(first.title || '') : '';
+    const image = first ? encodeURIComponent(first.imageUrl || '') : '';
+    const productId = first ? (first.productId || '') : '';
+    wx.navigateTo({
+      url: `/pages/review-edit/review-edit?orderId=${this.orderId}&productId=${productId}&title=${title}&image=${image}`
+    });
   },
 
   copyOrderId() {

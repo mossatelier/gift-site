@@ -1,0 +1,60 @@
+<view class="page-shell review-edit-page">
+  <!-- 商品信息 -->
+  <view class="re-product" wx:if="{{productTitle}}">
+    <image wx:if="{{productImage}}" class="re-product-img" src="{{productImage}}" mode="aspectFill" />
+    <text class="re-product-title">{{productTitle}}</text>
+  </view>
+
+  <!-- 图片上传 -->
+  <view class="re-card">
+    <text class="re-label">晒图（最多 {{maxImages}} 张）</text>
+    <view class="re-images">
+      <view class="re-image-item" wx:for="{{images}}" wx:key="*this">
+        <image class="re-image" src="{{item}}" mode="aspectFill" data-index="{{index}}" bindtap="previewImage" />
+        <view class="re-image-del" catchtap="removeImage" data-index="{{index}}">×</view>
+      </view>
+      <view class="re-image-add" wx:if="{{images.length < maxImages}}" bindtap="chooseImage">
+        <text class="re-add-plus">+</text>
+        <text class="re-add-text">添加图片</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 评分 -->
+  <view class="re-card">
+    <text class="re-label">评分</text>
+    <view class="re-stars">
+      <text
+        class="re-star {{rating >= item ? 'on' : ''}}"
+        wx:for="{{[1,2,3,4,5]}}"
+        wx:key="*this"
+        data-value="{{item}}"
+        bindtap="setRating"
+      >★</text>
+      <text class="re-rating-num">{{rating}} 分</text>
+    </view>
+  </view>
+
+  <!-- 文案 -->
+  <view class="re-card">
+    <text class="re-label">说说你的使用感受（选填）</text>
+    <textarea
+      class="re-textarea"
+      placeholder="分享一下收到的礼品、使用体验，帮助更多人种草～"
+      value="{{content}}"
+      bindinput="onContent"
+      maxlength="500"
+      auto-height
+    />
+    <text class="re-count">{{content.length}}/500</text>
+  </view>
+
+  <button
+    class="primary-btn re-submit {{submitting ? 'disabled' : ''}}"
+    bindtap="onSubmit"
+    disabled="{{submitting}}"
+  >{{submitting ? '提交中…' : '发布晒图'}}</button>
+
+  <text class="re-tip">发布后需审核通过才会公开展示，请勿上传违规内容。</text>
+  <view class="bottom-spacer"></view>
+</view>

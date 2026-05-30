@@ -1,0 +1,161 @@
+.review-edit-page {
+  padding-top: 20rpx;
+}
+
+.re-product {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  background: var(--paper);
+  border-radius: 18rpx;
+  padding: 20rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 8rpx 20rpx rgba(46, 35, 18, 0.06);
+}
+
+.re-product-img {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 12rpx;
+  background: var(--paper-soft);
+  flex-shrink: 0;
+}
+
+.re-product-title {
+  font-size: 28rpx;
+  color: var(--text);
+  font-weight: 600;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.re-card {
+  background: var(--paper);
+  border-radius: 18rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 8rpx 20rpx rgba(46, 35, 18, 0.06);
+}
+
+.re-label {
+  display: block;
+  font-size: 26rpx;
+  color: var(--muted);
+  margin-bottom: 18rpx;
+}
+
+.re-images {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16rpx;
+}
+
+.re-image-item {
+  position: relative;
+  aspect-ratio: 1 / 1;
+}
+
+.re-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 12rpx;
+  background: var(--paper-soft);
+}
+
+.re-image-del {
+  position: absolute;
+  top: -10rpx;
+  right: -10rpx;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 30rpx;
+  line-height: 40rpx;
+  text-align: center;
+}
+
+.re-image-add {
+  aspect-ratio: 1 / 1;
+  border: 2rpx dashed var(--line);
+  border-radius: 12rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+  background: var(--paper-soft);
+}
+
+.re-add-plus {
+  font-size: 48rpx;
+  color: var(--muted);
+  line-height: 1;
+}
+
+.re-add-text {
+  font-size: 22rpx;
+  color: var(--muted);
+}
+
+.re-stars {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.re-star {
+  font-size: 52rpx;
+  color: #d9d2c4;
+}
+
+.re-star.on {
+  color: var(--gold);
+}
+
+.re-rating-num {
+  margin-left: 12rpx;
+  font-size: 26rpx;
+  color: var(--muted);
+}
+
+.re-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 160rpx;
+  font-size: 28rpx;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.re-count {
+  display: block;
+  text-align: right;
+  font-size: 22rpx;
+  color: var(--muted);
+  margin-top: 8rpx;
+}
+
+.re-submit {
+  width: 100%;
+  margin-top: 8rpx;
+}
+
+.re-submit.disabled {
+  opacity: 0.6;
+}
+
+.re-tip {
+  display: block;
+  text-align: center;
+  font-size: 22rpx;
+  color: var(--muted);
+  margin-top: 18rpx;
+}
+
+.bottom-spacer {
+  height: 40rpx;
+}

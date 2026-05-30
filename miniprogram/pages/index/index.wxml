@@ -162,6 +162,32 @@
     </view>
   </view>
 
+  <!-- 大家的晒图（种草） -->
+  <view class="section" wx:if="{{reviews.length > 0}}">
+    <view class="section-banner">
+      <text class="banner-title-text">大家的晒图</text>
+      <text class="banner-more" bindtap="goReviewList">更多 ›</text>
+    </view>
+    <scroll-view class="review-strip" scroll-x enable-flex>
+      <view
+        class="review-strip-card"
+        wx:for="{{reviews}}"
+        wx:key="_id"
+        bindtap="goReviewList"
+      >
+        <image class="review-strip-img" src="{{item.images[0]}}" mode="aspectFill" lazy-load></image>
+        <view class="review-strip-body">
+          <view class="review-strip-user">
+            <image class="review-strip-avatar" src="{{item.avatarUrl || '/images/icons/service.svg'}}" mode="aspectFill" />
+            <text class="review-strip-nick">{{item.nickName}}</text>
+          </view>
+          <text class="review-strip-text" wx:if="{{item.content}}">{{item.content}}</text>
+          <text class="review-strip-product" wx:if="{{item.productTitle}}">🎁 {{item.productTitle}}</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
   <!-- 公告 -->
   <view class="announce">
     <text class="announce-title">加加好物图集</text>
