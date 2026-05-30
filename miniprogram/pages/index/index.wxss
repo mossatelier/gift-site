@@ -219,6 +219,38 @@
   gap: 20rpx;
 }
 
+/* 大家的晒图 空状态入口 */
+.review-empty-entry {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  padding: 28rpx 24rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1rpx dashed rgba(224, 172, 77, 0.6);
+  border-radius: 18rpx;
+}
+
+.review-empty-emoji {
+  font-size: 52rpx;
+}
+
+.review-empty-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.review-empty-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.review-empty-sub {
+  font-size: 24rpx;
+  color: var(--muted);
+}
+
 /* 大家的晒图 横向滚动 */
 .review-strip {
   white-space: nowrap;
