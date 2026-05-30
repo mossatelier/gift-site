@@ -942,7 +942,7 @@ body.admin-desktop-mode .admin-order-body {
 }
 
 body.admin-desktop-mode .admin-panel-nav {
-  display: flex;
+  grid-template-columns: repeat(6, 1fr);
   gap: 8px;
 }
 
@@ -1146,19 +1146,27 @@ body.admin-desktop-mode .admin-panel-nav {
 }
 
 .admin-panel-nav {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
   padding: 10px;
 }
 
 .admin-panel-tab {
-  flex: 1;
-  min-height: 44px;
-  border-radius: 16px;
+  min-height: 46px;
+  padding: 0 6px;
+  border-radius: 14px;
   border: 1px solid rgba(234, 223, 206, 0.95);
   background: rgba(255, 255, 255, 0.96);
   color: var(--muted);
   font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.admin-panel-tab .tab-ico {
+  margin-right: 4px;
+  font-size: 15px;
 }
 
 .admin-panel-tab.active {
@@ -3365,13 +3373,11 @@ body.admin-desktop-mode .admin-stats-doublerow {
     margin-top: 10px;
   }
 
-  .admin-account-card,
-  .admin-panel-nav {
+  .admin-account-card {
     display: block;
   }
 
-  .admin-account-card .admin-secondary-btn,
-  .admin-panel-tab + .admin-panel-tab {
+  .admin-account-card .admin-secondary-btn {
     margin-top: 10px;
   }
 
