@@ -34,5 +34,8 @@ module.exports = {
   subcategories,
   labelOfCategory,
   siteName: '加加好物图集',
-  customerServiceQrPath: '/images/wechat-qr.jpg'
+  customerServiceQrPath: '/images/wechat-qr.jpg',
+  // 「发货通知」订阅消息模板 ID（小程序后台→订阅消息→公共模板库申请后填）
+  // 前端授权和云端推送用的是同一个模板 ID（云端在 admin-orders 里也要填同一个值）
+  shipNotifyTmplId: ''
 };

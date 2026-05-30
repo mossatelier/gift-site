@@ -1,6 +1,7 @@
 const { getProductsByIds, listMyAddresses, getDefaultAddress } = require('../../utils/db.js');
 const wishlist = require('../../utils/wishlist.js');
 const auth = require('../../utils/auth.js');
+const config = require('../../config.js');
 
 Page({
   data: {
@@ -143,6 +144,19 @@ Page({
     const items = this.data.items.map(it => ({ _id: it._id, qty: 1 }));
     const remark = this.data.remark || '';
 
+    // 在点击手势链路内请求订阅「发货提醒」，无论同意与否都继续提交
+    const tmplId = config.shipNotifyTmplId;
+    if (tmplId) {
+      wx.requestSubscribeMessage({
+        tmplIds: [tmplId],
+        complete: () => this.doSubmitOrder(items, remark)
+      });
+    } else {
+      this.doSubmitOrder(items, remark);
+    }
+  },
+
+  doSubmitOrder(items, remark) {
     wx.showModal({
       title: '确认提交',
       content: `共 ${items.length} 件礼品，提交后客服会主动联系你`,

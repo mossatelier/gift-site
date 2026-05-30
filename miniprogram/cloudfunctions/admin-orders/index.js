@@ -393,6 +393,41 @@ async function updateOrderStatusBulk({ orderIds, status }) {
   return { updated, failed, total: orderIds.length };
 }
 
+// 「发货通知」订阅消息模板 ID —— 填你在小程序后台申请到的模板 ID（与小程序端 config.shipNotifyTmplId 同一个）
+const SHIP_NOTIFY_TMPL_ID = '';
+
+function fmtBjTime(ms) {
+  const d = new Date(ms + 8 * 3600 * 1000);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
+}
+
+// 推送发货提醒（订阅消息）。失败不影响录单号主流程。
+async function sendShipNotify(order, trackingNo, trackingCompany) {
+  if (!SHIP_NOTIFY_TMPL_ID) return;
+  if (!order || !order._openid) return;
+  const itemTitle = (Array.isArray(order.items) && order.items[0] && order.items[0].title) || '礼品';
+  try {
+    await cloud.openapi.subscribeMessage.send({
+      touser: order._openid,
+      templateId: SHIP_NOTIFY_TMPL_ID,
+      page: `pages/order-detail/order-detail?id=${order._id}`,
+      miniprogramState: 'formal',
+      lang: 'zh_CN',
+      // ⚠️ 下面的字段名（thing1 / name4 / character_string5 / time2）必须改成
+      //    你申请到的「发货通知」模板里的实际字段名，否则推送会报错。
+      data: {
+        thing1: { value: itemTitle.slice(0, 20) },
+        name4: { value: (trackingCompany || '快递').slice(0, 10) },
+        character_string5: { value: (trackingNo || '').slice(0, 32) },
+        time2: { value: fmtBjTime(Date.now()) }
+      }
+    });
+  } catch (err) {
+    console.warn('[admin-orders] sendShipNotify failed', err);
+  }
+}
+
 // 更新快递信息
 async function updateTracking({ orderId, trackingNo, trackingCompany }) {
   if (!orderId) throw new Error('缺少 orderId');
@@ -403,6 +438,10 @@ async function updateTracking({ orderId, trackingNo, trackingCompany }) {
   };
   await db.collection('orders').doc(orderId).update({ data: patch });
   const r = await db.collection('orders').doc(orderId).get();
+  // 录入单号后推送发货提醒（仅当填了单号）
+  if (patch.trackingNo) {
+    await sendShipNotify(r.data, patch.trackingNo, patch.trackingCompany);
+  }
   return r.data;
 }
 
