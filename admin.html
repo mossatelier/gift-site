@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>加多宝礼品屋 · 商品录入后台</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="assets/site.css?v=16">
+  <link rel="stylesheet" href="assets/site.css?v=17">
 </head>
 <body class="admin-page">
   <main class="admin-shell">
@@ -62,6 +62,7 @@
         <button class="admin-panel-tab" id="adminTabEdit" type="button">编辑礼品</button>
         <button class="admin-panel-tab" id="adminTabBanks" type="button">银行积分</button>
         <button class="admin-panel-tab" id="adminTabOrders" type="button">申请管理</button>
+        <button class="admin-panel-tab" id="adminTabReviews" type="button">晒图审核</button>
         <button class="admin-panel-tab" id="adminTabStats" type="button">数据看板</button>
       </section>
 
@@ -240,6 +241,26 @@
         <p class="admin-inline-message" id="adminOrdersMessage"></p>
       </section>
 
+      <section class="admin-card" id="adminReviewsPanel" hidden>
+        <div class="admin-status-head">
+          <h2 class="admin-section-title">晒图审核</h2>
+          <button class="admin-secondary-btn" id="adminReviewsRefreshButton" type="button">刷新</button>
+        </div>
+        <div class="admin-reviews-toolbar">
+          <select id="adminReviewsStatusFilter">
+            <option value="pending" selected>待审核</option>
+            <option value="approved">已通过</option>
+            <option value="rejected">已拒绝</option>
+            <option value="all">全部</option>
+          </select>
+          <span class="admin-orders-count" id="adminReviewsCount"></span>
+        </div>
+        <div class="admin-reviews-list" id="adminReviewsList">
+          <p class="admin-status-text">加载中…</p>
+        </div>
+        <p class="admin-inline-message" id="adminReviewsMessage"></p>
+      </section>
+
       <section class="admin-card" id="adminStatsPanel" hidden>
         <div class="admin-status-head">
           <h2 class="admin-section-title">数据看板</h2>
@@ -272,6 +293,6 @@
   </main>
 
   <script src="assets/config.js?v=10"></script>
-  <script src="assets/admin.js?v=13"></script>
+  <script src="assets/admin.js?v=14"></script>
 </body>
 </html>

@@ -406,6 +406,50 @@ async function updateTracking({ orderId, trackingNo, trackingCompany }) {
   return r.data;
 }
 
+// ---------- 晒图审核 ----------
+
+async function listReviews({ status = 'pending', limit = 50, skip = 0 }) {
+  const where = {};
+  if (status && status !== 'all') where.status = status;
+
+  const res = await db.collection('reviews')
+    .where(where)
+    .orderBy('createdAt', 'desc')
+    .skip(Number(skip) || 0)
+    .limit(Math.min(Number(limit) || 50, 100))
+    .get();
+  const countRes = await db.collection('reviews').where(where).count();
+
+  // 云存储 fileID → 临时 https（admin 网页看图）
+  const fileIDs = [];
+  res.data.forEach(r => { if (Array.isArray(r.images)) fileIDs.push(...r.images); });
+  const urlMap = {};
+  if (fileIDs.length) {
+    try {
+      const t = await cloud.getTempFileURL({ fileList: fileIDs.slice(0, 200) });
+      (t.fileList || []).forEach(f => {
+        if (f.fileID && f.tempFileURL) urlMap[f.fileID] = f.tempFileURL;
+      });
+    } catch (err) {
+      console.warn('[admin-orders] getTempFileURL failed', err);
+    }
+  }
+  const items = res.data.map(r => ({
+    ...r,
+    imageUrls: (Array.isArray(r.images) ? r.images : []).map(id => urlMap[id] || '')
+  }));
+  return { items, total: countRes.total || 0 };
+}
+
+async function reviewStatus({ reviewId, status }) {
+  if (!reviewId) throw new Error('缺少 reviewId');
+  if (!['approved', 'rejected', 'pending'].includes(status)) throw new Error('非法状态');
+  await db.collection('reviews').doc(reviewId).update({
+    data: { status, updatedAt: new Date() }
+  });
+  return { reviewId, status };
+}
+
 // ---------- Entry ----------
 
 function buildResponse(statusCode, payload) {
@@ -467,6 +511,12 @@ exports.main = async (event) => {
         break;
       case 'stats':
         data = await getStats(body);
+        break;
+      case 'list-reviews':
+        data = await listReviews(body);
+        break;
+      case 'review-status':
+        data = await reviewStatus(body);
         break;
       default:
         return buildResponse(400, { ok: false, error: '未知 action' });

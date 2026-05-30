@@ -78,6 +78,13 @@ const adminStatsPeriod = document.getElementById("adminStatsPeriod");
 const adminStatsGrid = document.getElementById("adminStatsGrid");
 const adminStatsMessage = document.getElementById("adminStatsMessage");
 const adminStatsRefreshButton = document.getElementById("adminStatsRefreshButton");
+const adminTabReviews = document.getElementById("adminTabReviews");
+const adminReviewsPanel = document.getElementById("adminReviewsPanel");
+const adminReviewsList = document.getElementById("adminReviewsList");
+const adminReviewsMessage = document.getElementById("adminReviewsMessage");
+const adminReviewsStatusFilter = document.getElementById("adminReviewsStatusFilter");
+const adminReviewsCount = document.getElementById("adminReviewsCount");
+const adminReviewsRefreshButton = document.getElementById("adminReviewsRefreshButton");
 
 const subcategoriesMap = config.subcategories || {};
 const TITLE_HISTORY_KEY = "gift-site-admin-title-history";
@@ -196,7 +203,9 @@ const state = {
   selectedOrderIds: new Set(),
   statsPeriod: "today",
   stats: null,
-  statsLoadedAt: null
+  statsLoadedAt: null,
+  reviews: [],
+  reviewsStatus: "pending"
 };
 
 function isSupabaseConfigured() {
@@ -446,14 +455,16 @@ function updatePanelUi() {
     edit: adminEditPanel,
     banks: adminBanksPanel,
     orders: adminOrdersPanel,
-    stats: adminStatsPanel
+    stats: adminStatsPanel,
+    reviews: adminReviewsPanel
   };
   const tabs = {
     create: adminTabCreate,
     edit: adminTabEdit,
     banks: adminTabBanks,
     orders: adminTabOrders,
-    stats: adminTabStats
+    stats: adminTabStats,
+    reviews: adminTabReviews
   };
 
   Object.keys(panels).forEach((key) => {
@@ -2099,6 +2110,120 @@ adminViewModeToggle?.addEventListener("click", () => {
   updateViewModeButton();
 });
 updateViewModeButton();
+
+// ============ 晒图审核 ============
+
+const REVIEW_STATUS_LABEL = { pending: "待审核", approved: "已通过", rejected: "已拒绝" };
+
+function setReviewsMessage(text, tone = "idle") {
+  if (!adminReviewsMessage) return;
+  adminReviewsMessage.textContent = text;
+  adminReviewsMessage.dataset.tone = tone;
+}
+
+async function loadReviews() {
+  if (!adminReviewsList) return;
+  if (!activeSession()) {
+    adminReviewsList.innerHTML = "<p class=\"admin-status-text\">请先登录管理员账号。</p>";
+    return;
+  }
+  adminReviewsList.innerHTML = "<p class=\"admin-status-text\">加载中…</p>";
+  setReviewsMessage("");
+  try {
+    const data = await callAdminOrders("list-reviews", { status: state.reviewsStatus, limit: 100 });
+    state.reviews = Array.isArray(data && data.items) ? data.items : [];
+    if (adminReviewsCount) adminReviewsCount.textContent = `共 ${(data && data.total) || 0} 条`;
+    renderReviews();
+  } catch (err) {
+    adminReviewsList.innerHTML = `<p class="admin-status-text">${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function reviewDate(d) {
+  if (!d) return "";
+  try {
+    const date = new Date(d);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  } catch { return ""; }
+}
+
+function renderReviews() {
+  if (!adminReviewsList) return;
+  if (state.reviews.length === 0) {
+    adminReviewsList.innerHTML = "<p class=\"admin-status-text\">没有符合条件的晒图。</p>";
+    return;
+  }
+  adminReviewsList.innerHTML = state.reviews.map((r) => {
+    const imgs = Array.isArray(r.imageUrls) ? r.imageUrls.filter(Boolean) : [];
+    const stars = "★".repeat(Math.round(r.rating || 0)) + "☆".repeat(5 - Math.round(r.rating || 0));
+    return `
+      <div class="admin-review-card">
+        <div class="admin-review-head">
+          <span class="admin-review-user">${escapeHtml(r.nickName || "微信用户")}</span>
+          <span class="admin-review-stars">${stars}</span>
+          <span class="admin-order-status admin-order-status-${r.status === 'approved' ? 'done' : (r.status === 'rejected' ? 'cancelled' : 'pending')}">${escapeHtml(REVIEW_STATUS_LABEL[r.status] || r.status)}</span>
+        </div>
+        ${r.productTitle ? `<div class="admin-review-product">🎁 ${escapeHtml(r.productTitle)}</div>` : ""}
+        ${r.content ? `<div class="admin-review-content">${escapeHtml(r.content)}</div>` : ""}
+        <div class="admin-review-imgs">
+          ${imgs.map(u => `<img src="${escapeHtml(u)}" alt="">`).join("")}
+        </div>
+        <div class="admin-review-foot">
+          <span class="admin-review-date">${escapeHtml(reviewDate(r.createdAt))}</span>
+          <span class="admin-review-actions">
+            ${r.status !== 'approved' ? `<button class="admin-secondary-btn admin-review-approve" data-approve="${escapeHtml(r._id)}" type="button">通过</button>` : ""}
+            ${r.status !== 'rejected' ? `<button class="admin-secondary-btn admin-review-reject" data-reject="${escapeHtml(r._id)}" type="button">拒绝</button>` : ""}
+          </span>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function moderateReview(reviewId, status) {
+  setReviewsMessage("处理中…");
+  try {
+    await callAdminOrders("review-status", { reviewId, status });
+    const idx = state.reviews.findIndex(r => r._id === reviewId);
+    if (idx >= 0) {
+      // 当前按状态筛选时，状态变了就移出列表
+      if (state.reviewsStatus !== "all" && state.reviewsStatus !== status) {
+        state.reviews.splice(idx, 1);
+      } else {
+        state.reviews[idx].status = status;
+      }
+    }
+    renderReviews();
+    setReviewsMessage(status === "approved" ? "已通过，用户端可见。" : "已处理。", "success");
+  } catch (err) {
+    setReviewsMessage(err.message, "error");
+  }
+}
+
+adminTabReviews?.addEventListener("click", () => {
+  state.activePanel = "reviews";
+  updatePanelUi();
+  loadReviews();
+});
+
+adminReviewsRefreshButton?.addEventListener("click", () => loadReviews());
+
+adminReviewsStatusFilter?.addEventListener("change", () => {
+  state.reviewsStatus = adminReviewsStatusFilter.value || "pending";
+  loadReviews();
+});
+
+adminReviewsList?.addEventListener("click", (event) => {
+  const ap = event.target.closest("[data-approve]");
+  const rj = event.target.closest("[data-reject]");
+  if (ap) { moderateReview(ap.dataset.approve, "approved"); return; }
+  if (rj) {
+    const img = event.target.closest("[data-reject]");
+    if (confirm("确认拒绝这条晒图？")) moderateReview(rj.dataset.reject, "rejected");
+    return;
+  }
+});
 
 fillCategoryOptions();
 restoreLastCategory();
