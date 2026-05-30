@@ -120,8 +120,9 @@ Page({
     wx.navigateTo({ url: '/pages/promo/promo' });
   },
 
+  // 用 previewImage 打开客服码：预览模式长按才能识别二维码（自定义弹层里的 image 不行）
   showQrcode() {
-    this.setData({ showQr: true });
+    wx.previewImage({ urls: ['/images/wechat-qr.jpg'], current: '/images/wechat-qr.jpg' });
   },
 
   hideQrcode() {
