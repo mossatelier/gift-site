@@ -2,6 +2,19 @@ const auth = require('../../utils/auth.js');
 
 const MAX_IMAGES = 9;
 
+// 上传前压缩：质量 70%，最长边限制到 1440px。失败则回退原图。
+function compressImage(src) {
+  return new Promise((resolve) => {
+    wx.compressImage({
+      src,
+      quality: 70,
+      compressedWidth: 1440,   // 部分基础库支持；不支持会被忽略，仍按 quality 压
+      success: (r) => resolve(r.tempFilePath || src),
+      fail: () => resolve(src)
+    });
+  });
+}
+
 Page({
   data: {
     orderId: '',
@@ -74,14 +87,14 @@ Page({
     this.setData({ submitting: true });
     wx.showLoading({ title: '上传中…', mask: true });
     try {
-      // 1. 上传图片到云存储
+      // 1. 压缩 + 上传图片到云存储（压缩节省存储和流量）
       const openid = (auth.getCurrentUser() || {}).openid || 'anon';
       const fileIDs = [];
       for (let i = 0; i < this.data.images.length; i++) {
-        const p = this.data.images[i];
-        const ext = (p.split('.').pop() || 'jpg').split('?')[0];
+        const raw = this.data.images[i];
+        const p = await compressImage(raw);
         const up = await wx.cloud.uploadFile({
-          cloudPath: `reviews/${openid}-${Date.now()}-${i}.${ext}`,
+          cloudPath: `reviews/${openid}-${Date.now()}-${i}.jpg`,
           filePath: p
         });
         if (up.fileID) fileIDs.push(up.fileID);
