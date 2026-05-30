@@ -75,11 +75,24 @@
   white-space: pre-wrap;
 }
 
+/* 单张大图：宽度铺满，高度按原比例，完整不裁 */
+.rl-image-one {
+  width: 100%;
+  margin-top: 16rpx;
+  border-radius: 14rpx;
+  background: var(--paper-soft);
+}
+
 .rl-images {
   margin-top: 16rpx;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10rpx;
+}
+
+/* 两张时各占一半，更大 */
+.rl-images-2 {
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .rl-image {

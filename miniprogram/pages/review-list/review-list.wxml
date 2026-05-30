@@ -22,7 +22,22 @@
 
       <text class="rl-content" wx:if="{{item.content}}">{{item.content}}</text>
 
-      <view class="rl-images" wx:if="{{item.images.length > 0}}">
+      <!-- 单张：大图完整显示，不裁剪 -->
+      <image
+        wx:if="{{item.images.length === 1}}"
+        class="rl-image-one"
+        src="{{item.images[0]}}"
+        mode="widthFix"
+        lazy-load
+        data-urls="{{item.images}}"
+        data-current="{{item.images[0]}}"
+        bindtap="previewImage"
+      />
+      <!-- 多张：网格缩略，点击放大看完整 -->
+      <view
+        wx:elif="{{item.images.length > 1}}"
+        class="rl-images {{item.images.length === 2 ? 'rl-images-2' : ''}}"
+      >
         <image
           class="rl-image"
           wx:for="{{item.images}}"
