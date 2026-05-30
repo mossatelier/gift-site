@@ -165,6 +165,14 @@ Page({
     wx.navigateTo({ url: `/pages/product/product?id=${id}` });
   },
 
+  floatService() {
+    wx.previewImage({ urls: ['/images/wechat-qr.jpg'], current: '/images/wechat-qr.jpg' });
+  },
+
+  backToTop() {
+    wx.pageScrollTo({ scrollTop: 0, duration: 300 });
+  },
+
   toggleHeart(e) {
     const id = e.currentTarget.dataset.id;
     wishlist.toggle(id);

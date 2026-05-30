@@ -132,6 +132,71 @@ page {
   font-size: 26rpx;
 }
 
+/* 礼品卡左上角「办卡可兑」标签 */
+.card-tag {
+  position: absolute;
+  top: 12rpx;
+  left: 12rpx;
+  z-index: 5;
+  background: linear-gradient(135deg, var(--red) 0%, var(--red-deep) 100%);
+  color: #fff;
+  font-size: 20rpx;
+  font-weight: 700;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx 8rpx 8rpx 0;
+  box-shadow: 0 4rpx 10rpx rgba(214, 75, 42, 0.3);
+}
+
+/* 右侧悬浮按钮：在线咨询 + 回到顶部 */
+.float-btns {
+  position: fixed;
+  right: 20rpx;
+  bottom: 140rpx;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.float-btn {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1rpx solid var(--line);
+  box-shadow: 0 6rpx 18rpx rgba(46, 35, 18, 0.16);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rpx;
+}
+
+.float-btn-primary {
+  background: linear-gradient(135deg, var(--red) 0%, var(--red-deep) 100%);
+  border: none;
+}
+
+.float-emoji {
+  font-size: 38rpx;
+  line-height: 1;
+}
+
+.float-top {
+  font-size: 40rpx;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.float-label {
+  font-size: 18rpx;
+  color: var(--muted);
+}
+
+.float-btn-primary .float-label {
+  color: #fff;
+}
+
 /* 商品卡上的小心愿单按钮（覆盖在图片右上角） */
 .card-heart-btn {
   position: absolute;

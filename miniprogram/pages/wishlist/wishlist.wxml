@@ -23,6 +23,7 @@
         wx:key="_id"
       >
         <view class="product-media" data-id="{{item._id}}" bindtap="goProduct">
+          <view class="card-tag">办卡可兑</view>
           <image class="product-image" src="{{item.imageUrl}}" mode="aspectFill" lazy-load></image>
         </view>
         <view class="product-body" data-id="{{item._id}}" bindtap="goProduct">

@@ -128,6 +128,10 @@ Page({
     this.setData({ showQr: false });
   },
 
+  backToTop() {
+    wx.pageScrollTo({ scrollTop: 0, duration: 300 });
+  },
+
   onShareAppMessage() {
     return {
       title: '加加好物图集 · 办卡即享精选好礼',

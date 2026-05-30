@@ -115,6 +115,7 @@
         bindtap="goProduct"
       >
         <view class="product-media">
+          <view class="card-tag">办卡可兑</view>
           <image class="product-image" src="{{item.imageUrl}}" mode="aspectFill" lazy-load></image>
           <view class="card-heart-btn" catchtap="toggleHeart" data-id="{{item._id}}">
             <image src="{{wishlistMap[item._id] ? '/images/icons/heart-filled.svg' : '/images/icons/heart.svg'}}" mode="aspectFit" class="card-heart-svg" />
@@ -149,6 +150,7 @@
         bindtap="goProduct"
       >
         <view class="product-media">
+          <view class="card-tag">办卡可兑</view>
           <image class="product-image" src="{{item.imageUrl}}" mode="aspectFill" lazy-load></image>
           <view class="card-heart-btn" catchtap="toggleHeart" data-id="{{item._id}}">
             <image src="{{wishlistMap[item._id] ? '/images/icons/heart-filled.svg' : '/images/icons/heart.svg'}}" mode="aspectFit" class="card-heart-svg" />
@@ -224,6 +226,18 @@
   </view>
 
   <view class="bottom-spacer"></view>
+
+  <!-- 右侧悬浮：在线咨询 + 回到顶部 -->
+  <view class="float-btns">
+    <view class="float-btn float-btn-primary" bindtap="showQrcode">
+      <text class="float-emoji">💬</text>
+      <text class="float-label">咨询</text>
+    </view>
+    <view class="float-btn" bindtap="backToTop">
+      <text class="float-top">↑</text>
+      <text class="float-label">顶部</text>
+    </view>
+  </view>
 
   <!-- 二维码弹层 -->
   <view class="qr-mask" wx:if="{{showQr}}" bindtap="hideQrcode">

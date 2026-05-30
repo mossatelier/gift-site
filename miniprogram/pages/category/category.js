@@ -29,7 +29,8 @@ Page({
     items: [],
     wishlistMap: {},
     keyword: '',
-    loading: false
+    loading: false,
+    intoView: ''
   },
 
   onLoad() {
@@ -106,6 +107,16 @@ Page({
   goProduct(e) {
     const id = e.currentTarget.dataset.id;
     wx.navigateTo({ url: `/pages/product/product?id=${id}` });
+  },
+
+  floatService() {
+    wx.previewImage({ urls: ['/images/wechat-qr.jpg'], current: '/images/wechat-qr.jpg' });
+  },
+
+  // 右侧内容是 scroll-view，用 scroll-into-view 锚点回到顶部
+  backToTop() {
+    this.setData({ intoView: '' });
+    setTimeout(() => this.setData({ intoView: 'cat-top' }), 0);
   },
 
   toggleHeart(e) {
