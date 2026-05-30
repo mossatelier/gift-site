@@ -393,20 +393,19 @@ async function updateOrderStatusBulk({ orderIds, status }) {
   return { updated, failed, total: orderIds.length };
 }
 
-// 「发货通知」订阅消息模板 ID —— 填你在小程序后台申请到的模板 ID（与小程序端 config.shipNotifyTmplId 同一个）
-const SHIP_NOTIFY_TMPL_ID = '';
-
-function fmtBjTime(ms) {
-  const d = new Date(ms + 8 * 3600 * 1000);
-  const p = (n) => String(n).padStart(2, '0');
-  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
-}
+// 「发货通知」订阅消息模板 ID（与小程序端 config.shipNotifyTmplId 同一个）
+const SHIP_NOTIFY_TMPL_ID = 'ogImsJ3zh8t9wc_AX2gPzLCPqsfTmqH9JqbwLhGlUWQ';
 
 // 推送发货提醒（订阅消息）。失败不影响录单号主流程。
+// 模板字段：thing1=快递公司 thing11=商品名称 character_string5=快递单号 thing2=订单名称 thing7=备注
 async function sendShipNotify(order, trackingNo, trackingCompany) {
   if (!SHIP_NOTIFY_TMPL_ID) return;
   if (!order || !order._openid) return;
-  const itemTitle = (Array.isArray(order.items) && order.items[0] && order.items[0].title) || '礼品';
+  const items = Array.isArray(order.items) ? order.items : [];
+  const itemTitle = (items[0] && items[0].title) || '礼品';
+  const orderName = items.length > 1
+    ? `${itemTitle.slice(0, 12)}等${items.length}件`
+    : itemTitle.slice(0, 20);
   try {
     await cloud.openapi.subscribeMessage.send({
       touser: order._openid,
@@ -414,13 +413,12 @@ async function sendShipNotify(order, trackingNo, trackingCompany) {
       page: `pages/order-detail/order-detail?id=${order._id}`,
       miniprogramState: 'formal',
       lang: 'zh_CN',
-      // ⚠️ 下面的字段名（thing1 / name4 / character_string5 / time2）必须改成
-      //    你申请到的「发货通知」模板里的实际字段名，否则推送会报错。
       data: {
-        thing1: { value: itemTitle.slice(0, 20) },
-        name4: { value: (trackingCompany || '快递').slice(0, 10) },
-        character_string5: { value: (trackingNo || '').slice(0, 32) },
-        time2: { value: fmtBjTime(Date.now()) }
+        thing1: { value: (trackingCompany || '快递').slice(0, 20) },   // 快递公司
+        thing11: { value: itemTitle.slice(0, 20) },                    // 商品名称
+        character_string5: { value: (trackingNo || '').slice(0, 32) }, // 快递单号
+        thing2: { value: orderName },                                  // 订单名称
+        thing7: { value: '已发货，请留意物流信息' }                      // 备注
       }
     });
   } catch (err) {
