@@ -2593,6 +2593,35 @@ body.admin-desktop-mode .admin-panel-nav {
   padding: 0 18px;
 }
 
+.admin-carrier-quick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.admin-carrier-label {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.carrier-chip {
+  font-size: 13px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid rgba(234, 223, 206, 0.95);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.carrier-chip:active {
+  background: rgba(214, 75, 42, 0.1);
+  border-color: var(--red);
+  color: var(--red);
+}
+
 .admin-note-row {
   display: flex;
   gap: 8px;

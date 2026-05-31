@@ -1637,6 +1637,15 @@ function renderOrdersList() {
                 <input class="admin-tracking-no" type="text" placeholder="快递单号" value="${escapeHtml(o.trackingNo || "")}" data-tracking-no="${escapeHtml(o._id)}">
                 <button class="admin-secondary-btn admin-tracking-save" data-save-tracking="${escapeHtml(o._id)}" type="button">保存单号</button>
               </div>
+              <div class="admin-carrier-quick">
+                <span class="admin-carrier-label">常用：</span>
+                <span class="carrier-chip" data-carrier="京东物流" data-cid="${escapeHtml(o._id)}">京东</span>
+                <span class="carrier-chip" data-carrier="中通快递" data-cid="${escapeHtml(o._id)}">中通</span>
+                <span class="carrier-chip" data-carrier="申通快递" data-cid="${escapeHtml(o._id)}">申通</span>
+                <span class="carrier-chip" data-carrier="圆通速递" data-cid="${escapeHtml(o._id)}">圆通</span>
+                <span class="carrier-chip" data-carrier="韵达速递" data-cid="${escapeHtml(o._id)}">韵达</span>
+                <span class="carrier-chip" data-carrier="极兔速递" data-cid="${escapeHtml(o._id)}">极兔</span>
+              </div>
             </div>
             <div class="admin-order-section">
               <strong>商家内部备注（仅你可见，客户看不到）</strong>
@@ -1818,6 +1827,17 @@ adminOrdersList?.addEventListener("click", (event) => {
   if (saveNote) {
     event.stopPropagation();
     handleNoteSave(saveNote.dataset.saveNote);
+    return;
+  }
+  const carrierChip = event.target.closest(".carrier-chip");
+  if (carrierChip) {
+    event.stopPropagation();
+    const cid = carrierChip.dataset.cid;
+    const companyInput = adminOrdersList.querySelector(`[data-tracking-company="${cid}"]`);
+    if (companyInput) {
+      companyInput.value = carrierChip.dataset.carrier;
+      delete companyInput.dataset.auto;
+    }
     return;
   }
   const prev = event.target.closest("[data-page-prev]");
