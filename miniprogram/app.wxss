@@ -132,19 +132,15 @@ page {
   font-size: 26rpx;
 }
 
-/* 礼品卡左上角「办卡可兑」标签 */
-.card-tag {
-  position: absolute;
-  top: 12rpx;
-  left: 12rpx;
-  z-index: 5;
+/* 「办卡可兑」标签 —— 行内，放在商品标题前 */
+.title-tag {
   background: linear-gradient(135deg, var(--red) 0%, var(--red-deep) 100%);
   color: #fff;
   font-size: 20rpx;
   font-weight: 700;
-  padding: 4rpx 12rpx;
-  border-radius: 8rpx 8rpx 8rpx 0;
-  box-shadow: 0 4rpx 10rpx rgba(214, 75, 42, 0.3);
+  padding: 2rpx 10rpx;
+  border-radius: 6rpx;
+  margin-right: 8rpx;
 }
 
 /* 悬浮按钮通用样式 */

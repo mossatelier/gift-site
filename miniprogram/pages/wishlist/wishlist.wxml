@@ -23,11 +23,10 @@
         wx:key="_id"
       >
         <view class="product-media" data-id="{{item._id}}" bindtap="goProduct">
-          <view class="card-tag">办卡可兑</view>
           <image class="product-image" src="{{item.imageUrl}}" mode="aspectFill" lazy-load></image>
         </view>
         <view class="product-body" data-id="{{item._id}}" bindtap="goProduct">
-          <text class="product-title">{{item.title}}</text>
+          <text class="product-title"><text class="title-tag">办卡可兑</text>{{item.title}}</text>
           <text class="product-price" wx:if="{{item.price > 0}}">¥{{item.price}}</text>
           <text class="product-meta" wx:if="{{item.cardsNeeded > 0}}">兑换积分：{{item.cardsNeeded}} 分</text>
         </view>

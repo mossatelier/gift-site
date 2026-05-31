@@ -66,14 +66,13 @@
           bindtap="goProduct"
         >
           <view class="product-media">
-            <view class="card-tag">办卡可兑</view>
             <image class="product-image" src="{{item.imageUrl}}" mode="aspectFill" lazy-load></image>
             <view class="card-heart-btn" catchtap="toggleHeart" data-id="{{item._id}}">
               <image src="{{wishlistMap[item._id] ? '/images/icons/heart-filled.svg' : '/images/icons/heart.svg'}}" mode="aspectFit" class="card-heart-svg" />
             </view>
           </view>
           <view class="product-body">
-            <text class="product-title">{{item.title}}</text>
+            <text class="product-title"><text class="title-tag">办卡可兑</text>{{item.title}}</text>
             <text class="product-meta" wx:if="{{item._metaText}}">{{item._metaText}}</text>
           </view>
         </view>
