@@ -2629,6 +2629,17 @@ body.admin-desktop-mode .admin-panel-nav {
 }
 
 /* 分类排序 */
+.admin-catorder-block {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(234, 223, 206, 0.9);
+}
+
+.admin-catorder-block:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
 .admin-catorder-list {
   display: flex;
   flex-direction: column;

@@ -90,6 +90,9 @@ const adminCatOrderPanel = document.getElementById("adminCatOrderPanel");
 const adminCatOrderList = document.getElementById("adminCatOrderList");
 const adminCatOrderMessage = document.getElementById("adminCatOrderMessage");
 const adminCatOrderSave = document.getElementById("adminCatOrderSave");
+const adminInputOrderList = document.getElementById("adminInputOrderList");
+const adminInputOrderMessage = document.getElementById("adminInputOrderMessage");
+const adminInputOrderSave = document.getElementById("adminInputOrderSave");
 
 const subcategoriesMap = config.subcategories || {};
 const TITLE_HISTORY_KEY = "gift-site-admin-title-history";
@@ -211,7 +214,8 @@ const state = {
   statsLoadedAt: null,
   reviews: [],
   reviewsStatus: "pending",
-  catOrder: []   // [{value,label}] 当前排序（不含 all）
+  catOrder: [],     // [{value,label}] 小程序前台顺序（不含 all）
+  inputOrder: []    // [{value,label}] 后台录入下拉顺序（不含 all）
 };
 
 function isSupabaseConfigured() {
@@ -573,19 +577,37 @@ function renderRecentProducts() {
   }).join("");
 }
 
+// 录入下拉顺序（admin 本地偏好，存 localStorage，方便录入时常用分类靠前）
+const INPUT_CAT_ORDER_KEY = "gift-site-admin-input-cat-order";
+
+function getInputCatOrder() {
+  try {
+    const v = JSON.parse(localStorage.getItem(INPUT_CAT_ORDER_KEY) || "[]");
+    return Array.isArray(v) ? v : [];
+  } catch { return []; }
+}
+
+function orderedInputCategories() {
+  const order = getInputCatOrder();
+  if (!order.length) return categoryOptions.slice();
+  const idx = (val) => { const i = order.indexOf(val); return i < 0 ? 9999 : i; };
+  return categoryOptions.slice().sort((a, b) => idx(a.value) - idx(b.value));
+}
+
 function fillCategoryOptions() {
   if (!adminCategorySelect || categoryOptions.length === 0) {
     return;
   }
 
-  adminCategorySelect.innerHTML = categoryOptions.map((item) => {
+  const ordered = orderedInputCategories();
+  adminCategorySelect.innerHTML = ordered.map((item) => {
     return `<option value="${escapeHtml(item.value)}">${escapeHtml(item.label)}</option>`;
   }).join("");
 
   if (adminFilterCategory) {
     adminFilterCategory.innerHTML = [
       "<option value=\"all\">全部分类</option>",
-      ...categoryOptions.map((item) => `<option value="${escapeHtml(item.value)}">${escapeHtml(item.label)}</option>`)
+      ...ordered.map((item) => `<option value="${escapeHtml(item.value)}">${escapeHtml(item.label)}</option>`)
     ].join("");
   }
 }
@@ -2370,10 +2392,63 @@ function moveCat(from, to) {
   renderCatOrder();
 }
 
+// 录入下拉顺序（本地）
+function setInputOrderMessage(text, tone = "idle") {
+  if (!adminInputOrderMessage) return;
+  adminInputOrderMessage.textContent = text;
+  adminInputOrderMessage.dataset.tone = tone;
+}
+
+function loadInputOrder() {
+  state.inputOrder = orderedInputCategories();
+  renderInputOrder();
+}
+
+function renderInputOrder() {
+  if (!adminInputOrderList) return;
+  adminInputOrderList.innerHTML = state.inputOrder.map((c, i) => `
+    <div class="admin-catorder-row">
+      <span class="admin-catorder-idx">${i + 1}</span>
+      <span class="admin-catorder-name">${escapeHtml(c.label)}</span>
+      <span class="admin-catorder-btns">
+        <button class="admin-secondary-btn" data-input-up="${i}" type="button" ${i === 0 ? "disabled" : ""}>↑</button>
+        <button class="admin-secondary-btn" data-input-down="${i}" type="button" ${i === state.inputOrder.length - 1 ? "disabled" : ""}>↓</button>
+      </span>
+    </div>
+  `).join("");
+}
+
+function moveInput(from, to) {
+  if (to < 0 || to >= state.inputOrder.length) return;
+  const arr = state.inputOrder;
+  const [item] = arr.splice(from, 1);
+  arr.splice(to, 0, item);
+  renderInputOrder();
+}
+
+adminInputOrderList?.addEventListener("click", (event) => {
+  const up = event.target.closest("[data-input-up]");
+  const down = event.target.closest("[data-input-down]");
+  if (up) { const i = Number(up.dataset.inputUp); moveInput(i, i - 1); return; }
+  if (down) { const i = Number(down.dataset.inputDown); moveInput(i, i + 1); return; }
+});
+
+adminInputOrderSave?.addEventListener("click", () => {
+  try {
+    localStorage.setItem(INPUT_CAT_ORDER_KEY, JSON.stringify(state.inputOrder.map(c => c.value)));
+    fillCategoryOptions();   // 立刻应用到录入下拉
+    restoreLastCategory();
+    setInputOrderMessage("已保存，录入下拉已按新顺序排列。", "success");
+  } catch (err) {
+    setInputOrderMessage("保存失败：" + err.message, "error");
+  }
+});
+
 adminTabCatOrder?.addEventListener("click", () => {
   state.activePanel = "catorder";
   updatePanelUi();
   loadCatOrder();
+  loadInputOrder();
 });
 
 adminCatOrderList?.addEventListener("click", (event) => {

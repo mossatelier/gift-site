@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>加多宝礼品屋 · 商品录入后台</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="assets/site.css?v=21">
+  <link rel="stylesheet" href="assets/site.css?v=22">
 </head>
 <body class="admin-page">
   <main class="admin-shell">
@@ -263,15 +263,29 @@
       </section>
 
       <section class="admin-card" id="adminCatOrderPanel" hidden>
-        <div class="admin-status-head">
-          <h2 class="admin-section-title">分类排序</h2>
-          <button class="admin-submit" id="adminCatOrderSave" type="button">保存顺序</button>
+        <h2 class="admin-section-title">分类排序</h2>
+
+        <div class="admin-catorder-block">
+          <div class="admin-status-head">
+            <strong>📱 小程序前台顺序</strong>
+            <button class="admin-submit" id="adminCatOrderSave" type="button">保存</button>
+          </div>
+          <p class="admin-status-text">客户在小程序看到的分类顺序，可按近期热门调整。「全部礼品」固定第一。保存后小程序刷新生效。</p>
+          <div class="admin-catorder-list" id="adminCatOrderList">
+            <p class="admin-status-text">加载中…</p>
+          </div>
+          <p class="admin-inline-message" id="adminCatOrderMessage"></p>
         </div>
-        <p class="admin-status-text">用「上移 / 下移」调整分类在小程序里的显示顺序，越靠上越靠前。「全部礼品」固定第一，不在此列。改完点「保存顺序」，小程序刷新后生效。</p>
-        <div class="admin-catorder-list" id="adminCatOrderList">
-          <p class="admin-status-text">加载中…</p>
+
+        <div class="admin-catorder-block">
+          <div class="admin-status-head">
+            <strong>📝 后台录入下拉顺序</strong>
+            <button class="admin-submit" id="adminInputOrderSave" type="button">保存</button>
+          </div>
+          <p class="admin-status-text">你录入商品时分类下拉的顺序，常用的放前面，录入更快。仅影响这个后台，存在本机。</p>
+          <div class="admin-catorder-list" id="adminInputOrderList"></div>
+          <p class="admin-inline-message" id="adminInputOrderMessage"></p>
         </div>
-        <p class="admin-inline-message" id="adminCatOrderMessage"></p>
       </section>
 
       <section class="admin-card" id="adminStatsPanel" hidden>
@@ -306,6 +320,6 @@
   </main>
 
   <script src="assets/config.js?v=10"></script>
-  <script src="assets/admin.js?v=17"></script>
+  <script src="assets/admin.js?v=18"></script>
 </body>
 </html>
