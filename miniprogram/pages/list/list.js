@@ -5,6 +5,16 @@ const floatBtn = require('../../utils/floatBtn.js');
 
 const PAGE_SIZE = 20;
 
+// 推荐有礼按推荐人数换，不显示积分；其他显示兑换积分
+function buildMetaText(item) {
+  if (item.category === 'referral' && item.subcategory) {
+    const m = String(item.subcategory).match(/推荐\s*(\d+)\s*人/);
+    if (m) return `推荐 ${m[1]} 人可领`;
+  }
+  if (item.cardsNeeded > 0) return `兑换积分：${item.cardsNeeded} 分`;
+  return '';
+}
+
 Page({
   ...floatBtn,
 
@@ -121,13 +131,14 @@ Page({
   async _loadPage() {
     const { currentCategory, sort, keyword, skip } = this.data;
     try {
-      const page = await listProducts({
+      const raw = await listProducts({
         category: currentCategory,
         keyword,
         sort,
         skip,
         limit: PAGE_SIZE
       });
+      const page = raw.map(it => ({ ...it, _metaText: buildMetaText(it) }));
       this.setData({
         items: this.data.items.concat(page),
         skip: skip + page.length,

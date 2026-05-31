@@ -73,7 +73,7 @@
       </view>
       <view class="product-body">
         <text class="product-title"><text class="title-tag">{{item.category === 'referral' ? '推荐可兑' : '办卡可兑'}}</text>{{item.title}}</text>
-        <text class="product-meta" wx:if="{{item.cardsNeeded > 0}}">兑换积分：{{item.cardsNeeded}} 分</text>
+        <text class="product-meta" wx:if="{{item._metaText}}">{{item._metaText}}</text>
       </view>
     </view>
   </view>
