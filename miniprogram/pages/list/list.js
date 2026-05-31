@@ -7,9 +7,12 @@ const PAGE_SIZE = 20;
 
 // 推荐有礼按推荐人数换，不显示积分；其他显示兑换积分
 function buildMetaText(item) {
-  if (item.category === 'referral' && item.subcategory) {
-    const m = String(item.subcategory).match(/推荐\s*(\d+)\s*人/);
-    if (m) return `推荐 ${m[1]} 人可领`;
+  if (item.category === 'referral') {
+    if (item.subcategory) {
+      const m = String(item.subcategory).match(/推荐\s*(\d+)\s*人/);
+      if (m) return `推荐 ${m[1]} 人可领`;
+    }
+    return '推荐办理可领';   // 推荐有礼一律不显示积分
   }
   if (item.cardsNeeded > 0) return `兑换积分：${item.cardsNeeded} 分`;
   return '';
