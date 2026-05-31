@@ -42,6 +42,18 @@
       bindtap="onCategoryTap"
     >{{item.label}}</view>
   </scroll-view>
+
+  <!-- 子分类筛选（选中有子类的主分类时显示） -->
+  <scroll-view class="subcategory-bar" scroll-x enable-flex wx:if="{{subList.length > 0}}">
+    <view class="sub-chip {{currentSub === '' ? 'active' : ''}}" data-sub="" bindtap="onSubTap">全部</view>
+    <view
+      class="sub-chip {{currentSub === item ? 'active' : ''}}"
+      wx:for="{{subList}}"
+      wx:key="*this"
+      data-sub="{{item}}"
+      bindtap="onSubTap"
+    >{{item}}</view>
+  </scroll-view>
  </view>
 
   <!-- 数量信息（真实总数） -->

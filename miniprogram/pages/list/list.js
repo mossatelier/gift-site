@@ -1,5 +1,5 @@
 const { listProducts, countProducts } = require('../../utils/db.js');
-const { categories, labelOfCategory } = require('../../config.js');
+const { categories, subcategories, labelOfCategory } = require('../../config.js');
 const wishlist = require('../../utils/wishlist.js');
 const floatBtn = require('../../utils/floatBtn.js');
 
@@ -22,6 +22,8 @@ Page({
     categories,
     currentCategory: 'all',
     currentCategoryLabel: '',
+    subList: [],
+    currentSub: '',
     sort: 'default', // default | newest | cards-asc | cards-desc
     keyword: '',
     items: [],
@@ -59,6 +61,8 @@ Page({
     }
 
     initial.currentCategoryLabel = labelOfCategory(initial.currentCategory || 'all');
+    initial.subList = subcategories[initial.currentCategory || 'all'] || [];
+    initial.currentSub = '';
     this.setData(initial, () => this.reload());
   },
 
@@ -78,6 +82,8 @@ Page({
     }
     if (app.globalData.listCategoryIntent) {
       patch.currentCategory = app.globalData.listCategoryIntent;
+      patch.subList = subcategories[app.globalData.listCategoryIntent] || [];
+      patch.currentSub = '';
       app.globalData.listCategoryIntent = null;
       changed = true;
     }
@@ -110,7 +116,7 @@ Page({
     // 同时取总数和第一页
     const filter = {
       category: this.data.currentCategory,
-      subcategory: null,
+      subcategory: this.data.currentSub || null,
       keyword: this.data.keyword
     };
     try {
@@ -129,10 +135,11 @@ Page({
   },
 
   async _loadPage() {
-    const { currentCategory, sort, keyword, skip } = this.data;
+    const { currentCategory, currentSub, sort, keyword, skip } = this.data;
     try {
       const raw = await listProducts({
         category: currentCategory,
+        subcategory: currentSub || null,
         keyword,
         sort,
         skip,
@@ -155,7 +162,17 @@ Page({
   onCategoryTap(e) {
     const value = e.currentTarget.dataset.value;
     if (value === this.data.currentCategory) return;
-    this.setData({ currentCategory: value }, () => this.reload());
+    this.setData({
+      currentCategory: value,
+      subList: subcategories[value] || [],
+      currentSub: ''
+    }, () => this.reload());
+  },
+
+  onSubTap(e) {
+    const sub = e.currentTarget.dataset.sub || '';
+    if (sub === this.data.currentSub) return;
+    this.setData({ currentSub: sub }, () => this.reload());
   },
 
   onSortChange(e) {

@@ -91,6 +91,30 @@
   box-shadow: 0 8rpx 16rpx rgba(214, 75, 42, 0.22);
 }
 
+/* 子分类条 */
+.subcategory-bar {
+  white-space: nowrap;
+  padding: 0 0 12rpx;
+}
+
+.sub-chip {
+  display: inline-block;
+  background: var(--paper-soft);
+  color: var(--muted);
+  font-size: 22rpx;
+  padding: 8rpx 22rpx;
+  border-radius: 999rpx;
+  margin-right: 10rpx;
+  border: 1rpx solid rgba(234, 223, 206, 0.7);
+}
+
+.sub-chip.active {
+  background: rgba(214, 75, 42, 0.1);
+  color: var(--red);
+  border-color: rgba(214, 75, 42, 0.4);
+  font-weight: 700;
+}
+
 .product-meta-bar {
   display: flex;
   justify-content: space-between;
