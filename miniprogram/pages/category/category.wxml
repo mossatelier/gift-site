@@ -26,7 +26,7 @@
     </scroll-view>
 
     <!-- 右侧内容 -->
-    <scroll-view class="category-right" scroll-y scroll-into-view="{{intoView}}" scroll-with-animation>
+    <scroll-view class="category-right" scroll-y scroll-into-view="{{intoView}}" scroll-with-animation bindscroll="onRightScroll">
       <view id="cat-top"></view>
       <!-- 当前分类标题 + 查看全部 -->
       <view class="category-title-bar">
@@ -81,15 +81,15 @@
     </scroll-view>
   </view>
 
-  <!-- 右侧悬浮：在线咨询 + 回到顶部 -->
-  <view class="float-btns">
-    <view class="float-btn float-btn-primary" bindtap="floatService">
-      <text class="float-emoji">💬</text>
-      <text class="float-label">咨询</text>
-    </view>
-    <view class="float-btn" bindtap="backToTop">
-      <text class="float-top">↑</text>
-      <text class="float-label">顶部</text>
-    </view>
+  <!-- 咨询：可拖动 -->
+  <view class="float-btn float-btn-primary float-chat" style="{{floatStyle}}"
+    catchtouchmove="onFloatMove" bindtouchend="onFloatEnd" bindtap="floatService">
+    <text class="float-emoji">💬</text>
+    <text class="float-label">咨询</text>
+  </view>
+  <!-- 返回顶部：滚动超半屏才显示 -->
+  <view class="float-btn float-top-btn {{showBackTop ? '' : 'hide'}}" bindtap="backToTop">
+    <text class="float-top">↑</text>
+    <text class="float-label">顶部</text>
   </view>
 </view>

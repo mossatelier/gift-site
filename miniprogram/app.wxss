@@ -147,17 +147,7 @@ page {
   box-shadow: 0 4rpx 10rpx rgba(214, 75, 42, 0.3);
 }
 
-/* 右侧悬浮按钮：在线咨询 + 回到顶部 */
-.float-btns {
-  position: fixed;
-  right: 20rpx;
-  bottom: 140rpx;
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-}
-
+/* 悬浮按钮通用样式 */
 .float-btn {
   width: 96rpx;
   height: 96rpx;
@@ -170,6 +160,12 @@ page {
   align-items: center;
   justify-content: center;
   gap: 2rpx;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+/* 点击反馈：按下缩小 10% */
+.float-btn:active {
+  transform: scale(0.9);
 }
 
 .float-btn-primary {
@@ -195,6 +191,28 @@ page {
 
 .float-btn-primary .float-label {
   color: #fff;
+}
+
+/* 咨询：可拖动，默认右下；返回顶部：其上方 */
+.float-chat {
+  position: fixed;
+  right: 20rpx;
+  bottom: 230rpx;
+  z-index: 51;
+}
+
+.float-top-btn {
+  position: fixed;
+  right: 20rpx;
+  bottom: 120rpx;
+  z-index: 50;
+}
+
+/* 返回顶部：首屏隐藏 */
+.float-top-btn.hide {
+  opacity: 0;
+  transform: scale(0.4);
+  pointer-events: none;
 }
 
 /* 商品卡上的小心愿单按钮（覆盖在图片右上角） */

@@ -1,6 +1,7 @@
 const { listProducts } = require('../../utils/db.js');
 const { categories, subcategories, labelOfCategory } = require('../../config.js');
 const wishlist = require('../../utils/wishlist.js');
+const floatBtn = require('../../utils/floatBtn.js');
 
 // 左侧不显示 "全部礼品"（all），从第二项开始
 const mainCategories = categories.filter(c => c.value !== 'all');
@@ -19,6 +20,8 @@ function buildCategoryMetaText(item, currentCategory) {
 }
 
 Page({
+  ...floatBtn,
+
   data: {
     categories: mainCategories,
     currentCategory: mainCategories[0] ? mainCategories[0].value : '',
@@ -30,7 +33,9 @@ Page({
     wishlistMap: {},
     keyword: '',
     loading: false,
-    intoView: ''
+    intoView: '',
+    floatStyle: '',
+    showBackTop: false
   },
 
   onLoad() {
@@ -109,8 +114,9 @@ Page({
     wx.navigateTo({ url: `/pages/product/product?id=${id}` });
   },
 
-  floatService() {
-    wx.previewImage({ urls: ['/images/wechat-qr.jpg'], current: '/images/wechat-qr.jpg' });
+  onRightScroll(e) {
+    const show = e.detail.scrollTop > 400;
+    if (show !== this.data.showBackTop) this.setData({ showBackTop: show });
   },
 
   // 右侧内容是 scroll-view，用 scroll-into-view 锚点回到顶部

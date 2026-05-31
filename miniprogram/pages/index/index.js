@@ -1,7 +1,10 @@
 const { listHotProducts, listNewProducts, listApprovedReviews } = require('../../utils/db.js');
 const wishlist = require('../../utils/wishlist.js');
+const floatBtn = require('../../utils/floatBtn.js');
 
 Page({
+  ...floatBtn,
+
   data: {
     loading: true,
     hotList: [],
@@ -9,7 +12,14 @@ Page({
     reviews: [],
     wishlistMap: {},
     keyword: '',
-    showQr: false
+    showQr: false,
+    floatStyle: '',
+    showBackTop: false
+  },
+
+  onPageScroll(e) {
+    const show = e.scrollTop > 400;
+    if (show !== this.data.showBackTop) this.setData({ showBackTop: show });
   },
 
   onLoad() {

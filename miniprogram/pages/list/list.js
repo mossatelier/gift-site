@@ -1,10 +1,13 @@
 const { listProducts, countProducts } = require('../../utils/db.js');
 const { categories, labelOfCategory } = require('../../config.js');
 const wishlist = require('../../utils/wishlist.js');
+const floatBtn = require('../../utils/floatBtn.js');
 
 const PAGE_SIZE = 20;
 
 Page({
+  ...floatBtn,
+
   data: {
     categories,
     currentCategory: 'all',
@@ -16,7 +19,14 @@ Page({
     totalCount: 0,
     loading: false,
     noMore: false,
-    skip: 0
+    skip: 0,
+    floatStyle: '',
+    showBackTop: false
+  },
+
+  onPageScroll(e) {
+    const show = e.scrollTop > 400;
+    if (show !== this.data.showBackTop) this.setData({ showBackTop: show });
   },
 
   onLoad(options) {
@@ -163,10 +173,6 @@ Page({
   goProduct(e) {
     const id = e.currentTarget.dataset.id;
     wx.navigateTo({ url: `/pages/product/product?id=${id}` });
-  },
-
-  floatService() {
-    wx.previewImage({ urls: ['/images/wechat-qr.jpg'], current: '/images/wechat-qr.jpg' });
   },
 
   backToTop() {

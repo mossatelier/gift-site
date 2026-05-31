@@ -2,6 +2,17 @@
   padding: 16rpx 24rpx 60rpx;
 }
 
+/* 搜索+排序+分类整块吸顶，滚动时随时可筛选 */
+.list-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg);
+  margin: -16rpx -24rpx 0;
+  padding: 16rpx 24rpx 8rpx;
+  box-shadow: 0 6rpx 12rpx rgba(46, 35, 18, 0.04);
+}
+
 .search-bar {
   display: flex;
   gap: 12rpx;
