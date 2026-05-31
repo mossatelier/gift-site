@@ -14,24 +14,6 @@
     <view class="search-button" bindtap="onSearch">搜索</view>
   </view>
 
-  <!-- 排序 chip 同排（与 H5 一致：推荐 / 积分 / 最新） -->
-  <view class="sort-chips">
-    <view
-      class="chip-item {{sort === 'default' ? 'active' : ''}}"
-      data-sort="default"
-      bindtap="onSortChange"
-    >推荐</view>
-    <view
-      class="chip-item chip-sort {{(sort === 'cards-asc' || sort === 'cards-desc') ? 'active' : ''}}"
-      bindtap="onCardsSortToggle"
-    >积分{{sort === 'cards-asc' ? ' ↑' : (sort === 'cards-desc' ? ' ↓' : '')}}</view>
-    <view
-      class="chip-item {{sort === 'newest' ? 'active' : ''}}"
-      data-sort="newest"
-      bindtap="onSortChange"
-    >最新</view>
-  </view>
-
   <!-- 分类筛选条 -->
   <scroll-view class="category-bar" scroll-x enable-flex>
     <view
@@ -42,6 +24,19 @@
       bindtap="onCategoryTap"
     >{{item.label}}</view>
   </scroll-view>
+
+  <!-- 排序 chip 同排（积分 / 最新） -->
+  <view class="sort-chips">
+    <view
+      class="chip-item chip-sort {{(sort === 'cards-asc' || sort === 'cards-desc') ? 'active' : ''}}"
+      bindtap="onCardsSortToggle"
+    >积分{{sort === 'cards-asc' ? ' ↑' : (sort === 'cards-desc' ? ' ↓' : '')}}</view>
+    <view
+      class="chip-item {{sort === 'newest' ? 'active' : ''}}"
+      data-sort="newest"
+      bindtap="onSortChange"
+    >最新</view>
+  </view>
 
   <!-- 子分类筛选（选中有子类的主分类时显示） -->
   <scroll-view class="subcategory-bar" scroll-x enable-flex wx:if="{{subList.length > 0}}">
