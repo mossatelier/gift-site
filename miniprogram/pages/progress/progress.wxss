@@ -59,6 +59,17 @@
   color: var(--muted);
 }
 
+.bank-qr-save {
+  margin-top: 8rpx;
+  background: linear-gradient(135deg, var(--red) 0%, var(--red-deep) 100%);
+  color: #fff;
+  font-size: 26rpx;
+  font-weight: 700;
+  padding: 14rpx 44rpx;
+  border-radius: 999rpx;
+  box-shadow: 0 8rpx 16rpx rgba(214, 75, 42, 0.25);
+}
+
 .bank-copy {
   text-align: center;
   font-size: 24rpx;

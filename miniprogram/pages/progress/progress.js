@@ -64,11 +64,59 @@ Page({
     this.setData({ openKey: this.data.openKey === key ? '' : key });
   },
 
-  // 点二维码本身 → 放大，长按可识别跳转
+  // 点二维码本身 → 放大
   previewQr(e) {
     const qr = e.currentTarget.dataset.qr;
     if (!qr) return;
     wx.previewImage({ urls: [qr], current: qr });
+  },
+
+  // 保存二维码到相册 → 引导去微信扫一扫相册识别
+  saveQr(e) {
+    const qr = e.currentTarget.dataset.qr;
+    const name = e.currentTarget.dataset.name || '';
+    if (!qr) return;
+    wx.showLoading({ title: '保存中…', mask: true });
+    wx.downloadFile({
+      url: qr,
+      success: (res) => {
+        if (res.statusCode !== 200) {
+          wx.hideLoading();
+          wx.showToast({ title: '下载失败', icon: 'none' });
+          return;
+        }
+        wx.saveImageToPhotosAlbum({
+          filePath: res.tempFilePath,
+          success: () => {
+            wx.hideLoading();
+            wx.showModal({
+              title: '已保存到相册',
+              content: `打开微信「扫一扫」→ 右上角相册 → 选中${name}二维码，即可跳转查询`,
+              showCancel: false,
+              confirmText: '知道了'
+            });
+          },
+          fail: (err) => {
+            wx.hideLoading();
+            const msg = String(err.errMsg || '');
+            if (msg.indexOf('auth') >= 0 || msg.indexOf('deny') >= 0) {
+              wx.showModal({
+                title: '需要相册权限',
+                content: '保存二维码需要允许访问相册，去设置里开启？',
+                confirmText: '去设置',
+                success: (r) => { if (r.confirm) wx.openSetting(); }
+              });
+            } else {
+              wx.showToast({ title: '保存失败', icon: 'none' });
+            }
+          }
+        });
+      },
+      fail: () => {
+        wx.hideLoading();
+        wx.showToast({ title: '下载失败', icon: 'none' });
+      }
+    });
   },
 
   // 兜底：复制查询链接到剪贴板

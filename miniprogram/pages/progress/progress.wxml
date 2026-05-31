@@ -5,7 +5,7 @@
     </view>
 
     <view class="bank-table">
-      <text class="bank-intro">点「查看二维码」展开对应银行二维码，长按二维码识别即可跳转官方进度查询页。</text>
+      <text class="bank-intro">点「查看二维码」展开 → 保存二维码 → 打开微信「扫一扫」选相册里的二维码，即可跳转官方进度查询。</text>
 
       <view class="bank-list">
         <view class="bank-card" wx:for="{{banks}}" wx:key="key">
@@ -22,9 +22,10 @@
           </view>
 
           <block wx:if="{{openKey === item.key}}">
-            <view class="bank-qr-wrap" data-qr="{{item.qr}}" bindtap="previewQr">
-              <image class="bank-qr" src="{{item.qr}}" mode="aspectFit"></image>
-              <text class="bank-qr-tip">长按二维码识别，跳转{{item.name}}查询</text>
+            <view class="bank-qr-wrap">
+              <image class="bank-qr" src="{{item.qr}}" mode="aspectFit" data-qr="{{item.qr}}" bindtap="previewQr"></image>
+              <text class="bank-qr-tip">保存后用微信「扫一扫」选相册识别</text>
+              <view class="bank-qr-save" data-qr="{{item.qr}}" data-name="{{item.name}}" bindtap="saveQr">⬇ 保存二维码</view>
             </view>
 
             <view
@@ -33,7 +34,7 @@
               data-url="{{item.url}}"
               data-name="{{item.name}}"
               bindtap="copyUrl"
-            >复制查询链接（识别不了时用）›</view>
+            >复制查询链接（也可用）›</view>
           </block>
         </view>
       </view>
