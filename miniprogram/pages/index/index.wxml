@@ -121,7 +121,7 @@
           </view>
         </view>
         <view class="product-body">
-          <text class="product-title"><text class="title-tag">办卡可兑</text>{{item.title}}</text>
+          <text class="product-title"><text class="title-tag">{{item.category === 'referral' ? '推荐可兑' : '办卡可兑'}}</text>{{item.title}}</text>
           <text class="product-meta" wx:if="{{item.cardsNeeded > 0}}">兑换积分：{{item.cardsNeeded}} 分</text>
         </view>
       </view>
@@ -155,7 +155,7 @@
           </view>
         </view>
         <view class="product-body">
-          <text class="product-title"><text class="title-tag">办卡可兑</text>{{item.title}}</text>
+          <text class="product-title"><text class="title-tag">{{item.category === 'referral' ? '推荐可兑' : '办卡可兑'}}</text>{{item.title}}</text>
           <text class="product-meta" wx:if="{{item.cardsNeeded > 0}}">兑换积分：{{item.cardsNeeded}} 分</text>
         </view>
       </view>
