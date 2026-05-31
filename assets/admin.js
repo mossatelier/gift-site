@@ -85,6 +85,11 @@ const adminReviewsMessage = document.getElementById("adminReviewsMessage");
 const adminReviewsStatusFilter = document.getElementById("adminReviewsStatusFilter");
 const adminReviewsCount = document.getElementById("adminReviewsCount");
 const adminReviewsRefreshButton = document.getElementById("adminReviewsRefreshButton");
+const adminTabCatOrder = document.getElementById("adminTabCatOrder");
+const adminCatOrderPanel = document.getElementById("adminCatOrderPanel");
+const adminCatOrderList = document.getElementById("adminCatOrderList");
+const adminCatOrderMessage = document.getElementById("adminCatOrderMessage");
+const adminCatOrderSave = document.getElementById("adminCatOrderSave");
 
 const subcategoriesMap = config.subcategories || {};
 const TITLE_HISTORY_KEY = "gift-site-admin-title-history";
@@ -205,7 +210,8 @@ const state = {
   stats: null,
   statsLoadedAt: null,
   reviews: [],
-  reviewsStatus: "pending"
+  reviewsStatus: "pending",
+  catOrder: []   // [{value,label}] 当前排序（不含 all）
 };
 
 function isSupabaseConfigured() {
@@ -456,7 +462,8 @@ function updatePanelUi() {
     banks: adminBanksPanel,
     orders: adminOrdersPanel,
     stats: adminStatsPanel,
-    reviews: adminReviewsPanel
+    reviews: adminReviewsPanel,
+    catorder: adminCatOrderPanel
   };
   const tabs = {
     create: adminTabCreate,
@@ -464,7 +471,8 @@ function updatePanelUi() {
     banks: adminTabBanks,
     orders: adminTabOrders,
     stats: adminTabStats,
-    reviews: adminTabReviews
+    reviews: adminTabReviews,
+    catorder: adminTabCatOrder
   };
 
   Object.keys(panels).forEach((key) => {
@@ -2308,6 +2316,81 @@ adminReviewsList?.addEventListener("click", (event) => {
     const img = event.target.closest("[data-reject]");
     if (confirm("确认拒绝这条晒图？")) moderateReview(rj.dataset.reject, "rejected");
     return;
+  }
+});
+
+// ============ 分类排序 ============
+
+function setCatOrderMessage(text, tone = "idle") {
+  if (!adminCatOrderMessage) return;
+  adminCatOrderMessage.textContent = text;
+  adminCatOrderMessage.dataset.tone = tone;
+}
+
+async function loadCatOrder() {
+  if (!adminCatOrderList) return;
+  if (!activeSession()) {
+    adminCatOrderList.innerHTML = "<p class=\"admin-status-text\">请先登录管理员账号。</p>";
+    return;
+  }
+  // 除 all 外的实分类
+  const real = categoryOptions.filter(c => c.value !== "all");
+  adminCatOrderList.innerHTML = "<p class=\"admin-status-text\">加载中…</p>";
+  setCatOrderMessage("");
+  try {
+    const data = await callAdminOrders("get-category-order", {});
+    const order = (data && Array.isArray(data.order)) ? data.order : [];
+    const idx = (v) => { const i = order.indexOf(v); return i < 0 ? 9999 : i; };
+    state.catOrder = real.slice().sort((a, b) => idx(a.value) - idx(b.value));
+    renderCatOrder();
+  } catch (err) {
+    adminCatOrderList.innerHTML = `<p class="admin-status-text">${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function renderCatOrder() {
+  if (!adminCatOrderList) return;
+  adminCatOrderList.innerHTML = state.catOrder.map((c, i) => `
+    <div class="admin-catorder-row">
+      <span class="admin-catorder-idx">${i + 1}</span>
+      <span class="admin-catorder-name">${escapeHtml(c.label)}</span>
+      <span class="admin-catorder-btns">
+        <button class="admin-secondary-btn" data-cat-up="${i}" type="button" ${i === 0 ? "disabled" : ""}>↑</button>
+        <button class="admin-secondary-btn" data-cat-down="${i}" type="button" ${i === state.catOrder.length - 1 ? "disabled" : ""}>↓</button>
+      </span>
+    </div>
+  `).join("");
+}
+
+function moveCat(from, to) {
+  if (to < 0 || to >= state.catOrder.length) return;
+  const arr = state.catOrder;
+  const [item] = arr.splice(from, 1);
+  arr.splice(to, 0, item);
+  renderCatOrder();
+}
+
+adminTabCatOrder?.addEventListener("click", () => {
+  state.activePanel = "catorder";
+  updatePanelUi();
+  loadCatOrder();
+});
+
+adminCatOrderList?.addEventListener("click", (event) => {
+  const up = event.target.closest("[data-cat-up]");
+  const down = event.target.closest("[data-cat-down]");
+  if (up) { const i = Number(up.dataset.catUp); moveCat(i, i - 1); return; }
+  if (down) { const i = Number(down.dataset.catDown); moveCat(i, i + 1); return; }
+});
+
+adminCatOrderSave?.addEventListener("click", async () => {
+  setCatOrderMessage("保存中…");
+  try {
+    const order = state.catOrder.map(c => c.value);
+    await callAdminOrders("save-category-order", { order });
+    setCatOrderMessage("已保存，小程序刷新后按新顺序显示。", "success");
+  } catch (err) {
+    setCatOrderMessage(err.message, "error");
   }
 });
 

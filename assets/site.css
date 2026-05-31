@@ -2628,6 +2628,61 @@ body.admin-desktop-mode .admin-panel-nav {
   align-items: center;
 }
 
+/* 分类排序 */
+.admin-catorder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.admin-catorder-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #fff;
+  border: 1px solid rgba(234, 223, 206, 0.9);
+  border-radius: 12px;
+}
+
+.admin-catorder-idx {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(214, 75, 42, 0.1);
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.admin-catorder-name {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.admin-catorder-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.admin-catorder-btns .admin-secondary-btn {
+  min-width: 44px;
+  min-height: 36px;
+  padding: 0 10px;
+  font-size: 16px;
+}
+
+.admin-catorder-btns .admin-secondary-btn[disabled] {
+  opacity: 0.35;
+}
+
 .admin-note-input {
   flex: 1;
   min-width: 160px;

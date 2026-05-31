@@ -29,10 +29,30 @@ function labelOfCategory(value) {
   return found ? found.label : value;
 }
 
+// 按后台保存的顺序重排分类；order 里的在前(保持 order 内顺序)，其余按原序在后
+// keepAllFirst=true 时保证 'all'(全部礼品) 永远第一
+function sortCategories(list, order, keepAllFirst) {
+  if (!Array.isArray(order) || order.length === 0) return list.slice();
+  const idx = (v) => {
+    const i = order.indexOf(v);
+    return i < 0 ? 9999 : i;
+  };
+  const sorted = list.slice().sort((a, b) => idx(a.value) - idx(b.value));
+  if (keepAllFirst) {
+    const allI = sorted.findIndex(c => c.value === 'all');
+    if (allI > 0) {
+      const [all] = sorted.splice(allI, 1);
+      sorted.unshift(all);
+    }
+  }
+  return sorted;
+}
+
 module.exports = {
   categories,
   subcategories,
   labelOfCategory,
+  sortCategories,
   siteName: '加加好物图集',
   customerServiceQrPath: '/images/wechat-qr.jpg',
   // 「发货通知」订阅消息模板 ID（小程序后台→订阅消息→公共模板库申请后填）

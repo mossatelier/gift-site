@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>加多宝礼品屋 · 商品录入后台</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="assets/site.css?v=20">
+  <link rel="stylesheet" href="assets/site.css?v=21">
 </head>
 <body class="admin-page">
   <main class="admin-shell">
@@ -64,6 +64,7 @@
         <button class="admin-panel-tab" id="adminTabOrders" type="button"><span class="tab-ico">📦</span>申请管理</button>
         <button class="admin-panel-tab" id="adminTabReviews" type="button"><span class="tab-ico">🖼️</span>晒图审核</button>
         <button class="admin-panel-tab" id="adminTabStats" type="button"><span class="tab-ico">📊</span>数据看板</button>
+        <button class="admin-panel-tab" id="adminTabCatOrder" type="button"><span class="tab-ico">🔀</span>分类排序</button>
       </section>
 
       <section class="admin-card" id="adminCreatePanel">
@@ -261,6 +262,18 @@
         <p class="admin-inline-message" id="adminReviewsMessage"></p>
       </section>
 
+      <section class="admin-card" id="adminCatOrderPanel" hidden>
+        <div class="admin-status-head">
+          <h2 class="admin-section-title">分类排序</h2>
+          <button class="admin-submit" id="adminCatOrderSave" type="button">保存顺序</button>
+        </div>
+        <p class="admin-status-text">用「上移 / 下移」调整分类在小程序里的显示顺序，越靠上越靠前。「全部礼品」固定第一，不在此列。改完点「保存顺序」，小程序刷新后生效。</p>
+        <div class="admin-catorder-list" id="adminCatOrderList">
+          <p class="admin-status-text">加载中…</p>
+        </div>
+        <p class="admin-inline-message" id="adminCatOrderMessage"></p>
+      </section>
+
       <section class="admin-card" id="adminStatsPanel" hidden>
         <div class="admin-status-head">
           <h2 class="admin-section-title">数据看板</h2>
@@ -293,6 +306,6 @@
   </main>
 
   <script src="assets/config.js?v=10"></script>
-  <script src="assets/admin.js?v=16"></script>
+  <script src="assets/admin.js?v=17"></script>
 </body>
 </html>

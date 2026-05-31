@@ -105,6 +105,17 @@ async function listHotProducts(limit = 6) {
   return res.data.map(normalize);
 }
 
+// 取后台设置的分类显示顺序（value 数组），失败返回 null（用默认顺序）
+async function getCategoryOrder() {
+  try {
+    const res = await db().collection('app_config').where({ key: 'category_order' }).limit(1).get();
+    const doc = res.data[0];
+    return (doc && Array.isArray(doc.order)) ? doc.order : null;
+  } catch (err) {
+    return null;
+  }
+}
+
 // 取银行积分对照（按 points 降序）
 async function listBanks() {
   const res = await db()
@@ -323,6 +334,7 @@ module.exports = {
   listHotProducts,
   listNewProducts,
   listBanks,
+  getCategoryOrder,
   // addresses
   listMyAddresses,
   getDefaultAddress,

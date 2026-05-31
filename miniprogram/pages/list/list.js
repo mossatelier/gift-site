@@ -1,5 +1,5 @@
-const { listProducts, countProducts } = require('../../utils/db.js');
-const { categories, subcategories, labelOfCategory } = require('../../config.js');
+const { listProducts, countProducts, getCategoryOrder } = require('../../utils/db.js');
+const { categories, subcategories, labelOfCategory, sortCategories } = require('../../config.js');
 const wishlist = require('../../utils/wishlist.js');
 const floatBtn = require('../../utils/floatBtn.js');
 
@@ -64,6 +64,14 @@ Page({
     initial.subList = subcategories[initial.currentCategory || 'all'] || [];
     initial.currentSub = '';
     this.setData(initial, () => this.reload());
+    this.applyCategoryOrder();
+  },
+
+  async applyCategoryOrder() {
+    const order = await getCategoryOrder();
+    if (order && order.length) {
+      this.setData({ categories: sortCategories(categories, order, true) });
+    }
   },
 
   onShow() {

@@ -443,6 +443,25 @@ async function updateTracking({ orderId, trackingNo, trackingCompany }) {
   return r.data;
 }
 
+// 分类显示顺序（存 app_config 集合，key=category_order）
+async function getCategoryOrder() {
+  const r = await db.collection('app_config').where({ key: 'category_order' }).limit(1).get();
+  return { order: (r.data[0] && r.data[0].order) || [] };
+}
+
+async function saveCategoryOrder({ order }) {
+  if (!Array.isArray(order)) throw new Error('order 必须是数组');
+  const clean = order.map(String).slice(0, 100);
+  const now = new Date();
+  const existing = await db.collection('app_config').where({ key: 'category_order' }).limit(1).get();
+  if (existing.data[0]) {
+    await db.collection('app_config').doc(existing.data[0]._id).update({ data: { order: clean, updatedAt: now } });
+  } else {
+    await db.collection('app_config').add({ data: { key: 'category_order', order: clean, createdAt: now, updatedAt: now } });
+  }
+  return { order: clean };
+}
+
 // 商家内部备注（客户端不可见）
 async function updateNote({ orderId, adminNote }) {
   if (!orderId) throw new Error('缺少 orderId');
@@ -557,6 +576,12 @@ exports.main = async (event) => {
         break;
       case 'update-note':
         data = await updateNote(body);
+        break;
+      case 'get-category-order':
+        data = await getCategoryOrder(body);
+        break;
+      case 'save-category-order':
+        data = await saveCategoryOrder(body);
         break;
       case 'stats':
         data = await getStats(body);
