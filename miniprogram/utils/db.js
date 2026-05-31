@@ -263,10 +263,18 @@ async function upsertMyAddress(openid, patch) {
 
 // ============ 订单（orders 集合，写靠云函数，读靠 SDK） ============
 
+// 客户端可见字段白名单（故意不含 adminNote —— 商家内部备注，客户端拿不到）
+const ORDER_CLIENT_FIELDS = {
+  _id: true, openid: true, status: true, items: true, address: true,
+  remark: true, totalCards: true, itemCount: true,
+  createdAt: true, updatedAt: true, trackingNo: true, trackingCompany: true
+};
+
 async function listMyOrders(openid, { limit = 20, skip = 0 } = {}) {
   if (!openid) return [];
   const res = await db().collection('orders')
     .where({ openid })
+    .field(ORDER_CLIENT_FIELDS)
     .orderBy('createdAt', 'desc')
     .skip(skip)
     .limit(limit)
@@ -276,7 +284,7 @@ async function listMyOrders(openid, { limit = 20, skip = 0 } = {}) {
 
 async function getMyOrder(openid, id) {
   if (!openid || !id) return null;
-  const r = await db().collection('orders').doc(id).get();
+  const r = await db().collection('orders').doc(id).field(ORDER_CLIENT_FIELDS).get();
   const order = r && r.data;
   if (!order || order.openid !== openid) return null;
   return order;

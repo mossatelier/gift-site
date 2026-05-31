@@ -2593,6 +2593,30 @@ body.admin-desktop-mode .admin-panel-nav {
   padding: 0 18px;
 }
 
+.admin-note-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-note-input {
+  flex: 1;
+  min-width: 160px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(234, 223, 206, 0.95);
+  background: #fff7ef;
+  color: var(--text);
+  font-size: 14px;
+  min-height: 36px;
+}
+
+.admin-note-save {
+  min-height: 36px;
+  min-width: auto;
+  padding: 0 18px;
+}
+
 .admin-orders-bulk-bar {
   display: flex;
   align-items: center;

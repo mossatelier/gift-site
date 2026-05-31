@@ -1638,6 +1638,13 @@ function renderOrdersList() {
                 <button class="admin-secondary-btn admin-tracking-save" data-save-tracking="${escapeHtml(o._id)}" type="button">保存单号</button>
               </div>
             </div>
+            <div class="admin-order-section">
+              <strong>商家内部备注（仅你可见，客户看不到）</strong>
+              <div class="admin-note-row">
+                <input class="admin-note-input" type="text" placeholder="例如：客户已电话确认 / 等下卡" value="${escapeHtml(o.adminNote || "")}" data-note="${escapeHtml(o._id)}">
+                <button class="admin-secondary-btn admin-note-save" data-save-note="${escapeHtml(o._id)}" type="button">保存备注</button>
+              </div>
+            </div>
             <div class="admin-order-section admin-order-actions">
               <label>更新状态：${statusSelect}</label>
             </div>
@@ -1739,6 +1746,21 @@ async function handleTrackingSave(orderId) {
   }
 }
 
+async function handleNoteSave(orderId) {
+  if (!orderId) return;
+  const input = adminOrdersList.querySelector(`[data-note="${orderId}"]`);
+  const adminNote = input ? input.value.trim() : "";
+  setOrdersMessage("正在保存备注…");
+  try {
+    await callAdminOrders("update-note", { orderId, adminNote });
+    const idx = state.orders.findIndex((o) => o._id === orderId);
+    if (idx >= 0) state.orders[idx].adminNote = adminNote;
+    setOrdersMessage("备注已保存（仅你可见）。", "success");
+  } catch (err) {
+    setOrdersMessage(err.message, "error");
+  }
+}
+
 function copyOrderAddress(orderId) {
   const o = state.orders.find((x) => x._id === orderId);
   if (!o) return;
@@ -1792,6 +1814,12 @@ adminOrdersList?.addEventListener("click", (event) => {
     handleTrackingSave(saveTracking.dataset.saveTracking);
     return;
   }
+  const saveNote = event.target.closest("[data-save-note]");
+  if (saveNote) {
+    event.stopPropagation();
+    handleNoteSave(saveNote.dataset.saveNote);
+    return;
+  }
   const prev = event.target.closest("[data-page-prev]");
   const next = event.target.closest("[data-page-next]");
   const toggle = event.target.closest("[data-toggle-order]");
@@ -1831,6 +1859,44 @@ adminOrdersList?.addEventListener("change", (event) => {
   const sel = event.target.closest(".admin-order-status-select");
   if (!sel) return;
   handleOrderStatusChange(sel);
+});
+
+// 输入快递单号时自动识别快递公司（带字母前缀/常见号段准确，纯数字仅作推荐）
+function detectCarrier(noRaw) {
+  const no = String(noRaw || "").trim().toUpperCase();
+  if (!no) return "";
+  const rules = [
+    [/^SF/, "顺丰速运"],
+    [/^YT/, "圆通速递"],
+    [/^ZTO|^(75|78)\d{10}$/, "中通快递"],
+    [/^STO|^(77|468)\d/, "申通快递"],
+    [/^YD|^(31|35|43|19|45|46)\d{11}$/, "韵达速递"],
+    [/^(JD|JDV|JDX)/, "京东物流"],
+    [/^(JT|JTC)/, "极兔速递"],
+    [/^HTKY|^A\d/, "百世快递"],
+    [/^DBL|^DPK/, "德邦快递"],
+    [/^(EMS|E[A-Z])|^11\d{11}$|^9\d{12}$/, "EMS / 邮政"],
+    [/^YZ|^10\d{11}$/, "邮政快递包裹"],
+    [/^GTO|^(K|G)\d/, "国通快递"]
+  ];
+  for (const [re, name] of rules) {
+    if (re.test(no)) return name;
+  }
+  return "";
+}
+
+adminOrdersList?.addEventListener("input", (event) => {
+  const noInput = event.target.closest("[data-tracking-no]");
+  if (!noInput) return;
+  const id = noInput.dataset.trackingNo;
+  const companyInput = adminOrdersList.querySelector(`[data-tracking-company="${id}"]`);
+  if (!companyInput) return;
+  const carrier = detectCarrier(noInput.value);
+  // 只在公司框为空或之前是自动填的值时覆盖，避免覆盖手填
+  if (carrier && (!companyInput.value || companyInput.dataset.auto === "1")) {
+    companyInput.value = carrier;
+    companyInput.dataset.auto = "1";
+  }
 });
 
 adminOrdersSelectAll?.addEventListener("change", () => {

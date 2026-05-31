@@ -443,6 +443,15 @@ async function updateTracking({ orderId, trackingNo, trackingCompany }) {
   return r.data;
 }
 
+// 商家内部备注（客户端不可见）
+async function updateNote({ orderId, adminNote }) {
+  if (!orderId) throw new Error('缺少 orderId');
+  await db.collection('orders').doc(orderId).update({
+    data: { adminNote: String(adminNote || '').slice(0, 1000), updatedAt: new Date() }
+  });
+  return { orderId };
+}
+
 // ---------- 晒图审核 ----------
 
 async function listReviews({ status = 'pending', limit = 50, skip = 0 }) {
@@ -545,6 +554,9 @@ exports.main = async (event) => {
         break;
       case 'update-tracking':
         data = await updateTracking(body);
+        break;
+      case 'update-note':
+        data = await updateNote(body);
         break;
       case 'stats':
         data = await getStats(body);
