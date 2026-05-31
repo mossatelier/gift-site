@@ -62,7 +62,7 @@
   <view class="product-detail-card">
     <text class="product-detail-title">{{product.title}}</text>
     <view class="product-detail-meta">
-      <text class="product-detail-points" wx:if="{{product.cardsNeeded > 0}}">兑换积分：{{product.cardsNeeded}} 分</text>
+      <text class="product-detail-points" wx:if="{{pointsText}}">{{pointsText}}</text>
       <text class="product-detail-price">参考价 ¥{{product.price}}</text>
     </view>
     <view class="product-detail-views">👁 浏览 {{product.viewCount}} 次</view>

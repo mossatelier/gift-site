@@ -2,11 +2,22 @@ const { getProductById } = require('../../utils/db.js');
 const { labelOfCategory } = require('../../config.js');
 const wishlist = require('../../utils/wishlist.js');
 
+// 推荐有礼按推荐人数换，不显示积分
+function buildPointsText(product) {
+  if (product.category === 'referral' && product.subcategory) {
+    const m = String(product.subcategory).match(/推荐\s*(\d+)\s*人/);
+    if (m) return `推荐 ${m[1]} 人可领`;
+  }
+  if (product.cardsNeeded > 0) return `兑换积分：${product.cardsNeeded} 分`;
+  return '';
+}
+
 Page({
   data: {
     loading: true,
     product: null,
     categoryLabel: '',
+    pointsText: '',
     currentImageIndex: 0,
     showQr: false,
     wishlisted: false
@@ -29,6 +40,7 @@ Page({
       this.setData({
         product,
         categoryLabel: labelOfCategory(product.category),
+        pointsText: buildPointsText(product),
         loading: false
       });
       if (product && product.title) {
