@@ -15,7 +15,10 @@ function products() {
 function _buildWhere({ category, subcategory, keyword }) {
   const _ = db().command;
   const cond = { isActive: true };
-  if (category && category !== 'all') cond.category = category;
+  if (category && category !== 'all') {
+    // category 支持数组（如「母婴好物」大类 = 一组细分类），用 in 查询
+    cond.category = Array.isArray(category) ? _.in(category) : category;
+  }
   if (subcategory) cond.subcategory = subcategory;
   if (keyword) {
     const re = db().RegExp({ regexp: keyword, options: 'i' });

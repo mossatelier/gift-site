@@ -1,9 +1,40 @@
-const { listProducts, countProducts, getCategoryOrder } = require('../../utils/db.js');
-const { categories, subcategories, labelOfCategory, sortCategories } = require('../../config.js');
+const { listProducts, countProducts } = require('../../utils/db.js');
+const { subcategories, labelOfCategory } = require('../../config.js');
 const wishlist = require('../../utils/wishlist.js');
 const floatBtn = require('../../utils/floatBtn.js');
 
 const PAGE_SIZE = 20;
+
+// 「母婴好物」虚拟大类 = 这一组细分类
+const MOMBABY_GROUP = ['stroller', 'playpen', 'carseat', 'carrier', 'earlyedu', 'toy', 'chairtable', 'ride'];
+const MOMBABY_SUBS = MOMBABY_GROUP.map(v => ({ value: v, label: labelOfCategory(v) }));
+
+// 顶部平铺的展示分类
+const DISPLAY_CATS = [
+  { value: 'all', label: '全部礼品' },
+  { value: 'referral', label: '推荐有礼' },
+  { value: 'mombaby', label: '母婴好物' },
+  { value: 'pet', label: '宠物用品' },
+  { value: 'camping', label: '户外露营' }
+];
+// 「更多」下拉里的分类
+const MORE_CATS = [
+  { value: 'digital', label: '电子数码' },
+  { value: 'appliance', label: '家用电器' }
+];
+
+// 把传入的分类（可能是细分类）解析成展示分类 + 二级
+function resolveDisplay(cat) {
+  if (!cat || cat === 'all') return { display: 'all', sub: '' };
+  if (MOMBABY_GROUP.includes(cat)) return { display: 'mombaby', sub: cat };
+  return { display: cat, sub: '' };
+}
+
+function displayLabel(value) {
+  const all = DISPLAY_CATS.concat(MORE_CATS);
+  const f = all.find(c => c.value === value);
+  return f ? f.label : labelOfCategory(value);
+}
 
 // 推荐有礼按推荐人数换，不显示积分；其他显示兑换积分
 function buildMetaText(item) {
@@ -12,7 +43,7 @@ function buildMetaText(item) {
       const m = String(item.subcategory).match(/推荐\s*(\d+)\s*人/);
       if (m) return `推荐 ${m[1]} 人可领`;
     }
-    return '推荐办理可领';   // 推荐有礼一律不显示积分
+    return '推荐办理可领';
   }
   if (item.cardsNeeded > 0) return `兑换积分：${item.cardsNeeded} 分`;
   return '';
@@ -22,12 +53,14 @@ Page({
   ...floatBtn,
 
   data: {
-    categories,
-    currentCategory: 'all',
+    displayCats: DISPLAY_CATS,
+    moreCats: MORE_CATS,
+    showMore: false,
+    currentCategory: 'all',     // 展示分类 value
     currentCategoryLabel: '',
-    subList: [],
-    currentSub: '',
-    sort: 'default', // default | newest | cards-asc | cards-desc
+    subItems: [],               // 二级 [{value,label}]
+    currentSub: '',             // 二级选中 value
+    sort: 'default',            // default | newest | cards-asc | cards-desc
     keyword: '',
     items: [],
     wishlistMap: {},
@@ -45,8 +78,14 @@ Page({
   },
 
   onLoad(options) {
-    const initial = {};
-    if (options.category) initial.currentCategory = options.category;
+    let display = 'all';
+    let sub = '';
+    let initial = { sort: 'default', keyword: '' };
+
+    if (options.category) {
+      const r = resolveDisplay(options.category);
+      display = r.display; sub = r.sub;
+    }
     if (options.sort) initial.sort = options.sort;
 
     const app = getApp();
@@ -59,22 +98,16 @@ Page({
       app.globalData.listSearchIntent = null;
     }
     if (app.globalData.listCategoryIntent) {
-      initial.currentCategory = app.globalData.listCategoryIntent;
+      const r = resolveDisplay(app.globalData.listCategoryIntent);
+      display = r.display; sub = r.sub;
       app.globalData.listCategoryIntent = null;
     }
 
-    initial.currentCategoryLabel = labelOfCategory(initial.currentCategory || 'all');
-    initial.subList = subcategories[initial.currentCategory || 'all'] || [];
-    initial.currentSub = '';
+    initial.currentCategory = display;
+    initial.currentSub = sub;
+    initial.subItems = this._subItemsOf(display);
+    initial.currentCategoryLabel = displayLabel(display);
     this.setData(initial, () => this.reload());
-    this.applyCategoryOrder();
-  },
-
-  async applyCategoryOrder() {
-    const order = await getCategoryOrder();
-    if (order && order.length) {
-      this.setData({ categories: sortCategories(categories, order, true) });
-    }
   },
 
   onShow() {
@@ -92,9 +125,10 @@ Page({
       changed = true;
     }
     if (app.globalData.listCategoryIntent) {
-      patch.currentCategory = app.globalData.listCategoryIntent;
-      patch.subList = subcategories[app.globalData.listCategoryIntent] || [];
-      patch.currentSub = '';
+      const r = resolveDisplay(app.globalData.listCategoryIntent);
+      patch.currentCategory = r.display;
+      patch.currentSub = r.sub;
+      patch.subItems = this._subItemsOf(r.display);
       app.globalData.listCategoryIntent = null;
       changed = true;
     }
@@ -105,14 +139,30 @@ Page({
     }
   },
 
+  // 某展示分类的二级条
+  _subItemsOf(display) {
+    if (display === 'mombaby') return MOMBABY_SUBS;
+    const subs = subcategories[display] || [];
+    return subs.map(s => ({ value: s, label: s }));
+  },
+
+  // 根据当前展示分类 + 二级，算出查询用的 {category, subcategory}
+  _filter() {
+    const { currentCategory, currentSub } = this.data;
+    if (currentCategory === 'all') return { category: null, subcategory: null };
+    if (currentCategory === 'mombaby') {
+      // 选了二级细分类 → 查该细类；否则查整组
+      return { category: currentSub || MOMBABY_GROUP, subcategory: null };
+    }
+    return { category: currentCategory, subcategory: currentSub || null };
+  },
+
   onPullDownRefresh() {
     this.reload().then(() => wx.stopPullDownRefresh());
   },
 
   onReachBottom() {
-    if (!this.data.loading && !this.data.noMore) {
-      this.loadMore();
-    }
+    if (!this.data.loading && !this.data.noMore) this.loadMore();
   },
 
   async reload() {
@@ -122,16 +172,11 @@ Page({
       noMore: false,
       loading: true,
       totalCount: 0,
-      currentCategoryLabel: labelOfCategory(this.data.currentCategory || 'all')
+      currentCategoryLabel: displayLabel(this.data.currentCategory)
     });
-    // 同时取总数和第一页
-    const filter = {
-      category: this.data.currentCategory,
-      subcategory: this.data.currentSub || null,
-      keyword: this.data.keyword
-    };
+    const f = this._filter();
     try {
-      const totalCount = await countProducts(filter);
+      const totalCount = await countProducts({ category: f.category, subcategory: f.subcategory, keyword: this.data.keyword });
       this.setData({ totalCount });
     } catch (err) {
       console.warn('countProducts 失败', err);
@@ -146,11 +191,12 @@ Page({
   },
 
   async _loadPage() {
-    const { currentCategory, currentSub, sort, keyword, skip } = this.data;
+    const { sort, keyword, skip } = this.data;
+    const f = this._filter();
     try {
       const raw = await listProducts({
-        category: currentCategory,
-        subcategory: currentSub || null,
+        category: f.category,
+        subcategory: f.subcategory,
         keyword,
         sort,
         skip,
@@ -170,20 +216,30 @@ Page({
     }
   },
 
+  // 选展示分类
   onCategoryTap(e) {
     const value = e.currentTarget.dataset.value;
-    if (value === this.data.currentCategory) return;
+    if (value === this.data.currentCategory) {
+      this.setData({ showMore: false });
+      return;
+    }
     this.setData({
       currentCategory: value,
-      subList: subcategories[value] || [],
-      currentSub: ''
+      subItems: this._subItemsOf(value),
+      currentSub: '',
+      showMore: false
     }, () => this.reload());
   },
 
+  // 选二级
   onSubTap(e) {
     const sub = e.currentTarget.dataset.sub || '';
     if (sub === this.data.currentSub) return;
     this.setData({ currentSub: sub }, () => this.reload());
+  },
+
+  toggleMore() {
+    this.setData({ showMore: !this.data.showMore });
   },
 
   onSortChange(e) {
@@ -192,7 +248,6 @@ Page({
     this.setData({ sort }, () => this.reload());
   },
 
-  // 积分 chip 三态切换：inactive → asc → desc → inactive
   onCardsSortToggle() {
     let next;
     if (this.data.sort === 'cards-asc') next = 'cards-desc';
@@ -223,10 +278,7 @@ Page({
     wishlist.toggle(id);
     const nowOn = wishlist.has(id);
     this.setData({ wishlistMap: wishlist.getMap() });
-    wx.showToast({
-      title: nowOn ? '已加入心愿单' : '已移除',
-      icon: 'success'
-    });
+    wx.showToast({ title: nowOn ? '已加入心愿单' : '已移除', icon: 'success' });
   },
 
   onShareAppMessage() {

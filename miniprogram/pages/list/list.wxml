@@ -14,16 +14,30 @@
     <view class="search-button" bindtap="onSearch">搜索</view>
   </view>
 
-  <!-- 分类筛选条 -->
-  <scroll-view class="category-bar" scroll-x enable-flex>
+  <!-- 分类筛选条（展示大类 + 更多下拉） -->
+  <view class="category-row">
+    <scroll-view class="category-bar" scroll-x enable-flex>
+      <view
+        class="category-chip {{currentCategory === item.value ? 'active' : ''}}"
+        wx:for="{{displayCats}}"
+        wx:key="value"
+        data-value="{{item.value}}"
+        bindtap="onCategoryTap"
+      >{{item.label}}</view>
+    </scroll-view>
+    <view class="more-chip {{showMore ? 'active' : ''}}" bindtap="toggleMore">更多 {{showMore ? '▴' : '▾'}}</view>
+  </view>
+
+  <!-- 更多分类下拉面板 -->
+  <view class="more-panel" wx:if="{{showMore}}">
     <view
-      class="category-chip {{currentCategory === item.value ? 'active' : ''}}"
-      wx:for="{{categories}}"
+      class="more-item {{currentCategory === item.value ? 'active' : ''}}"
+      wx:for="{{moreCats}}"
       wx:key="value"
       data-value="{{item.value}}"
       bindtap="onCategoryTap"
     >{{item.label}}</view>
-  </scroll-view>
+  </view>
 
   <!-- 排序 chip 同排（积分 / 最新） -->
   <view class="sort-chips">
@@ -38,16 +52,16 @@
     >最新</view>
   </view>
 
-  <!-- 子分类筛选（选中有子类的主分类时显示） -->
-  <scroll-view class="subcategory-bar" scroll-x enable-flex wx:if="{{subList.length > 0}}">
+  <!-- 二级筛选（选中有二级的分类时显示） -->
+  <scroll-view class="subcategory-bar" scroll-x enable-flex wx:if="{{subItems.length > 0}}">
     <view class="sub-chip {{currentSub === '' ? 'active' : ''}}" data-sub="" bindtap="onSubTap">全部</view>
     <view
-      class="sub-chip {{currentSub === item ? 'active' : ''}}"
-      wx:for="{{subList}}"
-      wx:key="*this"
-      data-sub="{{item}}"
+      class="sub-chip {{currentSub === item.value ? 'active' : ''}}"
+      wx:for="{{subItems}}"
+      wx:key="value"
+      data-sub="{{item.value}}"
       bindtap="onSubTap"
-    >{{item}}</view>
+    >{{item.label}}</view>
   </scroll-view>
  </view>
 

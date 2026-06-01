@@ -66,9 +66,64 @@
   box-shadow: 0 8rpx 16rpx rgba(214, 75, 42, 0.22);
 }
 
+.category-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 8rpx 0 16rpx;
+}
+
 .category-bar {
   white-space: nowrap;
-  padding: 8rpx 0 16rpx;
+  flex: 1;
+  min-width: 0;
+}
+
+/* 更多按钮 */
+.more-chip {
+  flex: 0 0 auto;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: var(--text);
+  padding: 12rpx 22rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid rgba(234, 223, 206, 0.9);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.more-chip.active {
+  background: linear-gradient(135deg, var(--red) 0%, var(--red-deep) 100%);
+  color: #fff;
+  border-color: transparent;
+}
+
+/* 更多下拉面板 */
+.more-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  padding: 16rpx;
+  margin-bottom: 12rpx;
+  background: var(--paper);
+  border: 1rpx solid var(--line);
+  border-radius: 16rpx;
+  box-shadow: 0 8rpx 20rpx rgba(46, 35, 18, 0.08);
+}
+
+.more-item {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: var(--text);
+  padding: 12rpx 28rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid rgba(234, 223, 206, 0.9);
+  background: var(--paper-soft);
+}
+
+.more-item.active {
+  background: linear-gradient(135deg, var(--red) 0%, var(--red-deep) 100%);
+  color: #fff;
+  border-color: transparent;
 }
 
 .category-chip {
