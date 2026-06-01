@@ -1149,6 +1149,22 @@ body.pc-admin {
   background: rgba(214, 75, 42, 0.1);
   color: var(--red-deep);
 }
+.pc-edit-act-restore {
+  border-color: rgba(22, 122, 97, 0.5);
+  color: var(--green, #167a61);
+}
+.pc-edit-act-restore:hover {
+  border-color: var(--green, #167a61);
+  background: rgba(22, 122, 97, 0.1);
+  color: var(--green, #167a61);
+}
+
+/* 回收站切换：开启时高亮，提示当前在回收站视图 */
+.pc-edit-trash-on {
+  border-color: var(--red) !important;
+  background: rgba(214, 75, 42, 0.1) !important;
+  color: var(--red) !important;
+}
 
 /* 分页 */
 .pc-edit-pager {
@@ -2191,6 +2207,40 @@ body.pc-admin {
 
 .pc-create-toast[data-tone="error"] {
   background: var(--red);
+}
+
+/* toast 内的「撤销」动作按钮 */
+.pc-create-toast .pc-toast-action {
+  margin-left: 14px;
+  padding: 4px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  background: transparent;
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pc-create-toast .pc-toast-action:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* 加载失败占位 + 重试按钮 */
+.pc-load-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 16px;
+}
+
+.pc-load-error .pc-empty-text {
+  margin: 0;
+}
+
+.pc-load-retry {
+  min-width: 96px;
 }
 
 /* ----- 窄屏：单列堆叠，预览不再 sticky ----- */

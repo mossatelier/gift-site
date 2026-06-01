@@ -53,6 +53,82 @@
 
   var PERIOD_LABEL = { today: "今日", week: "本周", month: "本月", all: "全部" };
 
+  // ============ 全局 toast（瞬时反馈；持久说明仍用行内 msg） ============
+  // 复用 .pc-create-toast 样式；opts.actionText + opts.onAction 可附带「撤销」按钮。
+  function toast(text, tone, opts) {
+    opts = opts || {};
+    var box = document.getElementById("pcToast");
+    if (!box) {
+      box = document.createElement("div");
+      box.id = "pcToast";
+      box.className = "pc-create-toast";
+      document.body.appendChild(box);
+    }
+    box.innerHTML = "";
+    var span = document.createElement("span");
+    span.className = "pc-toast-text";
+    span.textContent = text || "";
+    box.appendChild(span);
+    if (opts.actionText && typeof opts.onAction === "function") {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "pc-toast-action";
+      btn.textContent = opts.actionText;
+      btn.addEventListener("click", function () {
+        hideToast();
+        opts.onAction();
+      });
+      box.appendChild(btn);
+    }
+    box.setAttribute("data-tone", tone || "success");
+    box.style.pointerEvents = opts.actionText ? "auto" : "none"; // 有「撤销」按钮时才可点
+    box.classList.add("pc-create-toast-show");
+    if (toast._timer) clearTimeout(toast._timer);
+    toast._timer = setTimeout(hideToast, opts.duration || (opts.actionText ? 6000 : 2600));
+  }
+  function hideToast() {
+    var box = document.getElementById("pcToast");
+    if (box) box.classList.remove("pc-create-toast-show");
+  }
+
+  // 加载失败占位 + 「重试」按钮（避免断网恢复后只能整页刷新而丢未保存内容）。
+  function renderLoadError(container, msg, onRetry) {
+    if (!container) return;
+    container.innerHTML = '<div class="pc-load-error"><p class="pc-empty-text">'
+      + escapeHtml(msg || "加载失败") + '</p>'
+      + '<button type="button" class="pc-btn-ghost pc-load-retry">重试</button></div>';
+    var btn = container.querySelector(".pc-load-retry");
+    if (btn && typeof onRetry === "function") btn.addEventListener("click", onRetry);
+  }
+
+  // ============ 离开拦截（防误刷新 / 误关页丢未保存内容） ============
+  var allowUnload = false; // 主动退出 / 会话过期 reload 时绕过拦截
+  function isAdminDirty() {
+    if (state.catorderDirty) return true;
+    if (typeof createFormDirty === "function" && createFormDirty()) return true;
+    return false;
+  }
+  window.addEventListener("beforeunload", function (e) {
+    if (allowUnload) return;
+    if (isAdminDirty()) {
+      e.preventDefault();
+      e.returnValue = "";
+      return "";
+    }
+  });
+
+  // ============ 顶栏全局搜索 → 跳到「编辑」面板按关键词过滤 ============
+  function globalSearch(term) {
+    term = (term || "").trim();
+    activatePanel("edit");
+    var input = document.getElementById("pcEditSearch");
+    if (input) input.value = term;
+    state.editSearch = term;
+    state.editPage = 0;
+    // 已加载则立即重渲染；未加载时数据到达后的渲染会带上 editSearch。
+    if (state.editLoaded && typeof renderEditTable === "function") renderEditTable();
+  }
+
   // ============ 工具 ============
 
   function escapeHtml(value) {
@@ -125,18 +201,29 @@
     bindEvents();
     startClock();
 
+    // 退出 / 会话过期通过 reload 回到登录视图，提示信息经 sessionStorage 传递。
+    var notice = null;
+    try {
+      notice = sessionStorage.getItem("pcAdminNotice");
+      if (notice) sessionStorage.removeItem("pcAdminNotice");
+    } catch (e) {}
+
     var session = Core.activeSession();
     if (session) {
       enterApp(session);
     } else {
       showLoginView();
+      if (notice) {
+        var parts = notice.split("|");
+        setLoginMsg(parts[0], parts[1] || null);
+      }
     }
 
-    // 会话过期：核心层会派发该事件并清掉本地会话，UI 回到登录视图提示重登。
+    // 会话过期：核心层派发该事件并清掉本地会话 → 整页 reload 彻底清空各模块状态（防换账号串台），回到登录视图。
     window.addEventListener("admin:session-expired", function () {
-      showLoginView();
-      setLoginMsg("登录已过期，请重新登录。", "error");
-      if (pcAccountEmail) pcAccountEmail.textContent = "-";
+      try { sessionStorage.setItem("pcAdminNotice", "登录已过期，请重新登录。|error"); } catch (e) {}
+      allowUnload = true;
+      location.reload();
     });
   }
 
@@ -172,6 +259,17 @@
         if (key) activatePanel(key);
       });
     });
+
+    // 顶栏全局搜索：回车 → 跳「编辑」面板按词过滤。
+    var globalSearchEl = document.getElementById("pcGlobalSearch");
+    if (globalSearchEl) {
+      globalSearchEl.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          globalSearch(globalSearchEl.value);
+        }
+      });
+    }
 
     // 看板：周期 chip 切换
     if (pcStatsPeriod) {
@@ -241,13 +339,10 @@
 
     var done = function () {
       Core.clearSession();
-      // 复位 App 内状态，回到登录视图
-      state.stats = null;
-      state.statsLoaded = false;
-      if (pcAccountEmail) pcAccountEmail.textContent = "-";
-      if (pcLoginPassword) pcLoginPassword.value = "";
-      showLoginView();
-      setLoginMsg("已退出登录。", null);
+      // 整页 reload 彻底清空各模块状态（防换账号在旧数据上误操作 / 串台）。
+      try { sessionStorage.setItem("pcAdminNotice", "已退出登录。"); } catch (e) {}
+      allowUnload = true;
+      location.reload();
     };
 
     // 远端登出失败不应阻塞本地清理。
@@ -262,6 +357,14 @@
   // ============ 导航切换 ============
 
   function activatePanel(key) {
+    // 离开「录入」面板且表单有未保存内容时确认（防误切走丢草稿 / 编辑态残留）。
+    if (state.activePanel === "create" && key !== "create"
+        && typeof createFormDirty === "function" && createFormDirty()) {
+      if (!window.confirm("录入表单有未保存的内容，确定离开并放弃？")) {
+        return;
+      }
+      resetCreateForm();
+    }
     state.activePanel = key;
 
     pcNavItems.forEach(function (item) {
@@ -362,7 +465,7 @@
         renderStats();
       })
       .catch(function (err) {
-        pcStatsKpis.innerHTML = '<p class="pc-empty-text">' + escapeHtml((err && err.message) || "加载失败") + "</p>";
+        renderLoadError(pcStatsKpis, (err && err.message) || "加载失败", function () { loadStats(); });
         if (pcStatsBody) pcStatsBody.innerHTML = "";
       });
   }
@@ -541,6 +644,7 @@
   state.editPage = 0;
   state.editPendingId = "";     // 正在执行操作的行（禁用按钮）
   state.editLoaded = false;
+  state.editShowDeleted = false; // 「回收站」视图：只看软删商品
   var editSearchTimer = null;
 
   // 渲染外壳一次（工具栏 + 表格容器 + 分页/消息），后续只重渲染 body。
@@ -568,6 +672,7 @@
       + '<option value="inactive">未上架</option>'
       + "</select>"
       + '<span class="pc-edit-count" id="pcEditCount"></span>'
+      + '<button class="pc-btn-ghost pc-edit-trash" id="pcEditTrashBtn" type="button">🗑 回收站</button>'
       + '<button class="pc-btn-ghost pc-edit-refresh" id="pcEditRefreshBtn" type="button">刷新</button>'
       + "</div>"
       + '<div class="pc-edit-table-wrap" id="pcEditTableWrap"></div>'
@@ -608,6 +713,17 @@
     var refreshEl = document.getElementById("pcEditRefreshBtn");
     if (refreshEl) {
       refreshEl.addEventListener("click", function () { loadEditProducts(true); });
+    }
+
+    var trashEl = document.getElementById("pcEditTrashBtn");
+    if (trashEl) {
+      trashEl.addEventListener("click", function () {
+        state.editShowDeleted = !state.editShowDeleted;
+        state.editPage = 0;
+        trashEl.classList.toggle("pc-edit-trash-on", state.editShowDeleted);
+        trashEl.textContent = state.editShowDeleted ? "← 返回商品列表" : "🗑 回收站";
+        renderEditTable();
+      });
     }
 
     // 表格区交互（事件委托：排序表头 + 行操作 + 分页）
@@ -671,7 +787,7 @@
         renderEditTable();
       })
       .catch(function (err) {
-        if (wrap) wrap.innerHTML = '<p class="pc-empty-text">' + escapeHtml((err && err.message) || "加载失败") + "</p>";
+        renderLoadError(wrap, (err && err.message) || "加载失败", function () { loadEditProducts(true); });
         var c = document.getElementById("pcEditCount");
         if (c) c.textContent = "";
       });
@@ -684,6 +800,9 @@
     var status = state.editFilterStatus;
 
     return state.editProducts.filter(function (item) {
+      // 回收站视图只看软删商品；普通视图过滤掉软删商品。
+      if (state.editShowDeleted) { if (!item.deleted) return false; }
+      else if (item.deleted) return false;
       if (cat !== "all" && item.category !== cat) return false;
       if (status === "active" && !item.is_active) return false;
       if (status === "inactive" && item.is_active) return false;
@@ -748,9 +867,9 @@
     if (countEl) countEl.textContent = "共 " + total + " 件";
 
     if (total === 0) {
-      var emptyText = state.editProducts.length === 0
-        ? "数据库里还没有礼品。"
-        : "没有找到匹配的礼品。";
+      var emptyText = state.editShowDeleted
+        ? "回收站是空的。"
+        : (state.editProducts.length === 0 ? "数据库里还没有礼品。" : "没有找到匹配的礼品。");
       wrap.innerHTML = '<p class="pc-empty-text">' + emptyText + "</p>";
       if (pagerEl) pagerEl.innerHTML = "";
       return;
@@ -780,8 +899,9 @@
       var cards = Number(item.cards_needed != null ? item.cards_needed : item.price) || 0;
       var price = Number(item.price) || 0;
       var subLabel = item.subcategory ? " · " + escapeHtml(item.subcategory) : "";
-      var statusCls = item.is_active ? "pc-order-status-done" : "pc-order-status-cancelled";
-      var statusLabel = item.is_active ? "已上架" : "未上架";
+      var deletedView = state.editShowDeleted;
+      var statusCls = (deletedView || !item.is_active) ? "pc-order-status-cancelled" : "pc-order-status-done";
+      var statusLabel = deletedView ? "已删除" : (item.is_active ? "已上架" : "未上架");
       var toggleLabel = item.is_active ? "下架" : "上架";
       var disabled = pending ? " disabled" : "";
       var img = item.image_url
@@ -796,9 +916,11 @@
         + '<td class="pc-edit-col-num pc-edit-cards">' + escapeHtml(cards) + " 分</td>"
         + '<td class="pc-edit-col-status"><span class="pc-order-status ' + statusCls + '">' + statusLabel + "</span></td>"
         + '<td class="pc-edit-col-actions">'
-        + '<button class="pc-edit-act pc-edit-act-edit" type="button" data-edit-edit="' + id + '"' + disabled + ">编辑</button>"
-        + '<button class="pc-edit-act pc-edit-act-toggle" type="button" data-edit-toggle="' + id + '"' + disabled + ">" + toggleLabel + "</button>"
-        + '<button class="pc-edit-act pc-edit-act-del" type="button" data-edit-del="' + id + '"' + disabled + ">删除</button>"
+        + (deletedView
+            ? '<button class="pc-edit-act pc-edit-act-restore" type="button" data-edit-restore="' + id + '"' + disabled + ">恢复</button>"
+            : '<button class="pc-edit-act pc-edit-act-edit" type="button" data-edit-edit="' + id + '"' + disabled + ">编辑</button>"
+              + '<button class="pc-edit-act pc-edit-act-toggle" type="button" data-edit-toggle="' + id + '"' + disabled + ">" + toggleLabel + "</button>"
+              + '<button class="pc-edit-act pc-edit-act-del" type="button" data-edit-del="' + id + '"' + disabled + ">删除</button>")
         + "</td>"
         + "</tr>";
     }).join("") + "</tbody>";
@@ -854,6 +976,12 @@
       handleEditProductDelete(delBtn.getAttribute("data-edit-del"));
       return;
     }
+
+    var restoreBtn = event.target.closest("[data-edit-restore]");
+    if (restoreBtn) {
+      handleEditProductRestore(restoreBtn.getAttribute("data-edit-restore"));
+      return;
+    }
   }
 
   function findEditProduct(id) {
@@ -892,21 +1020,23 @@
         state.editPendingId = "";
         renderEditTable();
         setEditMsg(next ? "已上架：" + (p.title || id) : "已下架：" + (p.title || id), "success");
+        toast(next ? "已上架：" + (p.title || id) : "已下架：" + (p.title || id), "success");
       })
       .catch(function (err) {
         state.editPendingId = "";
         renderEditTable();
         setEditMsg((err && err.message) || "操作失败", "error");
+        toast((err && err.message) || "操作失败", "error");
       });
   }
 
-  // 删除：二次确认 → deleteProduct → 行淡出 → 从数据源移除并重渲染。
+  // 删除（软删）：二次确认 → deleteProduct（置 deleted+下架）→ 行淡出移出列表 → 「撤销」toast。
   function handleEditProductDelete(id) {
     var p = findEditProduct(id);
     if (!p) { setEditMsg("没有找到要删除的礼品。", "error"); return; }
     if (state.editPendingId) return;
 
-    var ok = window.confirm("确定删除“" + (p.title || "这件礼品") + "”吗？删除后不能恢复。");
+    var ok = window.confirm("确定删除“" + (p.title || "这件礼品") + "”吗？\n将从用户端下架，可在「回收站」找回。");
     if (!ok) return;
 
     state.editPendingId = id;
@@ -916,21 +1046,53 @@
 
     Core.deleteProduct(id)
       .then(function () {
-        // 从全量数据移除后重渲染（淡出动画时长后）。
-        var remove = function () {
-          state.editProducts = state.editProducts.filter(function (x) { return x.id !== id; });
+        // 标记软删，重渲染后从普通列表淡出（仍保留在内存，回收站可见）。
+        var apply = function () {
+          p.deleted = true;
+          p.is_active = false;
           state.editPendingId = "";
           renderEditTable();
-          setEditMsg("已删除：" + (p.title || id), "success");
+          setEditMsg("已删除：" + (p.title || id) + "（可在「回收站」找回）", "success");
+          toast("已删除：" + (p.title || id), "success", {
+            actionText: "撤销",
+            onAction: function () { handleEditProductRestore(id); }
+          });
         };
-        if (rowEl) setTimeout(remove, 260);
-        else remove();
+        if (rowEl) setTimeout(apply, 260);
+        else apply();
       })
       .catch(function (err) {
         state.editPendingId = "";
         if (rowEl) rowEl.classList.remove("pc-edit-row-fading");
         renderEditTable();
         setEditMsg((err && err.message) || "删除失败", "error");
+        toast((err && err.message) || "删除失败", "error", { duration: 6000 });
+      });
+  }
+
+  // 找回：清 deleted + 重新上架，重渲染后从回收站移出。
+  function handleEditProductRestore(id) {
+    var p = findEditProduct(id);
+    if (!p) { setEditMsg("没有找到要找回的礼品。", "error"); return; }
+    if (state.editPendingId) return;
+
+    state.editPendingId = id;
+    setEditMsg("正在找回…", null);
+
+    Core.restoreProduct(id)
+      .then(function () {
+        p.deleted = false;
+        p.is_active = true;
+        state.editPendingId = "";
+        renderEditTable();
+        setEditMsg("已找回并上架：" + (p.title || id), "success");
+        toast("已找回并上架：" + (p.title || id), "success");
+      })
+      .catch(function (err) {
+        state.editPendingId = "";
+        renderEditTable();
+        setEditMsg((err && err.message) || "找回失败", "error");
+        toast((err && err.message) || "找回失败", "error");
       });
   }
 
@@ -1032,7 +1194,7 @@
         renderBanksTable();
       })
       .catch(function (err) {
-        if (wrap) wrap.innerHTML = '<p class="pc-empty-text">' + escapeHtml((err && err.message) || "加载失败") + "</p>";
+        renderLoadError(wrap, (err && err.message) || "加载失败", function () { loadBanks(true); });
       });
   }
 
@@ -1120,6 +1282,7 @@
         state.banksSavingId = "";
         setBankRowState(id, "✓", "success");
         setBanksMsg("已保存：" + (bank.name || id) + " = " + value + " 分", "success");
+        toast("已保存：" + (bank.name || id) + " = " + value + " 分", "success");
         // 保存成功后按积分重排；若顺序变化则重渲染（重渲染会清掉行尾 ✓，可接受）。
         var before = state.banks.slice();
         sortBanks();
@@ -1130,6 +1293,7 @@
         state.banksSavingId = "";
         setBankRowState(id, "保存失败", "error");
         setBanksMsg((err && err.message) || "保存失败", "error");
+        toast((err && err.message) || "保存失败", "error");
       });
   }
 
@@ -1350,7 +1514,7 @@
       })
       .catch(function (err) {
         var el = document.getElementById("pcCatOrderList");
-        if (el) el.innerHTML = '<p class="pc-empty-text">' + escapeHtml((err && err.message) || "加载失败") + "</p>";
+        renderLoadError(el, (err && err.message) || "加载失败", function () { loadCatOrder(true); });
       });
   }
 
@@ -1385,6 +1549,7 @@
         state.catorderDirty = false;
         syncCatOrderSaveBtn();
         setCatOrderMsg("已保存，小程序刷新后按新顺序显示。", "success");
+        toast("分类顺序已保存", "success");
       })
       .catch(function (err) {
         state.catorderSaving = false;
@@ -1585,7 +1750,7 @@
         renderReviews();
       })
       .catch(function (err) {
-        if (grid) grid.innerHTML = '<p class="pc-empty-text">' + escapeHtml((err && err.message) || "加载失败") + "</p>";
+        renderLoadError(grid, (err && err.message) || "加载失败", function () { loadReviews(true); });
         if (countEl) countEl.textContent = "";
       });
   }
@@ -1662,7 +1827,9 @@
     var approveBtn = event.target.closest("[data-review-approve]");
     if (approveBtn) {
       if (approveBtn.disabled) return;
-      moderateReview(approveBtn.getAttribute("data-review-approve"), "approved");
+      if (window.confirm("确认通过这条晒图？通过后将对所有用户公开可见。")) {
+        moderateReview(approveBtn.getAttribute("data-review-approve"), "approved");
+      }
       return;
     }
 
@@ -1691,6 +1858,7 @@
     var review = findReview(id);
     if (!review) { setReviewsMsg("没有找到要处理的晒图。", "error"); return; }
 
+    var prevStatus = review.status;   // 供「撤销」回退
     state.reviewsPendingId = id;
     // 仅禁用当前卡按钮，不整网格重渲染（保留其它卡的滚动位置）。
     var card = document.querySelector('[data-review-card="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
@@ -1717,6 +1885,11 @@
           renderReviews();
         }
         setReviewsMsg(status === "approved" ? "已通过，用户端可见。" : "已拒绝。", "success");
+        // 误判可一键撤销（回退到处理前状态并重新拉取）。
+        toast(status === "approved" ? "已通过，用户端可见" : "已拒绝",
+          "success",
+          { actionText: "撤销", onAction: function () { undoModerate(id, prevStatus); } });
+        loadBadges(); // 刷新待审角标
       })
       .catch(function (err) {
         state.reviewsPendingId = "";
@@ -1724,7 +1897,20 @@
           Array.prototype.forEach.call(card.querySelectorAll(".pc-reviews-act"), function (b) { b.disabled = false; });
         }
         setReviewsMsg((err && err.message) || "处理失败", "error");
+        toast((err && err.message) || "处理失败", "error");
       });
+  }
+
+  // 撤销审核：把晒图状态回退（不经 moderateReview 的串行/查找，直接调接口后重拉）。
+  function undoModerate(id, toStatus) {
+    if (!id || !toStatus) return;
+    Core.callAdminOrders("review-status", { reviewId: id, status: toStatus })
+      .then(function () {
+        toast("已撤销", "success");
+        loadReviews(true);
+        loadBadges();
+      })
+      .catch(function (err) { toast((err && err.message) || "撤销失败", "error"); });
   }
 
   // ----- 灯箱（全屏暗遮罩 + 大图 + 左右翻页 + ESC / 点遮罩关） -----
@@ -2021,21 +2207,9 @@
   }
 
   // 轻量 toast（右下角浮层，自动淡出）。无依赖、不污染 html。
+  // 录入模块沿用的别名，统一走全局 toast()。
   function createToast(text, tone) {
-    var box = document.getElementById("pcCreateToast");
-    if (!box) {
-      box = document.createElement("div");
-      box.id = "pcCreateToast";
-      box.className = "pc-create-toast";
-      document.body.appendChild(box);
-    }
-    box.textContent = text || "";
-    box.setAttribute("data-tone", tone || "success");
-    box.classList.add("pc-create-toast-show");
-    if (createToast._timer) clearTimeout(createToast._timer);
-    createToast._timer = setTimeout(function () {
-      box.classList.remove("pc-create-toast-show");
-    }, 2600);
+    toast(text, tone);
   }
 
   // 绑定表单交互（一次性）。
@@ -2109,7 +2283,10 @@
     }
 
     if (resetBtn) {
-      resetBtn.addEventListener("click", function () { resetCreateForm(); });
+      resetBtn.addEventListener("click", function () {
+        if (createFormDirty() && !window.confirm("当前填写的内容（含已上传图片）将被清空，确定？")) return;
+        resetCreateForm();
+      });
     }
 
     // 编辑态「返回编辑列表」：不保存，清空编辑态并切回编辑面板
@@ -2299,6 +2476,19 @@
     var backBtn = document.getElementById("pcCreateBackBtn");
     if (backBtn) backBtn.hidden = !state.createEditingId;   // 仅编辑态显示「返回编辑列表」
     syncCreateSubmitBtn();
+  }
+
+  // 录入表单是否有未保存内容（编辑态视为有；新建态看关键字段 / 图片）。供离开拦截 + 清空确认共用。
+  function createFormDirty() {
+    if (!state.createLoaded) return false;
+    if (state.createEditingId) return true;
+    var t = document.getElementById("pcCreateTitle");
+    var pr = document.getElementById("pcCreatePrice");
+    var c = document.getElementById("pcCreateCards");
+    var d = document.getElementById("pcCreateDesc");
+    if ((t && t.value.trim()) || (pr && pr.value.trim()) || (c && c.value.trim()) || (d && d.value.trim())) return true;
+    if (Array.isArray(state.createImages) && state.createImages.length) return true;
+    return false;
   }
 
   // 清空表单回到「新建」态。
@@ -2768,13 +2958,13 @@
       });
     }
 
-    // 抽屉关闭：× / 点遮罩 / ESC。
+    // 抽屉关闭：× / 点遮罩 / ESC。关前确认未保存的单号/备注。
     var closeEl = document.getElementById("pcOrdersDrawerClose");
-    if (closeEl) closeEl.addEventListener("click", closeOrdersDrawer);
+    if (closeEl) closeEl.addEventListener("click", function () { if (confirmDropOrdersDrawer()) closeOrdersDrawer(); });
     var maskEl = document.getElementById("pcOrdersDrawerMask");
-    if (maskEl) maskEl.addEventListener("click", closeOrdersDrawer);
+    if (maskEl) maskEl.addEventListener("click", function () { if (confirmDropOrdersDrawer()) closeOrdersDrawer(); });
     document.addEventListener("keydown", function (event) {
-      if (event.key === "Escape" && state.ordersDrawerId) closeOrdersDrawer();
+      if (event.key === "Escape" && state.ordersDrawerId && confirmDropOrdersDrawer()) closeOrdersDrawer();
     });
 
     // 抽屉内交互（事件委托）：复制 / 状态下拉 / 快递 chip / 保存单号 / 保存备注。
@@ -2848,7 +3038,7 @@
         renderOrdersTable();
       })
       .catch(function (err) {
-        if (wrap) wrap.innerHTML = '<p class="pc-empty-text">' + escapeHtml((err && err.message) || "加载失败") + "</p>";
+        renderLoadError(wrap, (err && err.message) || "加载失败", function () { loadOrders(true); });
         if (countEl) countEl.textContent = "";
       });
   }
@@ -3012,11 +3202,14 @@
         var updated = (res && res.updated != null) ? res.updated : ids.length;
         var failed = (res && res.failed) || 0;
         setOrdersMsg("成功 " + updated + " 单，失败 " + failed + " 单。", "success");
+        toast("批量更新：成功 " + updated + " 单" + (failed ? "，失败 " + failed + " 单" : ""), failed ? "error" : "success");
         closeOrdersDrawer();
         loadOrders(true);
+        loadBadges(); // 刷新待办角标
       })
       .catch(function (err) {
         setOrdersMsg((err && err.message) || "批量更新失败", "error");
+        toast((err && err.message) || "批量更新失败", "error");
       });
   }
 
@@ -3124,8 +3317,29 @@
     else delete el.dataset.tone;
   }
 
+  // 抽屉内是否有未保存的单号 / 备注（与已保存值不一致）。
+  function ordersDrawerDirty() {
+    var id = state.ordersDrawerId;
+    if (!id) return false;
+    var o = findOrder(id);
+    if (!o) return false;
+    var noInput = document.querySelector('[data-orders-tracking-no="' + ordersCssEscape(id) + '"]');
+    var companyInput = document.querySelector('[data-orders-tracking-company="' + ordersCssEscape(id) + '"]');
+    var noteInput = document.querySelector('[data-orders-note="' + ordersCssEscape(id) + '"]');
+    if (noInput && noInput.value.trim() !== (o.trackingNo || "")) return true;
+    if (companyInput && companyInput.value.trim() !== (o.trackingCompany || "")) return true;
+    if (noteInput && noteInput.value.trim() !== (o.adminNote || "")) return true;
+    return false;
+  }
+  // 关闭 / 切换前确认：有未保存单号/备注则拦。
+  function confirmDropOrdersDrawer() {
+    return !ordersDrawerDirty() || window.confirm("有未保存的快递单号 / 备注，确定放弃并关闭？");
+  }
+
   // 打开抽屉（或热替换内容，切换行高亮）。
   function openOrdersDrawer(id) {
+    // 已开着另一单且有未保存内容 → 先确认再切。
+    if (state.ordersDrawerId && state.ordersDrawerId !== id && !confirmDropOrdersDrawer()) return;
     var o = findOrder(id);
     if (!o) return;
     state.ordersDrawerId = id;
@@ -3231,30 +3445,42 @@
     if (!id) return;
     var o = findOrder(id);
     if (!o) return;
-    setOrdersDrawerMsg("正在保存…", null);
+    if (status === o.status) return;
 
+    // 危险终态二次确认（不可逆 / 用户端立即可见）。取消则还原下拉。
+    if (status === "cancelled" || status === "done") {
+      var warn = status === "cancelled"
+        ? "确认把该订单改为「已取消」？此操作通常会退还用户积分，且用户端立即可见，不可轻易撤回。"
+        : "确认把该订单改为「已完成」？用户端将显示已完成。";
+      if (!window.confirm(warn)) {
+        var selR = document.querySelector('[data-orders-status-select="' + ordersCssEscape(id) + '"]');
+        if (selR) selR.value = o.status;
+        return;
+      }
+    }
+
+    setOrdersDrawerMsg("正在保存…", null);
     Core.callAdminOrders("update-status", { orderId: id, status: status })
       .then(function () {
-        if (state.ordersStatus !== "all" && state.ordersStatus !== status) {
-          // 改后移出当前筛选 → 关抽屉、重拉（复用分页 / 空页回退）。
-          closeOrdersDrawer();
-          ordersClearSelection();
-          setOrdersMsg("已更新。", "success");
-          loadOrders(true);
-        } else {
-          o.status = status;
-          // 就地更新表格该行徽标 + 抽屉标题，不整页重拉。
-          renderOrdersTable();
-          var titleEl = document.getElementById("pcOrdersDrawerTitle");
-          if (titleEl) {
-            var addr = o.address || {};
-            titleEl.textContent = (addr.recipient || "订单") + " · " + (ORDER_STATUS_LABEL[status] || status);
-          }
-          setOrdersDrawerMsg("已更新为「" + (ORDER_STATUS_LABEL[status] || status) + "」。", "success");
+        o.status = status;
+        // 就地更新表格该行徽标 + 抽屉标题，不关抽屉、不整页重拉（保留作业上下文）。
+        renderOrdersTable();
+        var titleEl = document.getElementById("pcOrdersDrawerTitle");
+        if (titleEl) {
+          var addr = o.address || {};
+          titleEl.textContent = (addr.recipient || "订单") + " · " + (ORDER_STATUS_LABEL[status] || status);
         }
+        var rowEl = document.querySelector('[data-orders-row="' + ordersCssEscape(id) + '"]');
+        if (rowEl) rowEl.classList.add("pc-orders-row-active"); // 重渲染后重新高亮当前行
+        var label = ORDER_STATUS_LABEL[status] || status;
+        var movedOut = state.ordersStatus !== "all" && state.ordersStatus !== status;
+        setOrdersDrawerMsg("已更新为「" + label + "」。", "success");
+        toast(movedOut ? "已更新为「" + label + "」（已不在当前筛选，刷新后隐藏）" : "已更新为「" + label + "」", "success");
+        loadBadges(); // 刷新待办角标
       })
       .catch(function (err) {
         setOrdersDrawerMsg((err && err.message) || "保存失败", "error");
+        toast((err && err.message) || "保存失败", "error");
         // 失败时还原下拉显示。
         var sel = document.querySelector('[data-orders-status-select="' + ordersCssEscape(id) + '"]');
         if (sel) sel.value = o.status;

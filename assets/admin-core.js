@@ -314,30 +314,26 @@
     opts = opts || {};
     var limit = opts.limit != null ? String(opts.limit) : "1000";
 
-    var primaryParams = new URLSearchParams({
-      select: "id,title,category,subcategory,price,cards_needed,description,image_url,images,sort_order,created_at,is_active",
-      order: "updated_at.desc",
-      limit: limit
-    });
+    var fullCols = "id,title,category,subcategory,price,cards_needed,description,image_url,images,sort_order,created_at,is_active";
+    // 优先带 deleted 列（软删标记）；列不存在 → 退回不带 deleted 的完整列；再退回精简列。
+    var tiers = [
+      { select: fullCols + ",deleted", order: "updated_at.desc" },
+      { select: fullCols, order: "updated_at.desc" },
+      { select: "id,title,category,price,image_url,sort_order,created_at,is_active", order: "created_at.desc" }
+    ];
 
-    var response = await authedFetch(productsEndpoint() + "?" + primaryParams.toString());
-
-    if (!response.ok && response.status === 400) {
-      var fallbackParams = new URLSearchParams({
-        select: "id,title,category,price,image_url,sort_order,created_at,is_active",
-        order: "created_at.desc",
-        limit: limit
-      });
-
-      response = await authedFetch(productsEndpoint() + "?" + fallbackParams.toString());
+    var response;
+    for (var i = 0; i < tiers.length; i += 1) {
+      var params = new URLSearchParams({ select: tiers[i].select, order: tiers[i].order, limit: limit });
+      response = await authedFetch(productsEndpoint() + "?" + params.toString());
+      if (response.ok) {
+        var data = await response.json();
+        return Array.isArray(data) ? data : [];
+      }
+      if (response.status !== 400) break; // 非 400（列缺失）不再降级重试
     }
 
-    if (!response.ok) {
-      throw new Error("读取最近商品失败：" + response.status);
-    }
-
-    var data = await response.json();
-    return Array.isArray(data) ? data : [];
+    throw new Error("读取最近商品失败：" + (response ? response.status : "?"));
   }
 
   async function createProduct(payload) {
@@ -378,20 +374,31 @@
     return Array.isArray(data) ? data[0] : data;
   }
 
+  // 软删除：置 deleted=true + 下架（is_active=false），保留行 → 可在「回收站」找回。
+  // 同步层已按 is_active 同步，下架后约 5 分钟内小程序端不再展示。
   async function deleteProduct(productId) {
     var response = await authedFetch(
       productsEndpoint() + "?id=eq." + encodeURIComponent(productId),
-      { method: "DELETE" },
-      { Prefer: "return=representation" }
+      { method: "PATCH", body: JSON.stringify({ deleted: true, is_active: false }) },
+      { "Content-Type": "application/json", Prefer: "return=representation" }
     );
 
     if (!response.ok) {
       var errorText = await response.text();
+      // deleted 列尚未在 Supabase 建好时给出明确指引（避免误以为删除坏了）。
+      if (/deleted/i.test(errorText) && (response.status === 400 || response.status === 404)) {
+        throw new Error('删除失败：商品表还没有 deleted 列。请先在 Supabase SQL Editor 执行：\nALTER TABLE products ADD COLUMN deleted boolean NOT NULL DEFAULT false;');
+      }
       throw new Error("商品删除失败：" + response.status + " " + errorText);
     }
 
     var data = await response.json();
     return Array.isArray(data) ? data[0] : data;
+  }
+
+  // 找回：清除 deleted 标记并重新上架。
+  function restoreProduct(productId) {
+    return updateProduct(productId, { deleted: false, is_active: true });
   }
 
   // 上下架薄封装。
@@ -607,6 +614,7 @@
     createProduct: createProduct,
     updateProduct: updateProduct,
     deleteProduct: deleteProduct,
+    restoreProduct: restoreProduct,
     setProductActive: setProductActive,
 
     // 图片
