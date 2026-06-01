@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>加多宝礼品屋 · Admin Console（电脑版）</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="assets/site.css?v=1">
+  <link rel="stylesheet" href="assets/admin-pc.css?v=1">
+</head>
+<body class="pc-admin">
+
+  <!-- ===================== 登录前：居中登录卡 ===================== -->
+  <div class="pc-login-view" id="pcLoginView">
+    <section class="pc-login-card">
+      <div class="pc-login-brand">🎁 加多宝礼品屋</div>
+      <h1 class="pc-login-title">Admin Console</h1>
+      <p class="pc-login-subtitle">电脑大屏管理后台 · 请使用管理员账号登录</p>
+      <form class="pc-login-form" id="pcLoginForm" autocomplete="on">
+        <label class="pc-field">
+          <span>管理员邮箱</span>
+          <input id="pcLoginEmail" name="email" type="email" placeholder="你的管理员邮箱" autocomplete="username email" required>
+        </label>
+        <label class="pc-field">
+          <span>登录密码</span>
+          <input id="pcLoginPassword" name="password" type="password" placeholder="你的管理员密码" autocomplete="current-password" required>
+        </label>
+        <button class="pc-login-btn" id="pcLoginBtn" type="submit">登 录</button>
+        <p class="pc-login-msg" id="pcLoginMsg"></p>
+      </form>
+      <a class="pc-login-back" href="index.html">← 返回前台</a>
+    </section>
+  </div>
+
+  <!-- ===================== 登录后：三段式外壳 ===================== -->
+  <div class="pc-app-view" id="pcAppView" hidden>
+
+    <!-- 顶栏 -->
+    <header class="pc-topbar">
+      <div class="pc-topbar-brand">
+        <span class="pc-topbar-logo">🎁</span>
+        <span class="pc-topbar-name">加多宝礼品屋 <em>Admin Console</em></span>
+      </div>
+
+      <div class="pc-topbar-search">
+        <span class="pc-topbar-search-ico">🔍</span>
+        <input id="pcGlobalSearch" type="search" placeholder="全局搜索（商品 / 订单 / 用户）…">
+      </div>
+
+      <div class="pc-topbar-right">
+        <div class="pc-topbar-clock">
+          <span class="pc-topbar-live"><i></i>LIVE</span>
+          <span class="pc-clock" id="pcClock">--:--:--</span>
+        </div>
+        <div class="pc-topbar-account">
+          <span class="pc-topbar-account-dot"></span>
+          <span class="pc-topbar-account-email" id="pcAccountEmail">-</span>
+        </div>
+        <button class="pc-logout-btn" id="pcLogoutBtn" type="button">退出</button>
+      </div>
+    </header>
+
+    <!-- 主体：侧栏 + 主区 -->
+    <div class="pc-shell">
+
+      <!-- 侧边栏 -->
+      <aside class="pc-sidebar">
+        <nav class="pc-nav">
+          <div class="pc-nav-group">
+            <p class="pc-nav-group-title">概览</p>
+            <a class="pc-nav-item" data-panel="stats" href="#stats">
+              <span class="pc-nav-ico">📊</span>
+              <span class="pc-nav-text">数据看板</span>
+            </a>
+          </div>
+
+          <div class="pc-nav-group">
+            <p class="pc-nav-group-title">商品</p>
+            <a class="pc-nav-item" data-panel="create" href="#create">
+              <span class="pc-nav-ico">📝</span>
+              <span class="pc-nav-text">录入</span>
+            </a>
+            <a class="pc-nav-item" data-panel="edit" href="#edit">
+              <span class="pc-nav-ico">✏️</span>
+              <span class="pc-nav-text">编辑</span>
+            </a>
+            <a class="pc-nav-item" data-panel="catorder" href="#catorder">
+              <span class="pc-nav-ico">🔀</span>
+              <span class="pc-nav-text">分类排序</span>
+            </a>
+          </div>
+
+          <div class="pc-nav-group">
+            <p class="pc-nav-group-title">运营</p>
+            <a class="pc-nav-item" data-panel="orders" href="#orders">
+              <span class="pc-nav-ico">📦</span>
+              <span class="pc-nav-text">申请管理</span>
+              <span class="pc-nav-badge" id="pcBadgeOrders" hidden>0</span>
+            </a>
+            <a class="pc-nav-item" data-panel="reviews" href="#reviews">
+              <span class="pc-nav-ico">🖼️</span>
+              <span class="pc-nav-text">晒图审核</span>
+              <span class="pc-nav-badge" id="pcBadgeReviews" hidden>0</span>
+            </a>
+          </div>
+
+          <div class="pc-nav-group">
+            <p class="pc-nav-group-title">配置</p>
+            <a class="pc-nav-item" data-panel="banks" href="#banks">
+              <span class="pc-nav-ico">🏦</span>
+              <span class="pc-nav-text">银行积分</span>
+            </a>
+          </div>
+        </nav>
+
+        <div class="pc-sidebar-foot">
+          <a class="pc-sidebar-link" href="index.html">
+            <span class="pc-nav-ico">🏠</span>
+            <span class="pc-nav-text">返回前台</span>
+          </a>
+          <a class="pc-sidebar-link" href="admin.html">
+            <span class="pc-nav-ico">📱</span>
+            <span class="pc-nav-text">手机版后台</span>
+          </a>
+        </div>
+      </aside>
+
+      <!-- 主区 -->
+      <main class="pc-main">
+
+        <!-- ===== 数据看板（本阶段完整结构） ===== -->
+        <section class="pc-panel" data-panel="stats" hidden>
+          <div class="pc-panel-head">
+            <div class="pc-panel-head-titles">
+              <h1 class="pc-panel-title">数据看板</h1>
+              <p class="pc-panel-subtitle">实时浏览 / 心愿 / 订单概览</p>
+            </div>
+            <div class="pc-panel-head-actions">
+              <div class="pc-stats-period" id="pcStatsPeriod">
+                <button class="pc-stats-chip active" data-stats-period="today" type="button">今日</button>
+                <button class="pc-stats-chip" data-stats-period="week" type="button">本周</button>
+                <button class="pc-stats-chip" data-stats-period="month" type="button">本月</button>
+                <button class="pc-stats-chip" data-stats-period="all" type="button">全部</button>
+              </div>
+              <button class="pc-btn-ghost" id="pcStatsRefreshBtn" type="button">↻ 刷新</button>
+              <div class="pc-stats-clock-mini">
+                <span class="pc-topbar-live"><i></i>LIVE</span>
+                <span class="pc-clock" id="pcStatsClock">--:--:--</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 卡区 -->
+          <div class="pc-stats-kpis" id="pcStatsKpis">
+            <p class="pc-empty-text">加载中…</p>
+          </div>
+
+          <!-- 图表 / 榜单区 -->
+          <div class="pc-stats-body" id="pcStatsBody"></div>
+
+          <p class="pc-inline-msg" id="pcStatsMsg"></p>
+        </section>
+
+        <!-- ===== 以下面板为后续阶段占位（留空容器） ===== -->
+        <section class="pc-panel" data-panel="create" hidden>
+          <div class="pc-panel-placeholder" id="pcCreatePanelBody">录入面板（后续阶段填充）</div>
+        </section>
+
+        <section class="pc-panel" data-panel="edit" hidden>
+          <div class="pc-panel-placeholder" id="pcEditPanelBody">编辑面板（后续阶段填充）</div>
+        </section>
+
+        <section class="pc-panel" data-panel="catorder" hidden>
+          <div class="pc-panel-placeholder" id="pcCatOrderPanelBody">分类排序面板（后续阶段填充）</div>
+        </section>
+
+        <section class="pc-panel" data-panel="orders" hidden>
+          <div class="pc-panel-placeholder" id="pcOrdersPanelBody">申请管理面板（后续阶段填充）</div>
+        </section>
+
+        <section class="pc-panel" data-panel="reviews" hidden>
+          <div class="pc-panel-placeholder" id="pcReviewsPanelBody">晒图审核面板（后续阶段填充）</div>
+        </section>
+
+        <section class="pc-panel" data-panel="banks" hidden>
+          <div class="pc-panel-placeholder" id="pcBanksPanelBody">银行积分面板（后续阶段填充）</div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="assets/config.js?v=1"></script>
+  <script src="assets/admin-core.js?v=1"></script>
+  <script src="assets/admin-pc.js?v=1"></script>
+</body>
+</html>
