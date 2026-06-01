@@ -56,6 +56,7 @@ Page({
     displayCats: DISPLAY_CATS,
     moreCats: MORE_CATS,
     showMore: false,
+    moreLabel: '',              // 当前选中的是「更多」里的分类时，显示其名字
     currentCategory: 'all',     // 展示分类 value
     currentCategoryLabel: '',
     subItems: [],               // 二级 [{value,label}]
@@ -107,6 +108,7 @@ Page({
     initial.currentSub = sub;
     initial.subItems = this._subItemsOf(display);
     initial.currentCategoryLabel = displayLabel(display);
+    initial.moreLabel = this._moreLabelOf(display);
     this.setData(initial, () => this.reload());
   },
 
@@ -129,6 +131,7 @@ Page({
       patch.currentCategory = r.display;
       patch.currentSub = r.sub;
       patch.subItems = this._subItemsOf(r.display);
+      patch.moreLabel = this._moreLabelOf(r.display);
       app.globalData.listCategoryIntent = null;
       changed = true;
     }
@@ -137,6 +140,12 @@ Page({
     } else {
       this.setData({ wishlistMap: patch.wishlistMap });
     }
+  },
+
+  // 若 cat 是「更多」里的分类，返回其 label，否则空
+  _moreLabelOf(cat) {
+    const m = MORE_CATS.find(c => c.value === cat);
+    return m ? m.label : '';
   },
 
   // 某展示分类的二级条
@@ -227,6 +236,7 @@ Page({
       currentCategory: value,
       subItems: this._subItemsOf(value),
       currentSub: '',
+      moreLabel: this._moreLabelOf(value),
       showMore: false
     }, () => this.reload());
   },

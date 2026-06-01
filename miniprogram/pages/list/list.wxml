@@ -25,7 +25,7 @@
         bindtap="onCategoryTap"
       >{{item.label}}</view>
     </scroll-view>
-    <view class="more-chip {{showMore ? 'active' : ''}}" bindtap="toggleMore">更多 {{showMore ? '▴' : '▾'}}</view>
+    <view class="more-chip {{(showMore || moreLabel) ? 'active' : ''}}" bindtap="toggleMore">{{moreLabel || '更多'}} {{showMore ? '▴' : '▾'}}</view>
   </view>
 
   <!-- 更多分类下拉面板 -->
