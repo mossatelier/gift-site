@@ -1887,6 +1887,7 @@
       + '<section class="pc-create-form-col">'
       + '<header class="pc-create-head">'
       + '<h3 class="pc-create-title" id="pcCreateTitleHd">录入礼品</h3>'
+      + '<button class="pc-btn-ghost pc-create-back" id="pcCreateBackBtn" type="button" hidden>← 返回编辑列表</button>'
       + '<button class="pc-btn-ghost pc-create-reset" id="pcCreateResetBtn" type="button">清空 / 新建</button>'
       + "</header>"
       + '<form class="pc-create-form" id="pcCreateForm" autocomplete="off" novalidate>'
@@ -2111,6 +2112,15 @@
       resetBtn.addEventListener("click", function () { resetCreateForm(); });
     }
 
+    // 编辑态「返回编辑列表」：不保存，清空编辑态并切回编辑面板
+    var backBtn = document.getElementById("pcCreateBackBtn");
+    if (backBtn) {
+      backBtn.addEventListener("click", function () {
+        resetCreateForm();
+        activatePanel("edit");
+      });
+    }
+
     // 图片列表交互（事件委托：选文件 / 填 URL / 删除）。
     if (imagesWrap) {
       imagesWrap.addEventListener("change", handleCreateImageChange);
@@ -2286,6 +2296,8 @@
   function syncCreateMode() {
     var hd = document.getElementById("pcCreateTitleHd");
     if (hd) hd.textContent = state.createEditingId ? "编辑礼品" : "录入礼品";
+    var backBtn = document.getElementById("pcCreateBackBtn");
+    if (backBtn) backBtn.hidden = !state.createEditingId;   // 仅编辑态显示「返回编辑列表」
     syncCreateSubmitBtn();
   }
 
