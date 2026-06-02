@@ -46,7 +46,7 @@
   <view class="home-circles">
     <view class="circle-item" bindtap="goCardFlow">
       <view class="circle-badge circle-badge-red">
-        <image src="/images/icons/card-flow.svg" mode="aspectFit" class="circle-svg" />
+        <image src="/images/icons/hc-cardflow.svg" mode="aspectFit" class="circle-svg" />
       </view>
       <text class="circle-label">办卡流程</text>
     </view>
@@ -64,13 +64,13 @@
     </view>
     <view class="circle-item" bindtap="goClaimGuide">
       <view class="circle-badge circle-badge-pink">
-        <image src="/images/icons/claim-guide.svg" mode="aspectFit" class="circle-svg" />
+        <image src="/images/icons/hc-claim.svg" mode="aspectFit" class="circle-svg" />
       </view>
       <text class="circle-label">领取须知</text>
     </view>
     <view class="circle-item" bindtap="goBankNewUser">
       <view class="circle-badge circle-badge-blue">
-        <image src="/images/icons/bank-new-user.svg" mode="aspectFit" class="circle-svg" />
+        <image src="/images/icons/hc-bank.svg" mode="aspectFit" class="circle-svg" />
       </view>
       <text class="circle-label">银行新户</text>
     </view>
