@@ -306,7 +306,19 @@ async function getMyOrder(openid, id) {
 
 // ============ 晒图（reviews 集合） ============
 
-// 首页/广场展示：已通过审核的晒图，按时间倒序
+// 昵称打码：保留首尾、中间用 * 代替（按码点切，兼容 emoji；中间星号最多 4 个）。
+// 仅用于公开展示（广场 / 首页）；后台审核走云函数读原始昵称，不受影响。
+function maskNick(name) {
+  name = (name || '').trim();
+  if (!name) return '微信用户';
+  const chars = Array.from(name);
+  if (chars.length <= 1) return chars[0] || '微信用户';
+  if (chars.length === 2) return chars[0] + '*';
+  const stars = '*'.repeat(Math.min(chars.length - 2, 4));
+  return chars[0] + stars + chars[chars.length - 1];
+}
+
+// 首页/广场展示：已通过审核的晒图，按时间倒序（公开展示，昵称打码）
 async function listApprovedReviews({ limit = 20, skip = 0, productId = null } = {}) {
   const where = { status: 'approved' };
   if (productId) where.productId = productId;
@@ -316,7 +328,7 @@ async function listApprovedReviews({ limit = 20, skip = 0, productId = null } = 
     .skip(skip)
     .limit(limit)
     .get();
-  return res.data;
+  return res.data.map(r => Object.assign({}, r, { nickName: maskNick(r.nickName) }));
 }
 
 // 查某订单是否已晒过（控制入口按钮状态）
