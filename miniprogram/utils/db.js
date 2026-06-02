@@ -119,6 +119,17 @@ async function getCategoryOrder() {
   }
 }
 
+// 取后台配置的首页海报，失败返回 []（首页回退默认图）
+async function getHomeBanners() {
+  try {
+    const res = await db().collection('app_config').where({ key: 'home_banners' }).limit(1).get();
+    const doc = res.data[0];
+    return (doc && Array.isArray(doc.banners)) ? doc.banners : [];
+  } catch (err) {
+    return [];
+  }
+}
+
 // 取银行积分对照（按 points 降序）
 async function listBanks() {
   const res = await db()
@@ -350,6 +361,7 @@ module.exports = {
   listNewProducts,
   listBanks,
   getCategoryOrder,
+  getHomeBanners,
   // addresses
   listMyAddresses,
   getDefaultAddress,

@@ -2888,3 +2888,87 @@ body.pc-admin {
   border-color: var(--gold);
   color: #8a5a14;
 }
+
+/* ============ 首页海报管理 ============ */
+.pc-haibao-head {
+  margin-bottom: 16px;
+}
+.pc-haibao-title {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+}
+.pc-haibao-hint {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.pc-haibao-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pc-haibao-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper-soft);
+}
+.pc-haibao-idx {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  line-height: 26px;
+  text-align: center;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+}
+.pc-haibao-thumb {
+  flex: 0 0 auto;
+  width: 160px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #efeae1;
+}
+.pc-haibao-thumb-empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.pc-haibao-fields {
+  flex: 1 1 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 220px;
+}
+.pc-haibao-file-btn {
+  align-self: flex-start;
+}
+.pc-haibao-acts {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pc-haibao-err {
+  flex: 1 1 100%;
+}
+.pc-haibao-add {
+  margin: 14px 0 0;
+}
+.pc-haibao-foot {
+  margin-top: 18px;
+}

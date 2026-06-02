@@ -16,25 +16,29 @@
     </view>
   </view>
 
-  <!-- 轮播（点击跳转，与 H5 一致：banner1→心愿单, banner2→获取积分） -->
+  <!-- 轮播：优先后台配置的海报；无配置时回退默认两张 -->
   <view class="banner-wrap">
     <swiper class="banner-swiper" indicator-dots autoplay interval="4500" duration="500" circular indicator-color="rgba(255,255,255,0.4)" indicator-active-color="#fff">
-      <swiper-item>
-        <image
-          class="banner-image"
-          src="/images/banners/promo-1.jpg"
-          mode="aspectFill"
-          bindtap="goWishlist"
-        ></image>
-      </swiper-item>
-      <swiper-item>
-        <image
-          class="banner-image"
-          src="/images/banners/promo-2.png"
-          mode="aspectFill"
-          bindtap="goEarn"
-        ></image>
-      </swiper-item>
+      <block wx:if="{{banners.length}}">
+        <swiper-item wx:for="{{banners}}" wx:key="index">
+          <image
+            class="banner-image"
+            src="{{item.imageUrl}}"
+            mode="aspectFill"
+            data-link-type="{{item.linkType}}"
+            data-link-value="{{item.linkValue}}"
+            bindtap="onBannerTap"
+          ></image>
+        </swiper-item>
+      </block>
+      <block wx:else>
+        <swiper-item>
+          <image class="banner-image" src="/images/banners/promo-1.jpg" mode="aspectFill" bindtap="goWishlist"></image>
+        </swiper-item>
+        <swiper-item>
+          <image class="banner-image" src="/images/banners/promo-2.png" mode="aspectFill" bindtap="goEarn"></image>
+        </swiper-item>
+      </block>
     </swiper>
   </view>
 

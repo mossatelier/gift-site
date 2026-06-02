@@ -105,6 +105,7 @@
   var allowUnload = false; // 主动退出 / 会话过期 reload 时绕过拦截
   function isAdminDirty() {
     if (state.catorderDirty) return true;
+    if (state.haibaoDirty) return true;
     if (typeof createFormDirty === "function" && createFormDirty()) return true;
     return false;
   }
@@ -1707,6 +1708,279 @@
     loadCatOrder(false);
     loadInputOrder();
   };
+
+  // ============ 首页海报（home_banners，存云开发 app_config，图传 Supabase Storage） ============
+  state.haibanners = [];     // [{imageUrl, linkType, linkValue, title, uploading, error, _file}]
+  state.haibaoEpoch = 0;     // 表单代次，作废在途上传孤儿回调
+  state.haibaoLoaded = false;
+  state.haibaoDirty = false;
+  state.haibaoSaving = false;
+
+  var HAIBAO_MAX = 20;
+  // 跳转目标白名单（下拉）；product 需另填商品 ID。tab 页用 switchTab、page 用 navigateTo。
+  var HAIBAO_LINKS = [
+    { type: "none", value: "", label: "不跳转" },
+    { type: "tab", value: "/pages/list/list", label: "全部礼品" },
+    { type: "tab", value: "/pages/category/category", label: "分类页" },
+    { type: "tab", value: "/pages/wishlist/wishlist", label: "心愿单" },
+    { type: "product", value: "", label: "指定商品（填商品ID）" }
+  ];
+
+  function haibaoLinkIndex(slot) {
+    for (var i = 0; i < HAIBAO_LINKS.length; i += 1) {
+      var o = HAIBAO_LINKS[i];
+      if (o.type === "product" && slot.linkType === "product") return i;
+      if (o.type === slot.linkType && o.value === (slot.linkValue || "")) return i;
+    }
+    return 0;
+  }
+
+  function setHaibaoMsg(text, tone) {
+    var el = document.getElementById("pcHaibaoMsg");
+    if (!el) return;
+    el.textContent = text || "";
+    if (tone) el.dataset.tone = tone; else delete el.dataset.tone;
+  }
+
+  function syncHaibaoSaveBtn() {
+    var btn = document.getElementById("pcHaibaoSaveBtn");
+    if (!btn) return;
+    var uploading = state.haibanners.some(function (s) { return s.uploading; });
+    btn.disabled = state.haibaoSaving || uploading || !state.haibaoDirty;
+    btn.textContent = state.haibaoSaving ? "保存中…" : "保存到云端";
+  }
+
+  function markHaibaoDirty() { state.haibaoDirty = true; syncHaibaoSaveBtn(); }
+
+  function ensureHaibaoShell() {
+    var host = document.getElementById("pcHaibaoPanelBody");
+    if (!host) return null;
+    if (host.getAttribute("data-haibao-ready") === "1") return host;
+    host.classList.remove("pc-panel-placeholder");
+    host.setAttribute("data-haibao-ready", "1");
+
+    host.innerHTML =
+      '<div class="pc-haibao-head">'
+      + '<h3 class="pc-haibao-title">首页海报轮播</h3>'
+      + '<span class="pc-haibao-hint">上下移调整顺序（第一张最先展示）；建议图片比例 1125×633。保存后小程序下拉刷新或重进首页生效。无海报时小程序显示默认图。</span>'
+      + "</div>"
+      + '<div class="pc-haibao-list" id="pcHaibaoList"></div>'
+      + '<button class="pc-btn-ghost pc-haibao-add" id="pcHaibaoAddBtn" type="button">+ 添加海报</button>'
+      + '<div class="pc-haibao-foot"><button class="pc-btn-primary" id="pcHaibaoSaveBtn" type="button">保存到云端</button></div>'
+      + '<p class="pc-inline-msg" id="pcHaibaoMsg"></p>';
+
+    var listEl = document.getElementById("pcHaibaoList");
+    if (listEl) {
+      listEl.addEventListener("click", handleHaibaoClick);
+      listEl.addEventListener("change", handleHaibaoChange);
+      listEl.addEventListener("input", handleHaibaoInput);
+    }
+    var addBtn = document.getElementById("pcHaibaoAddBtn");
+    if (addBtn) {
+      addBtn.addEventListener("click", function () {
+        if (state.haibanners.length >= HAIBAO_MAX) { setHaibaoMsg("最多 " + HAIBAO_MAX + " 张。", "error"); return; }
+        state.haibanners.push({ imageUrl: "", linkType: "none", linkValue: "", title: "" });
+        markHaibaoDirty();
+        renderHaibao();
+      });
+    }
+    var saveBtn = document.getElementById("pcHaibaoSaveBtn");
+    if (saveBtn) saveBtn.addEventListener("click", saveHaibao);
+
+    return host;
+  }
+
+  function renderHaibao() {
+    var listEl = document.getElementById("pcHaibaoList");
+    if (!listEl) return;
+    if (state.haibanners.length === 0) {
+      listEl.innerHTML = '<p class="pc-empty-text">还没有海报，点下方「+ 添加海报」开始。无海报时小程序首页显示默认图。</p>';
+      syncHaibaoSaveBtn();
+      return;
+    }
+    var last = state.haibanners.length - 1;
+    listEl.innerHTML = state.haibanners.map(function (slot, i) {
+      var busy = slot.uploading ? " disabled" : "";
+      var thumb = slot.imageUrl
+        ? '<img class="pc-haibao-thumb" src="' + escapeHtml(slot.imageUrl) + '" alt="">'
+        : '<span class="pc-haibao-thumb pc-haibao-thumb-empty">' + (slot.uploading ? "上传中…" : "无图") + "</span>";
+      var linkIdx = haibaoLinkIndex(slot);
+      var options = HAIBAO_LINKS.map(function (o, oi) {
+        return '<option value="' + oi + '"' + (oi === linkIdx ? " selected" : "") + ">" + escapeHtml(o.label) + "</option>";
+      }).join("");
+      var productInput = slot.linkType === "product"
+        ? '<input class="pc-create-input pc-haibao-linkvalue" type="text" placeholder="商品 ID（从「编辑礼品」复制）" value="' + escapeHtml(slot.linkValue || "") + '" data-haibao-linkvalue="' + i + '">'
+        : "";
+      return '<div class="pc-haibao-row" data-haibao-row="' + i + '">'
+        + '<span class="pc-haibao-idx">' + (i + 1) + "</span>"
+        + thumb
+        + '<div class="pc-haibao-fields">'
+        + '<label class="pc-create-img-file-btn pc-haibao-file-btn">选图片<input class="pc-haibao-file" type="file" accept="image/*" data-haibao-file="' + i + '"' + busy + "></label>"
+        + '<select class="pc-edit-select pc-haibao-link" data-haibao-link="' + i + '">' + options + "</select>"
+        + productInput
+        + '<input class="pc-create-input pc-haibao-titleinput" type="text" maxlength="50" placeholder="备注（选填，仅后台可见）" value="' + escapeHtml(slot.title || "") + '" data-haibao-title="' + i + '">'
+        + "</div>"
+        + '<div class="pc-haibao-acts">'
+        + '<button class="pc-edit-act" type="button" data-haibao-move="' + i + '" data-dir="-1"' + (i === 0 ? " disabled" : busy) + ' title="上移">↑</button>'
+        + '<button class="pc-edit-act" type="button" data-haibao-move="' + i + '" data-dir="1"' + (i === last ? " disabled" : busy) + ' title="下移">↓</button>'
+        + '<button class="pc-edit-act pc-edit-act-del" type="button" data-haibao-del="' + i + '">删除</button>'
+        + "</div>"
+        + (slot.error ? '<div class="pc-create-img-err pc-haibao-err">' + escapeHtml(slot.error) + (slot._file ? ' <button class="pc-create-img-retry" type="button" data-haibao-retry="' + i + '">重试</button>' : "") + "</div>" : "")
+        + "</div>";
+    }).join("");
+    syncHaibaoSaveBtn();
+  }
+
+  function handleHaibaoClick(event) {
+    var moveBtn = event.target.closest("[data-haibao-move]");
+    if (moveBtn) {
+      if (moveBtn.disabled) return;
+      var mi = Number(moveBtn.getAttribute("data-haibao-move"));
+      var mj = mi + Number(moveBtn.getAttribute("data-dir"));
+      if (mj >= 0 && mj < state.haibanners.length) {
+        var tmp = state.haibanners[mi];
+        state.haibanners[mi] = state.haibanners[mj];
+        state.haibanners[mj] = tmp;
+        markHaibaoDirty();
+        renderHaibao();
+      }
+      return;
+    }
+    var delBtn = event.target.closest("[data-haibao-del]");
+    if (delBtn) {
+      var di = Number(delBtn.getAttribute("data-haibao-del"));
+      var s = state.haibanners[di];
+      if (s && s.uploading) { setHaibaoMsg("图片上传中，请稍候再删除。", "error"); return; }
+      state.haibanners.splice(di, 1);
+      markHaibaoDirty();
+      renderHaibao();
+      return;
+    }
+    var retryBtn = event.target.closest("[data-haibao-retry]");
+    if (retryBtn) {
+      var ri = Number(retryBtn.getAttribute("data-haibao-retry"));
+      var rs = state.haibanners[ri];
+      if (rs && rs._file) uploadHaibaoSlot(ri, rs._file);
+      return;
+    }
+  }
+
+  function handleHaibaoChange(event) {
+    var fileInput = event.target.closest("[data-haibao-file]");
+    if (fileInput) {
+      var fi = Number(fileInput.getAttribute("data-haibao-file"));
+      var f = fileInput.files && fileInput.files[0];
+      if (f) uploadHaibaoSlot(fi, f);
+      return;
+    }
+    var linkSel = event.target.closest("[data-haibao-link]");
+    if (linkSel) {
+      var li = Number(linkSel.getAttribute("data-haibao-link"));
+      var slot = state.haibanners[li];
+      if (!slot) return;
+      var opt = HAIBAO_LINKS[Number(linkSel.value)] || HAIBAO_LINKS[0];
+      slot.linkType = opt.type;
+      slot.linkValue = (opt.type === "product") ? (slot.linkValue || "") : opt.value;
+      markHaibaoDirty();
+      renderHaibao(); // 切到/离开「指定商品」时显隐商品 ID 输入
+      return;
+    }
+  }
+
+  function handleHaibaoInput(event) {
+    var lv = event.target.closest("[data-haibao-linkvalue]");
+    if (lv) {
+      var i1 = Number(lv.getAttribute("data-haibao-linkvalue"));
+      if (state.haibanners[i1]) { state.haibanners[i1].linkValue = (lv.value || "").trim(); markHaibaoDirty(); }
+      return;
+    }
+    var tt = event.target.closest("[data-haibao-title]");
+    if (tt) {
+      var i2 = Number(tt.getAttribute("data-haibao-title"));
+      if (state.haibanners[i2]) { state.haibanners[i2].title = tt.value || ""; markHaibaoDirty(); }
+      return;
+    }
+  }
+
+  // 上传单张海报（epoch 守卫：load/重置后作废在途结果）。
+  function uploadHaibaoSlot(i, file) {
+    var slot = state.haibanners[i];
+    if (!slot || !file) return;
+    if (!Core.activeSession()) { setHaibaoMsg("请先登录管理员账号。", "error"); return; }
+    var epoch = state.haibaoEpoch;
+    slot.uploading = true; slot.error = ""; slot._file = file;
+    renderHaibao();
+    setHaibaoMsg("正在上传图片…", null);
+    Core.uploadImage(file)
+      .then(function (url) {
+        if (epoch !== state.haibaoEpoch) return;
+        slot.imageUrl = url; slot.uploading = false; slot.error = ""; slot._file = null;
+        markHaibaoDirty();
+        renderHaibao();
+        setHaibaoMsg("图片已上传。", "success");
+      })
+      .catch(function (err) {
+        if (epoch !== state.haibaoEpoch) return;
+        slot.uploading = false; slot.error = (err && err.message) || "上传失败";
+        renderHaibao();
+        setHaibaoMsg("图片上传失败，可点该行「重试」。", "error");
+      });
+  }
+
+  function loadHaibao(force) {
+    var host = ensureHaibaoShell();
+    if (!host) return;
+    if (!Core.activeSession()) {
+      var l0 = document.getElementById("pcHaibaoList");
+      if (l0) l0.innerHTML = '<p class="pc-empty-text">请先登录管理员账号。</p>';
+      return;
+    }
+    if (state.haibaoLoaded && !force) { renderHaibao(); return; }
+    var listEl = document.getElementById("pcHaibaoList");
+    if (listEl) listEl.innerHTML = '<p class="pc-empty-text">加载中…</p>';
+    setHaibaoMsg("", null);
+    Core.callAdminOrders("get-home-banners", {})
+      .then(function (data) {
+        var arr = (data && Array.isArray(data.banners)) ? data.banners : [];
+        state.haibanners = arr.map(function (b) {
+          return { imageUrl: b.imageUrl || "", linkType: b.linkType || "none", linkValue: b.linkValue || "", title: b.title || "" };
+        });
+        state.haibaoLoaded = true;
+        state.haibaoEpoch += 1; // 作废任何在途上传
+        state.haibaoDirty = false;
+        renderHaibao();
+      })
+      .catch(function (err) {
+        renderLoadError(document.getElementById("pcHaibaoList"), (err && err.message) || "加载失败", function () { loadHaibao(true); });
+      });
+  }
+
+  function saveHaibao() {
+    if (state.haibaoSaving) return;
+    if (!Core.activeSession()) { setHaibaoMsg("请先登录管理员账号。", "error"); return; }
+    if (state.haibanners.some(function (s) { return s.uploading; })) { setHaibaoMsg("还有图片在上传，请稍候。", "error"); return; }
+    if (state.haibanners.some(function (s) { return s.linkType === "product" && !(s.linkValue || "").trim(); })) {
+      setHaibaoMsg("「指定商品」的海报需填写商品 ID。", "error"); return;
+    }
+    var payload = state.haibanners
+      .filter(function (s) { return s.imageUrl; })
+      .map(function (s) { return { imageUrl: s.imageUrl, linkType: s.linkType || "none", linkValue: s.linkValue || "", title: s.title || "" }; });
+    state.haibaoSaving = true; syncHaibaoSaveBtn();
+    setHaibaoMsg("保存中…", null);
+    Core.callAdminOrders("save-home-banners", { banners: payload })
+      .then(function () {
+        state.haibaoSaving = false; state.haibaoDirty = false; syncHaibaoSaveBtn();
+        setHaibaoMsg("已保存，小程序下拉刷新或重进首页即可看到。", "success");
+        toast("首页海报已保存", "success");
+      })
+      .catch(function (err) {
+        state.haibaoSaving = false; syncHaibaoSaveBtn();
+        setHaibaoMsg((err && err.message) || "保存失败", "error");
+        toast((err && err.message) || "保存失败", "error");
+      });
+  }
+
+  PANEL_LOADERS.haibao = function () { loadHaibao(false); };
 
   // ============ 晒图审核（reviews） ============
   //

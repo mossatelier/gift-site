@@ -462,6 +462,36 @@ async function saveCategoryOrder({ order }) {
   return { order: clean };
 }
 
+// 首页海报（存 app_config 集合，key=home_banners）
+async function getHomeBanners() {
+  const r = await db.collection('app_config').where({ key: 'home_banners' }).limit(1).get();
+  return { banners: (r.data[0] && r.data[0].banners) || [] };
+}
+
+async function saveHomeBanners({ banners }) {
+  if (!Array.isArray(banners)) throw new Error('banners 必须是数组');
+  const ALLOWED_LINK = ['none', 'tab', 'page', 'product', 'url'];
+  const clean = banners.slice(0, 20).map((b) => {
+    b = b || {};
+    let linkType = String(b.linkType || 'none');
+    if (ALLOWED_LINK.indexOf(linkType) < 0) linkType = 'none';
+    return {
+      imageUrl: String(b.imageUrl || '').slice(0, 500),
+      linkType: linkType,
+      linkValue: String(b.linkValue || '').slice(0, 200),
+      title: String(b.title || '').slice(0, 50)
+    };
+  }).filter((b) => b.imageUrl); // 丢弃没图的空槽
+  const now = new Date();
+  const existing = await db.collection('app_config').where({ key: 'home_banners' }).limit(1).get();
+  if (existing.data[0]) {
+    await db.collection('app_config').doc(existing.data[0]._id).update({ data: { banners: clean, updatedAt: now } });
+  } else {
+    await db.collection('app_config').add({ data: { key: 'home_banners', banners: clean, createdAt: now, updatedAt: now } });
+  }
+  return { banners: clean };
+}
+
 // 商家内部备注（客户端不可见）
 async function updateNote({ orderId, adminNote }) {
   if (!orderId) throw new Error('缺少 orderId');
@@ -582,6 +612,12 @@ exports.main = async (event) => {
         break;
       case 'save-category-order':
         data = await saveCategoryOrder(body);
+        break;
+      case 'get-home-banners':
+        data = await getHomeBanners(body);
+        break;
+      case 'save-home-banners':
+        data = await saveHomeBanners(body);
         break;
       case 'stats':
         data = await getStats(body);

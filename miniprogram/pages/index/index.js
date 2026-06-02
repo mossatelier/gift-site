@@ -1,4 +1,4 @@
-const { listHotProducts, listNewProducts, listApprovedReviews } = require('../../utils/db.js');
+const { listHotProducts, listNewProducts, listApprovedReviews, getHomeBanners } = require('../../utils/db.js');
 const wishlist = require('../../utils/wishlist.js');
 const floatBtn = require('../../utils/floatBtn.js');
 
@@ -7,6 +7,7 @@ Page({
 
   data: {
     loading: true,
+    banners: [],
     hotList: [],
     newList: [],
     reviews: [],
@@ -40,12 +41,14 @@ Page({
       const results = await Promise.all([
         listHotProducts(6),
         listNewProducts(6),
-        listApprovedReviews({ limit: 10 }).catch(() => [])
+        listApprovedReviews({ limit: 10 }).catch(() => []),
+        getHomeBanners().catch(() => [])
       ]);
       this.setData({
         hotList: results[0],
         newList: results[1],
         reviews: results[2] || [],
+        banners: results[3] || [],
         loading: false
       });
     } catch (err) {
@@ -57,6 +60,20 @@ Page({
 
   goReviewList() {
     wx.navigateTo({ url: '/pages/review-list/review-list' });
+  },
+
+  // 首页海报点击：按后台配置的 linkType 分发（tab 页用 switchTab，普通页/商品用 navigateTo）。
+  onBannerTap(e) {
+    const { linkType, linkValue } = e.currentTarget.dataset;
+    if (!linkType || linkType === 'none' || !linkValue) return;
+    if (linkType === 'tab') {
+      wx.switchTab({ url: linkValue });
+    } else if (linkType === 'page') {
+      wx.navigateTo({ url: linkValue });
+    } else if (linkType === 'product') {
+      wx.navigateTo({ url: `/pages/product/product?id=${linkValue}` });
+    }
+    // url 外链小程序无法直接打开，MVP 不处理
   },
 
   onKeywordInput(e) {
