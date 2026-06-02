@@ -40,7 +40,7 @@ const BANKS = [
     key: 'cib',
     name: '兴业银行',
     logo: '/images/banks/cib.jpg',
-    qr: 'https://ukoqffocqjokcroilyyv.supabase.co/storage/v1/object/public/progress/cib-qr.png?v=2',
+    qr: '/images/progress/cib-v2.png',
     url: ''
   },
   {
