@@ -1712,6 +1712,20 @@ body.admin-logged-in #adminLogoutButtonLogged {
   font-weight: 700;
 }
 
+/* 标题前的"办卡可兑/推荐可兑"徽标（对齐小程序） */
+.title-tag {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, var(--red) 0%, var(--gold) 100%);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
 /* Category page === */
 .cat-shell {
   display: grid;

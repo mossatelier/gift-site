@@ -106,13 +106,25 @@ function categoryLabel(categoryValue) {
   return categoryLabelMap.get(categoryValue) || "其他分类";
 }
 
+// 推荐有礼(referral)按推荐人数显示、不显积分；其余显兑换积分。与小程序口径一致，避免把"推荐2人"误显成"兑换积分2分"。
+function buildPointsText(item) {
+  if (item.category === "referral") {
+    if (item.subcategory) {
+      const m = String(item.subcategory).match(/推荐\s*(\d+)\s*人/);
+      if (m) return `推荐 ${m[1]} 人可领`;
+    }
+    return "推荐办理可领";
+  }
+  return item.cardsNeeded > 0 ? `兑换积分：${item.cardsNeeded} 分` : "";
+}
+
 function parseDate(dateValue) {
   const timestamp = Date.parse(dateValue || "");
   return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
 function normalizeProduct(product, index) {
-  const cardsNeeded = Number(product.cardsNeeded ?? product.cards_needed ?? product.price ?? 0);
+  const cardsNeeded = Number(product.cardsNeeded ?? product.cards_needed ?? 0);
   const rawImages = product.images;
   let images = [];
 
@@ -266,7 +278,7 @@ function filteredProducts(items = state.products) {
       return true;
     }
 
-    const haystack = `${item.title} ${item.description} ${categoryLabel(item.category)}`.toLowerCase();
+    const haystack = `${item.title} ${item.description} ${item.subcategory} ${categoryLabel(item.category)}`.toLowerCase();
     return haystack.includes(keyword);
   });
 
@@ -293,6 +305,8 @@ function productCard(item) {
     : "";
   const wishlisted = isWishlisted(item.id);
   const detailHref = `product.html?id=${encodeURIComponent(item.id)}`;
+  const tagText = item.category === "referral" ? "推荐可兑" : "办卡可兑";
+  const pointsText = buildPointsText(item);
 
   return `
     <article class="product-card">
@@ -301,9 +315,9 @@ function productCard(item) {
           <img class="product-image" src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.title)}">
         </div>
         <div class="product-body">
-          <h3 class="product-title">${escapeHtml(item.title)}</h3>
+          <h3 class="product-title"><span class="title-tag">${tagText}</span>${escapeHtml(item.title)}</h3>
           ${priceText}
-          <p class="product-cards">兑换积分：${escapeHtml(item.cardsNeeded || 0)}分</p>
+          ${pointsText ? `<p class="product-cards">${escapeHtml(pointsText)}</p>` : ""}
         </div>
       </a>
       <button class="heart-btn ${wishlisted ? "active" : ""}" type="button" data-wishlist-toggle="${escapeHtml(item.id)}" aria-label="${wishlisted ? "从心愿单移除" : "加入心愿单"}">
@@ -411,7 +425,7 @@ function updateChipRow() {
     },
     {
       value: "newest",
-      label: "新品",
+      label: "最新",
       active: state.sort === "newest"
     }
   ];
@@ -501,8 +515,9 @@ function renderProductDetail() {
 
   const wishlisted = isWishlisted(item.id);
   const priceText = item.price > 0
-    ? `<p class="product-price"><span class="price-symbol">¥</span>${escapeHtml(item.price)}</p>`
+    ? `<p class="product-price">参考价 <span class="price-symbol">¥</span>${escapeHtml(item.price)}</p>`
     : "";
+  const pointsText = buildPointsText(item);
   const descText = item.description
     ? `<p class="product-detail-desc">${escapeHtml(item.description)}</p>`
     : "";
@@ -530,7 +545,7 @@ function renderProductDetail() {
       <p class="product-detail-views" id="productDetailViews">👁 浏览 ${escapeHtml(item.viewCount || 0)} 次</p>
       <div class="product-detail-meta">
         ${priceText}
-        <span class="product-cards">兑换积分：${escapeHtml(item.cardsNeeded || 0)}分</span>
+        ${pointsText ? `<span class="product-cards">${escapeHtml(pointsText)}</span>` : ""}
         ${subText}
       </div>
       <a class="product-detail-cta" href="wishlist.html">联系客服领取</a>
