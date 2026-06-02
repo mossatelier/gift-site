@@ -11,8 +11,6 @@
     "pages/address-list/address-list",
     "pages/my-orders/my-orders",
     "pages/order-detail/order-detail",
-    "pages/review-edit/review-edit",
-    "pages/review-list/review-list",
     "pages/card-flow/card-flow",
     "pages/claim-guide/claim-guide",
     "pages/bank-new-user/bank-new-user",

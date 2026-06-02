@@ -144,38 +144,6 @@
     </view>
   </view>
 
-  <!-- 大家的晒图（种草） -->
-  <view class="section">
-    <view class="section-banner">
-      <text class="banner-title-text">大家的晒图</text>
-      <text class="banner-more" bindtap="goReviewList">更多 ›</text>
-    </view>
-    <scroll-view wx:if="{{reviews.length > 0}}" class="review-strip" scroll-x enable-flex>
-      <view
-        class="review-strip-card"
-        wx:for="{{reviews}}"
-        wx:key="_id"
-        bindtap="goReviewList"
-      >
-        <image class="review-strip-img" src="{{item.images[0]}}" mode="aspectFill" lazy-load></image>
-        <view class="review-strip-body">
-          <view class="review-strip-user">
-            <image class="review-strip-avatar" src="{{item.avatarUrl || '/images/icons/service.svg'}}" mode="aspectFill" />
-            <text class="review-strip-nick">{{item.nickName}}</text>
-          </view>
-          <text class="review-strip-text" wx:if="{{item.content}}">{{item.content}}</text>
-          <text class="review-strip-product" wx:if="{{item.productTitle}}">🎁 {{item.productTitle}}</text>
-        </view>
-      </view>
-    </scroll-view>
-    <view wx:else class="review-empty-entry" bindtap="goReviewList">
-      <text class="review-empty-emoji">🌱</text>
-      <view class="review-empty-text">
-        <text class="review-empty-title">还没有人晒图</text>
-        <text class="review-empty-sub">完成兑换后来晒图分享，点这里看看晒图广场 ›</text>
-      </view>
-    </view>
-  </view>
 
   <!-- 公告 -->
   <view class="announce">

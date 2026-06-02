@@ -1,4 +1,4 @@
-const { listHotProducts, listNewProducts, listApprovedReviews, getHomeBanners } = require('../../utils/db.js');
+const { listHotProducts, listNewProducts, getHomeBanners } = require('../../utils/db.js');
 const wishlist = require('../../utils/wishlist.js');
 const floatBtn = require('../../utils/floatBtn.js');
 
@@ -10,7 +10,6 @@ Page({
     banners: [],
     hotList: [],
     newList: [],
-    reviews: [],
     wishlistMap: {},
     keyword: '',
     showQr: false,
@@ -41,14 +40,12 @@ Page({
       const results = await Promise.all([
         listHotProducts(6),
         listNewProducts(6),
-        listApprovedReviews({ limit: 10 }).catch(() => []),
         getHomeBanners().catch(() => [])
       ]);
       this.setData({
         hotList: results[0],
         newList: results[1],
-        reviews: results[2] || [],
-        banners: results[3] || [],
+        banners: results[2] || [],
         loading: false
       });
     } catch (err) {
@@ -56,10 +53,6 @@ Page({
       this.setData({ loading: false });
       wx.showToast({ title: '加载失败', icon: 'none' });
     }
-  },
-
-  goReviewList() {
-    wx.navigateTo({ url: '/pages/review-list/review-list' });
   },
 
   // 首页海报点击：按后台配置的 linkType 分发（tab 页用 switchTab，普通页/商品用 navigateTo）。

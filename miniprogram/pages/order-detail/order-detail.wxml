@@ -61,8 +61,6 @@
       </view>
     </view>
 
-    <button wx:if="{{canReview}}" class="primary-btn od-cta" bindtap="goReview">晒图种草 · 分享给大家</button>
-    <view wx:elif="{{reviewed}}" class="od-reviewed-tip">✓ 你已晒图，感谢分享</view>
     <button class="od-cta-secondary" bindtap="contactService">联系客服跟进</button>
   </block>
 
