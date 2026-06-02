@@ -65,6 +65,7 @@
         <button class="admin-panel-tab" id="adminTabReviews" type="button"><span class="tab-ico">🖼️</span>晒图审核</button>
         <button class="admin-panel-tab" id="adminTabStats" type="button"><span class="tab-ico">📊</span>数据看板</button>
         <button class="admin-panel-tab" id="adminTabCatOrder" type="button"><span class="tab-ico">🔀</span>分类排序</button>
+        <button class="admin-panel-tab" id="adminTabHaibao" type="button"><span class="tab-ico">🖼️</span>首页海报</button>
       </section>
 
       <section class="admin-card" id="adminCreatePanel">
@@ -288,6 +289,17 @@
         </div>
       </section>
 
+      <section class="admin-card" id="adminHaibaoPanel" hidden>
+        <div class="admin-status-head">
+          <h2 class="admin-section-title">首页海报</h2>
+          <button class="admin-submit" id="adminHaibaoSave" type="button">保存</button>
+        </div>
+        <p class="admin-status-text">管理小程序首页轮播图。上下移调整顺序，建议图片比例 1125×633。保存后小程序下拉刷新或重进首页生效；无海报时显示默认图。</p>
+        <div class="admin-catorder-list admin-haibao-listwrap" id="adminHaibaoList"><p class="admin-status-text">加载中…</p></div>
+        <button class="admin-secondary-btn admin-haibao-add" id="adminHaibaoAdd" type="button">+ 添加海报</button>
+        <p class="admin-inline-message" id="adminHaibaoMessage"></p>
+      </section>
+
       <section class="admin-card" id="adminStatsPanel" hidden>
         <div class="admin-status-head">
           <h2 class="admin-section-title">数据看板</h2>
@@ -320,6 +332,6 @@
   </main>
 
   <script src="assets/config.js?v=11"></script>
-  <script src="assets/admin.js?v=19"></script>
+  <script src="assets/admin.js?v=20"></script>
 </body>
 </html>

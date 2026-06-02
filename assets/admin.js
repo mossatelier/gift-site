@@ -83,6 +83,12 @@ const adminCatOrderSave = document.getElementById("adminCatOrderSave");
 const adminInputOrderList = document.getElementById("adminInputOrderList");
 const adminInputOrderMessage = document.getElementById("adminInputOrderMessage");
 const adminInputOrderSave = document.getElementById("adminInputOrderSave");
+const adminTabHaibao = document.getElementById("adminTabHaibao");
+const adminHaibaoPanel = document.getElementById("adminHaibaoPanel");
+const adminHaibaoList = document.getElementById("adminHaibaoList");
+const adminHaibaoMessage = document.getElementById("adminHaibaoMessage");
+const adminHaibaoSave = document.getElementById("adminHaibaoSave");
+const adminHaibaoAdd = document.getElementById("adminHaibaoAdd");
 
 const subcategoriesMap = config.subcategories || {};
 const TITLE_HISTORY_KEY = "gift-site-admin-title-history";
@@ -205,7 +211,8 @@ const state = {
   reviews: [],
   reviewsStatus: "pending",
   catOrder: [],     // [{value,label}] 小程序前台顺序（不含 all）
-  inputOrder: []    // [{value,label}] 后台录入下拉顺序（不含 all）
+  inputOrder: [],   // [{value,label}] 后台录入下拉顺序（不含 all）
+  haibanners: []    // [{imageUrl,linkType,linkValue,title,uploading,error,_file}] 首页海报
 };
 
 function isSupabaseConfigured() {
@@ -457,7 +464,8 @@ function updatePanelUi() {
     orders: adminOrdersPanel,
     stats: adminStatsPanel,
     reviews: adminReviewsPanel,
-    catorder: adminCatOrderPanel
+    catorder: adminCatOrderPanel,
+    haibao: adminHaibaoPanel
   };
   const tabs = {
     create: adminTabCreate,
@@ -466,7 +474,8 @@ function updatePanelUi() {
     orders: adminTabOrders,
     stats: adminTabStats,
     reviews: adminTabReviews,
-    catorder: adminTabCatOrder
+    catorder: adminTabCatOrder,
+    haibao: adminTabHaibao
   };
 
   Object.keys(panels).forEach((key) => {
@@ -2440,6 +2449,198 @@ adminCatOrderSave?.addEventListener("click", async () => {
   } catch (err) {
     setCatOrderMessage(err.message, "error");
   }
+});
+
+// ============ 首页海报 ============
+
+const HAIBAO_LINKS_M = [
+  { type: "none", value: "", label: "不跳转" },
+  { type: "tab", value: "/pages/list/list", label: "全部礼品" },
+  { type: "tab", value: "/pages/category/category", label: "分类页" },
+  { type: "tab", value: "/pages/wishlist/wishlist", label: "心愿单" },
+  { type: "product", value: "", label: "指定商品（填商品ID）" }
+];
+
+function haibaoLinkIndexM(slot) {
+  for (let i = 0; i < HAIBAO_LINKS_M.length; i += 1) {
+    const o = HAIBAO_LINKS_M[i];
+    if (o.type === "product" && slot.linkType === "product") return i;
+    if (o.type === slot.linkType && o.value === (slot.linkValue || "")) return i;
+  }
+  return 0;
+}
+
+function setHaibaoMessage(text, tone = "idle") {
+  if (!adminHaibaoMessage) return;
+  adminHaibaoMessage.textContent = text;
+  adminHaibaoMessage.dataset.tone = tone;
+}
+
+async function loadHaibao() {
+  if (!adminHaibaoList) return;
+  if (!activeSession()) {
+    adminHaibaoList.innerHTML = "<p class=\"admin-status-text\">请先登录管理员账号。</p>";
+    return;
+  }
+  adminHaibaoList.innerHTML = "<p class=\"admin-status-text\">加载中…</p>";
+  setHaibaoMessage("");
+  try {
+    const data = await callAdminOrders("get-home-banners", {});
+    const arr = (data && Array.isArray(data.banners)) ? data.banners : [];
+    state.haibanners = arr.map((b) => ({
+      imageUrl: b.imageUrl || "", linkType: b.linkType || "none", linkValue: b.linkValue || "", title: b.title || ""
+    }));
+    renderHaibao();
+  } catch (err) {
+    adminHaibaoList.innerHTML = `<p class="admin-status-text">${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function renderHaibao() {
+  if (!adminHaibaoList) return;
+  if (state.haibanners.length === 0) {
+    adminHaibaoList.innerHTML = "<p class=\"admin-status-text\">还没有海报，点下方「+ 添加海报」开始。无海报时小程序首页显示默认图。</p>";
+    return;
+  }
+  const last = state.haibanners.length - 1;
+  adminHaibaoList.innerHTML = state.haibanners.map((slot, i) => {
+    const busy = slot.uploading ? "disabled" : "";
+    const thumb = slot.imageUrl
+      ? `<img class="admin-haibao-thumb" src="${escapeHtml(slot.imageUrl)}" alt="">`
+      : `<span class="admin-haibao-thumb admin-haibao-thumb-empty">${slot.uploading ? "上传中…" : "无图"}</span>`;
+    const linkIdx = haibaoLinkIndexM(slot);
+    const options = HAIBAO_LINKS_M.map((o, oi) => `<option value="${oi}" ${oi === linkIdx ? "selected" : ""}>${escapeHtml(o.label)}</option>`).join("");
+    const productInput = slot.linkType === "product"
+      ? `<input class="admin-haibao-input" type="text" placeholder="商品 ID（从「编辑礼品」复制）" value="${escapeHtml(slot.linkValue || "")}" data-hb-linkvalue="${i}">`
+      : "";
+    return `
+      <div class="admin-haibao-row">
+        <div class="admin-haibao-top">
+          <span class="admin-catorder-idx">${i + 1}</span>
+          ${thumb}
+          <span class="admin-haibao-acts">
+            <button class="admin-secondary-btn" data-hb-up="${i}" type="button" ${i === 0 ? "disabled" : busy}>↑</button>
+            <button class="admin-secondary-btn" data-hb-down="${i}" type="button" ${i === last ? "disabled" : busy}>↓</button>
+            <button class="admin-secondary-btn" data-hb-del="${i}" type="button">删除</button>
+          </span>
+        </div>
+        <label class="admin-haibao-file">选图片<input type="file" accept="image/*" data-hb-file="${i}" ${busy}></label>
+        <select class="admin-haibao-input" data-hb-link="${i}">${options}</select>
+        ${productInput}
+        <input class="admin-haibao-input" type="text" maxlength="50" placeholder="备注（选填，仅后台可见）" value="${escapeHtml(slot.title || "")}" data-hb-title="${i}">
+        ${slot.error ? `<span class="admin-haibao-err">${escapeHtml(slot.error)} ${slot._file ? `<button class="admin-secondary-btn" data-hb-retry="${i}" type="button">重试</button>` : ""}</span>` : ""}
+      </div>`;
+  }).join("");
+}
+
+function moveHaibaoM(from, to) {
+  if (to < 0 || to >= state.haibanners.length) return;
+  const arr = state.haibanners;
+  const [item] = arr.splice(from, 1);
+  arr.splice(to, 0, item);
+  renderHaibao();
+}
+
+async function uploadHaibaoSlotM(i, file) {
+  const slot = state.haibanners[i];
+  if (!slot || !file) return;
+  slot.uploading = true;
+  slot.error = "";
+  slot._file = file;
+  renderHaibao();
+  setHaibaoMessage("正在上传图片…");
+  try {
+    const url = await uploadFile(file);
+    slot.imageUrl = url;
+    slot.uploading = false;
+    slot.error = "";
+    slot._file = null;
+    renderHaibao();
+    setHaibaoMessage("图片已上传。", "success");
+  } catch (err) {
+    slot.uploading = false;
+    slot.error = err.message || "上传失败";
+    renderHaibao();
+    setHaibaoMessage("图片上传失败，可点该行「重试」。", "error");
+  }
+}
+
+adminHaibaoList?.addEventListener("click", (event) => {
+  const up = event.target.closest("[data-hb-up]");
+  const down = event.target.closest("[data-hb-down]");
+  const del = event.target.closest("[data-hb-del]");
+  const retry = event.target.closest("[data-hb-retry]");
+  if (up && !up.disabled) { const i = Number(up.dataset.hbUp); moveHaibaoM(i, i - 1); return; }
+  if (down && !down.disabled) { const i = Number(down.dataset.hbDown); moveHaibaoM(i, i + 1); return; }
+  if (del) {
+    const i = Number(del.dataset.hbDel);
+    const s = state.haibanners[i];
+    if (s && s.uploading) { setHaibaoMessage("图片上传中，请稍候再删除。", "error"); return; }
+    state.haibanners.splice(i, 1); renderHaibao(); return;
+  }
+  if (retry) {
+    const i = Number(retry.dataset.hbRetry);
+    const s = state.haibanners[i];
+    if (s && s._file) uploadHaibaoSlotM(i, s._file);
+    return;
+  }
+});
+
+adminHaibaoList?.addEventListener("change", (event) => {
+  const fileInput = event.target.closest("[data-hb-file]");
+  if (fileInput) {
+    const i = Number(fileInput.dataset.hbFile);
+    const f = fileInput.files && fileInput.files[0];
+    if (f) uploadHaibaoSlotM(i, f);
+    return;
+  }
+  const linkSel = event.target.closest("[data-hb-link]");
+  if (linkSel) {
+    const i = Number(linkSel.dataset.hbLink);
+    const slot = state.haibanners[i];
+    if (!slot) return;
+    const opt = HAIBAO_LINKS_M[Number(linkSel.value)] || HAIBAO_LINKS_M[0];
+    slot.linkType = opt.type;
+    slot.linkValue = (opt.type === "product") ? (slot.linkValue || "") : opt.value;
+    renderHaibao();
+    return;
+  }
+});
+
+adminHaibaoList?.addEventListener("input", (event) => {
+  const lv = event.target.closest("[data-hb-linkvalue]");
+  if (lv) { const i = Number(lv.dataset.hbLinkvalue); if (state.haibanners[i]) state.haibanners[i].linkValue = (lv.value || "").trim(); return; }
+  const tt = event.target.closest("[data-hb-title]");
+  if (tt) { const i = Number(tt.dataset.hbTitle); if (state.haibanners[i]) state.haibanners[i].title = tt.value || ""; return; }
+});
+
+adminHaibaoAdd?.addEventListener("click", () => {
+  if (state.haibanners.length >= 20) { setHaibaoMessage("最多 20 张。", "error"); return; }
+  state.haibanners.push({ imageUrl: "", linkType: "none", linkValue: "", title: "" });
+  renderHaibao();
+});
+
+adminHaibaoSave?.addEventListener("click", async () => {
+  if (state.haibanners.some((s) => s.uploading)) { setHaibaoMessage("还有图片在上传，请稍候。", "error"); return; }
+  if (state.haibanners.some((s) => s.linkType === "product" && !(s.linkValue || "").trim())) {
+    setHaibaoMessage("「指定商品」的海报需填写商品 ID。", "error"); return;
+  }
+  setHaibaoMessage("保存中…");
+  try {
+    const banners = state.haibanners
+      .filter((s) => s.imageUrl)
+      .map((s) => ({ imageUrl: s.imageUrl, linkType: s.linkType || "none", linkValue: s.linkValue || "", title: s.title || "" }));
+    await callAdminOrders("save-home-banners", { banners });
+    setHaibaoMessage("已保存，小程序下拉刷新或重进首页生效。", "success");
+  } catch (err) {
+    setHaibaoMessage(err.message, "error");
+  }
+});
+
+adminTabHaibao?.addEventListener("click", () => {
+  state.activePanel = "haibao";
+  updatePanelUi();
+  loadHaibao();
 });
 
 fillCategoryOptions();

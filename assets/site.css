@@ -3476,3 +3476,63 @@ body.admin-logged-in #adminLogoutButtonLogged {
     margin-top: 12px;
   }
 }
+
+/* ============ 后台：首页海报管理 ============ */
+.admin-haibao-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.6);
+}
+.admin-haibao-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.admin-haibao-thumb {
+  width: 120px;
+  height: 68px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #efeae1;
+}
+.admin-haibao-thumb-empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22rpx;
+  color: var(--muted);
+  font-size: 12px;
+}
+.admin-haibao-acts {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+.admin-haibao-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.admin-haibao-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  font-size: 14px;
+}
+.admin-haibao-err {
+  font-size: 12.5px;
+  color: var(--red);
+}
+.admin-haibao-add {
+  margin-top: 4px;
+}
