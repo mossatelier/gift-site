@@ -1,5 +1,5 @@
 window.APP_CONFIG = {
-  siteName: "🏠加多宝的礼品屋",
+  siteName: "🏠加加好物图集",
   adminPath: "admin.html",
   adminPasscode: "",
   supabaseUrl: "https://ukoqffocqjokcroilyyv.supabase.co",

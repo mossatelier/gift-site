@@ -496,7 +496,7 @@ function renderProductDetail() {
   }
 
   if (typeof document !== "undefined") {
-    document.title = `${item.title} · 加多宝的礼品屋`;
+    document.title = `${item.title} · 加加好物图集`;
   }
 
   const wishlisted = isWishlisted(item.id);
