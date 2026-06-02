@@ -36,7 +36,7 @@
           <image class="banner-image" src="/images/banners/promo-1.jpg" mode="aspectFill" bindtap="goWishlist"></image>
         </swiper-item>
         <swiper-item>
-          <image class="banner-image" src="/images/banners/promo-2.png" mode="aspectFill" bindtap="goEarn"></image>
+          <image class="banner-image" src="/images/banners/promo-2.jpg" mode="aspectFill" bindtap="goEarn"></image>
         </swiper-item>
       </block>
     </swiper>
