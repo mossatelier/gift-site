@@ -1,15 +1,5 @@
 const config = window.APP_CONFIG || {};
 const SESSION_STORAGE_KEY = "gift-site-admin-session";
-const VIEW_MODE_KEY = "gift-site-admin-view-mode";
-
-// 视图模式（电脑 / 手机）—— 顶部立即应用避免闪烁
-(function applySavedViewMode() {
-  try {
-    if (localStorage.getItem(VIEW_MODE_KEY) === "desktop") {
-      document.body.classList.add("admin-desktop-mode");
-    }
-  } catch {}
-})();
 
 const adminAuthState = document.getElementById("adminAuthState");
 const adminAuthTip = document.getElementById("adminAuthTip");
@@ -2209,23 +2199,6 @@ adminStatsPeriod?.addEventListener("click", (event) => {
   });
   loadStats();
 });
-
-// 视图模式切换按钮
-const adminViewModeToggle = document.getElementById("adminViewModeToggle");
-function updateViewModeButton() {
-  if (!adminViewModeToggle) return;
-  const desktop = document.body.classList.contains("admin-desktop-mode");
-  adminViewModeToggle.textContent = desktop ? "📱 手机视图" : "🖥 电脑视图";
-}
-adminViewModeToggle?.addEventListener("click", () => {
-  const next = !document.body.classList.contains("admin-desktop-mode");
-  document.body.classList.toggle("admin-desktop-mode", next);
-  try {
-    localStorage.setItem(VIEW_MODE_KEY, next ? "desktop" : "mobile");
-  } catch {}
-  updateViewModeButton();
-});
-updateViewModeButton();
 
 // ============ 晒图审核 ============
 
