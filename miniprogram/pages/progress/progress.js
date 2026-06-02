@@ -72,21 +72,18 @@ Page({
   },
 
   // 保存二维码到相册 → 引导去微信扫一扫相册识别
+  // 用 getImageInfo（本地包内图 /images/... 与网络图都支持）拿到本地临时路径，再存相册；
+  // 旧版用 downloadFile 只能下网络 URL，碰到本地包内二维码必失败。
   saveQr(e) {
     const qr = e.currentTarget.dataset.qr;
     const name = e.currentTarget.dataset.name || '';
     if (!qr) return;
     wx.showLoading({ title: '保存中…', mask: true });
-    wx.downloadFile({
-      url: qr,
-      success: (res) => {
-        if (res.statusCode !== 200) {
-          wx.hideLoading();
-          wx.showToast({ title: '下载失败', icon: 'none' });
-          return;
-        }
+    wx.getImageInfo({
+      src: qr,
+      success: (info) => {
         wx.saveImageToPhotosAlbum({
-          filePath: res.tempFilePath,
+          filePath: info.path,
           success: () => {
             wx.hideLoading();
             wx.showModal({
@@ -99,7 +96,7 @@ Page({
           fail: (err) => {
             wx.hideLoading();
             const msg = String(err.errMsg || '');
-            if (msg.indexOf('auth') >= 0 || msg.indexOf('deny') >= 0) {
+            if (msg.indexOf('auth') >= 0 || msg.indexOf('deny') >= 0 || msg.indexOf('cancel') >= 0) {
               wx.showModal({
                 title: '需要相册权限',
                 content: '保存二维码需要允许访问相册，去设置里开启？',
@@ -107,14 +104,15 @@ Page({
                 success: (r) => { if (r.confirm) wx.openSetting(); }
               });
             } else {
-              wx.showToast({ title: '保存失败', icon: 'none' });
+              wx.showToast({ title: '保存失败：' + msg.replace('saveImageToPhotosAlbum:fail ', ''), icon: 'none' });
             }
           }
         });
       },
-      fail: () => {
+      fail: (err) => {
         wx.hideLoading();
-        wx.showToast({ title: '下载失败', icon: 'none' });
+        const msg = String((err && err.errMsg) || '').replace('getImageInfo:fail ', '');
+        wx.showToast({ title: '读取图片失败：' + msg, icon: 'none' });
       }
     });
   },
