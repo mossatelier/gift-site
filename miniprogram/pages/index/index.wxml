@@ -42,59 +42,37 @@
     </swiper>
   </view>
 
-  <!-- 四个文字入口 -->
-  <view class="text-entries">
-    <view class="text-entry" bindtap="goCardFlow">
-      <view class="text-entry-icon">
-        <image src="/images/icons/card-flow.svg" mode="aspectFit" class="entry-svg" />
-      </view>
-      <text>办卡流程</text>
-    </view>
-    <view class="text-entry" bindtap="goCategory">
-      <view class="text-entry-icon">
-        <image src="/images/icons/category.svg" mode="aspectFit" class="entry-svg" />
-      </view>
-      <text>品牌介绍</text>
-    </view>
-    <view class="text-entry" bindtap="goClaimGuide">
-      <view class="text-entry-icon">
-        <image src="/images/icons/claim-guide.svg" mode="aspectFit" class="entry-svg" />
-      </view>
-      <text>领取须知</text>
-    </view>
-    <view class="text-entry" bindtap="goBankNewUser">
-      <view class="text-entry-icon">
-        <image src="/images/icons/bank-new-user.svg" mode="aspectFit" class="entry-svg" />
-      </view>
-      <text>银行新户</text>
-    </view>
-  </view>
-
-  <!-- 四宫格主入口 -->
+  <!-- 主入口（一排五个圆圈） -->
   <view class="home-circles">
-    <view class="circle-item" bindtap="goEarn">
+    <view class="circle-item" bindtap="goCardFlow">
       <view class="circle-badge circle-badge-red">
+        <image src="/images/icons/card-flow.svg" mode="aspectFit" class="circle-svg" />
+      </view>
+      <text class="circle-label">办卡流程</text>
+    </view>
+    <view class="circle-item" bindtap="goEarn">
+      <view class="circle-badge circle-badge-gold">
         <image src="/images/icons/earn.svg" mode="aspectFit" class="circle-svg" />
       </view>
       <text class="circle-label">获取积分</text>
     </view>
     <view class="circle-item" bindtap="goProgress">
-      <view class="circle-badge circle-badge-gold">
+      <view class="circle-badge circle-badge-teal">
         <image src="/images/icons/progress.svg" mode="aspectFit" class="circle-svg" />
       </view>
       <text class="circle-label">进度查询</text>
     </view>
-    <view class="circle-item" bindtap="showQrcode">
+    <view class="circle-item" bindtap="goClaimGuide">
       <view class="circle-badge circle-badge-pink">
-        <image src="/images/icons/service.svg" mode="aspectFit" class="circle-svg" />
+        <image src="/images/icons/claim-guide.svg" mode="aspectFit" class="circle-svg" />
       </view>
-      <text class="circle-label">小客服</text>
+      <text class="circle-label">领取须知</text>
     </view>
-    <view class="circle-item" bindtap="goPromo">
-      <view class="circle-badge circle-badge-teal">
-        <image src="/images/icons/promo.svg" mode="aspectFit" class="circle-svg" />
+    <view class="circle-item" bindtap="goBankNewUser">
+      <view class="circle-badge circle-badge-blue">
+        <image src="/images/icons/bank-new-user.svg" mode="aspectFit" class="circle-svg" />
       </view>
-      <text class="circle-label">特惠通知</text>
+      <text class="circle-label">银行新户</text>
     </view>
   </view>
 
