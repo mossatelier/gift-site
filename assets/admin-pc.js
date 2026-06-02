@@ -235,8 +235,10 @@
     var email = (session && session.user && session.user.email) || "已登录管理员";
     if (pcAccountEmail) pcAccountEmail.textContent = email;
 
-    // 默认进数据看板
-    activatePanel(state.activePanel || "stats");
+    // 初始面板：优先用 URL hash（刷新后停留在原面板），hash 非法时回看板。
+    var fromHash = (location.hash || "").replace(/^#/, "");
+    var validHash = pcPanels.some(function (p) { return p.getAttribute("data-panel") === fromHash; });
+    activatePanel(validHash ? fromHash : (state.activePanel || "stats"));
 
     // 待办角标（不阻塞看板加载）
     loadBadges();
@@ -259,6 +261,14 @@
         var key = item.getAttribute("data-panel");
         if (key) activatePanel(key);
       });
+    });
+
+    // 地址栏 hash 变化（手动改 / 外部链接）→ 切到对应面板（仅登录态、合法面板、且与当前不同）。
+    window.addEventListener("hashchange", function () {
+      if (!Core.activeSession()) return;
+      var k = (location.hash || "").replace(/^#/, "");
+      var ok = pcPanels.some(function (p) { return p.getAttribute("data-panel") === k; });
+      if (ok && k !== state.activePanel) activatePanel(k);
     });
 
     // 顶栏全局搜索：回车 → 跳「编辑」面板按词过滤。
@@ -342,6 +352,8 @@
       Core.clearSession();
       // 整页 reload 彻底清空各模块状态（防换账号在旧数据上误操作 / 串台）。
       try { sessionStorage.setItem("pcAdminNotice", "已退出登录。"); } catch (e) {}
+      // 清掉 URL hash：重新登录回到默认看板，而非上一会话停留的面板。
+      try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
       allowUnload = true;
       location.reload();
     };
@@ -367,6 +379,8 @@
       resetCreateForm();
     }
     state.activePanel = key;
+    // 写入 URL hash（replaceState 不新增历史项、不滚动），刷新后据此回到原面板。
+    try { history.replaceState(null, "", "#" + key); } catch (e) {}
 
     pcNavItems.forEach(function (item) {
       item.classList.toggle("active", item.getAttribute("data-panel") === key);
@@ -2153,6 +2167,7 @@
   state.createSubmitting = false; // 提交中（禁用按钮、防重复提交）。
   state.createUploading = 0;      // 正在上传的图片数（>0 时禁用提交）。
   state.createImages = [];        // 图片槽：[{ url: '', uploading: false }]
+  state.createImagesEpoch = 0;    // 表单代次：重置 / 切编辑对象时 +1，作废在途上传的孤儿回调。
 
   // 渲染外壳一次（左表单骨架 + 右预览卡 + 事件绑定），后续只重渲染图片列表 / 预览。
   function ensureCreateShell() {
@@ -2417,23 +2432,32 @@
       return;
     }
 
+    var last = state.createImages.length - 1;
     wrap.innerHTML = state.createImages.map(function (slot, i) {
+      var busy = slot.uploading ? " disabled" : "";
       var primaryTag = i === 0 ? '<span class="pc-create-img-primary">主图</span>' : '<span class="pc-create-img-idx">图' + (i + 1) + "</span>";
       var thumb = slot.url
         ? '<img class="pc-create-img-thumb" src="' + escapeHtml(slot.url) + '" alt="">'
         : '<span class="pc-create-img-thumb pc-create-img-thumb-empty">' + (slot.uploading ? "上传中…" : "无图") + "</span>";
       return '<div class="pc-create-img-slot" data-create-img-slot="' + i + '">'
         + '<div class="pc-create-img-slot-head">' + primaryTag
+        + '<div class="pc-create-img-acts">'
+        + (i > 0 ? '<button class="pc-create-img-act" type="button" data-create-img-primary="' + i + '"' + busy + ' title="设为主图">设主图</button>' : "")
+        + '<button class="pc-create-img-act" type="button" data-create-img-move="' + i + '" data-dir="-1"' + (i === 0 ? " disabled" : busy) + ' title="上移">↑</button>'
+        + '<button class="pc-create-img-act" type="button" data-create-img-move="' + i + '" data-dir="1"' + (i === last ? " disabled" : busy) + ' title="下移">↓</button>'
         + '<button class="pc-create-img-del" type="button" data-create-img-del="' + i + '" aria-label="删除">×</button>'
+        + "</div>"
         + "</div>"
         + thumb
         + '<div class="pc-create-img-inputs">'
         + '<label class="pc-create-img-file-btn">选文件'
-        + '<input class="pc-create-img-file" type="file" accept="image/*" data-create-img-file="' + i + '"' + (slot.uploading ? " disabled" : "") + ">"
+        + '<input class="pc-create-img-file" type="file" accept="image/*" data-create-img-file="' + i + '"' + busy + ">"
         + "</label>"
-        + '<input class="pc-create-input pc-create-img-url" type="url" placeholder="或粘贴图片 URL" value="' + escapeHtml(slot.url || "") + '" data-create-img-url="' + i + '"' + (slot.uploading ? " disabled" : "") + ">"
+        + '<input class="pc-create-input pc-create-img-url" type="url" placeholder="或粘贴图片 URL" value="' + escapeHtml(slot.url || "") + '" data-create-img-url="' + i + '"' + busy + ">"
         + "</div>"
-        + (slot.error ? '<div class="pc-create-img-err">' + escapeHtml(slot.error) + "</div>" : "")
+        + (slot.error ? '<div class="pc-create-img-err">' + escapeHtml(slot.error)
+            + (slot._file ? ' <button class="pc-create-img-retry" type="button" data-create-img-retry="' + i + '">重试</button>' : "")
+            + "</div>" : "")
         + "</div>";
     }).join("");
 
@@ -2446,24 +2470,21 @@
     btn.disabled = state.createImages.length >= CREATE_MAX_IMAGES;
   }
 
-  // 选文件：压缩 + 上传（走 AdminCore.uploadImage），得到 URL 写回该槽。
-  function handleCreateImageChange(event) {
-    var fileInput = event.target.closest("[data-create-img-file]");
-    if (!fileInput) return;
-    var i = Number(fileInput.getAttribute("data-create-img-file"));
+  // 上传单个图片槽：压缩 + 上传（走 AdminCore.uploadImage），URL 写回该槽。
+  // 记住 file 到 slot._file，失败时「重试」复用，无需重新选文件。
+  function uploadCreateSlot(i, file) {
     var slot = state.createImages[i];
-    if (!slot) return;
-
-    var file = fileInput.files && fileInput.files[0];
-    if (!file) return;
-
+    if (!slot || !file) return;
     if (!Core.activeSession()) {
       setCreateMsg("请先登录管理员账号。", "error");
       return;
     }
 
+    // 记录表单代次：若上传期间表单被重置 / 切到编辑别的商品，则这次结果作废（不改计数/不弹陈旧提示）。
+    var epoch = state.createImagesEpoch;
     slot.uploading = true;
     slot.error = "";
+    slot._file = file;
     state.createUploading += 1;
     renderCreateImages();
     syncCreateSubmitBtn();
@@ -2471,23 +2492,40 @@
 
     Core.uploadImage(file)
       .then(function (url) {
+        if (epoch !== state.createImagesEpoch) return; // 表单已换代，丢弃孤儿结果
         slot.url = url;
         slot.uploading = false;
         slot.error = "";
+        slot._file = null;
         state.createUploading = Math.max(0, state.createUploading - 1);
         renderCreateImages();
         renderCreatePreview();
         syncCreateSubmitBtn();
-        setCreateMsg("第 " + (i + 1) + " 张图片已上传。", "success");
+        var cur = state.createImages.indexOf(slot); // 重排后用实时位置，避免「第 N 张」错位
+        setCreateMsg(cur >= 0 ? ("第 " + (cur + 1) + " 张图片已上传。") : "图片已上传。", "success");
       })
       .catch(function (err) {
+        if (epoch !== state.createImagesEpoch) return;
         slot.uploading = false;
         slot.error = (err && err.message) || "上传失败";
         state.createUploading = Math.max(0, state.createUploading - 1);
         renderCreateImages();
         syncCreateSubmitBtn();
-        setCreateMsg("第 " + (i + 1) + " 张图片上传失败。", "error");
+        var cur = state.createImages.indexOf(slot);
+        setCreateMsg((cur >= 0 ? ("第 " + (cur + 1) + " 张") : "该") + "图片上传失败，可点该图下方「重试」。", "error");
       });
+  }
+
+  // 选文件 → 上传。
+  function handleCreateImageChange(event) {
+    var fileInput = event.target.closest("[data-create-img-file]");
+    if (!fileInput) return;
+    var i = Number(fileInput.getAttribute("data-create-img-file"));
+    var slot = state.createImages[i];
+    if (!slot) return;
+    var file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+    uploadCreateSlot(i, file);
   }
 
   // 粘贴 / 输入 URL：直接写回该槽（与选文件二选一，后输入者覆盖）。
@@ -2497,23 +2535,74 @@
     var i = Number(urlInput.getAttribute("data-create-img-url"));
     var slot = state.createImages[i];
     if (!slot) return;
-    slot.url = (urlInput.value || "").trim();
+    var val = (urlInput.value || "").trim();
+    var hadError = !!(slot.error || slot._file); // 之前是上传失败槽
+    slot.url = val;
     slot.error = "";
+    if (val) slot._file = null; // 粘了 URL 就放弃旧失败文件，避免误点「重试」覆盖刚填的 URL
+    // 清掉该槽残留的「错误行 + 重试」DOM（不整列表重渲染，免打断输入焦点）。
+    if (hadError && val) {
+      var slotEl = urlInput.closest("[data-create-img-slot]");
+      var errEl = slotEl && slotEl.querySelector(".pc-create-img-err");
+      if (errEl) errEl.remove();
+    }
     // 仅更新主图预览，不整列表重渲染（避免打断输入焦点）。
     if (i === 0) renderCreatePreview();
   }
 
-  // 删除图片槽。
+  // 图片槽按钮委托：设为主图 / 上下移 / 重试 / 删除。
   function handleCreateImageClick(event) {
+    // 设为主图：把该槽移到第 0 位。
+    var primaryBtn = event.target.closest("[data-create-img-primary]");
+    if (primaryBtn) {
+      if (primaryBtn.disabled) return;
+      var pi = Number(primaryBtn.getAttribute("data-create-img-primary"));
+      if (pi > 0 && state.createImages[pi]) {
+        state.createImages.unshift(state.createImages.splice(pi, 1)[0]);
+        renderCreateImages();
+        renderCreatePreview();
+      }
+      return;
+    }
+
+    // 上 / 下移：与相邻槽交换。
+    var moveBtn = event.target.closest("[data-create-img-move]");
+    if (moveBtn) {
+      if (moveBtn.disabled) return;
+      var mi = Number(moveBtn.getAttribute("data-create-img-move"));
+      var mj = mi + Number(moveBtn.getAttribute("data-dir"));
+      if (mj >= 0 && mj < state.createImages.length) {
+        var tmp = state.createImages[mi];
+        state.createImages[mi] = state.createImages[mj];
+        state.createImages[mj] = tmp;
+        renderCreateImages();
+        renderCreatePreview();
+      }
+      return;
+    }
+
+    // 重试上传（复用上次选的文件）。
+    var retryBtn = event.target.closest("[data-create-img-retry]");
+    if (retryBtn) {
+      var ri = Number(retryBtn.getAttribute("data-create-img-retry"));
+      var rslot = state.createImages[ri];
+      if (rslot && rslot._file) uploadCreateSlot(ri, rslot._file);
+      else setCreateMsg("请重新选择该图片文件。", "error");
+      return;
+    }
+
+    // 删除图片槽。
     var delBtn = event.target.closest("[data-create-img-del]");
-    if (!delBtn) return;
-    var i = Number(delBtn.getAttribute("data-create-img-del"));
-    var slot = state.createImages[i];
-    if (!slot) return;
-    if (slot.uploading) { setCreateMsg("图片上传中，请稍候再删除。", "error"); return; }
-    state.createImages.splice(i, 1);
-    renderCreateImages();
-    renderCreatePreview();
+    if (delBtn) {
+      var i = Number(delBtn.getAttribute("data-create-img-del"));
+      var slot = state.createImages[i];
+      if (!slot) return;
+      if (slot.uploading) { setCreateMsg("图片上传中，请稍候再删除。", "error"); return; }
+      state.createImages.splice(i, 1);
+      renderCreateImages();
+      renderCreatePreview();
+      return;
+    }
   }
 
   // 实时预览卡：标题 / 主图 / 积分 / 参考价 / 分类 / 状态。
@@ -2596,6 +2685,8 @@
     state.createEditingId = "";
     state.createCardsTouched = false;
     state.createImages = [];
+    state.createUploading = 0;       // 清掉脱离表单的在途计数，避免新表单按钮卡在「图片上传中…」
+    state.createImagesEpoch += 1;    // 作废在途上传的孤儿回调
 
     var titleEl = document.getElementById("pcCreateTitle");
     var priceEl = document.getElementById("pcCreatePrice");
@@ -2650,6 +2741,11 @@
     }
     if (state.createUploading > 0) {
       setCreateMsg("还有图片正在上传，请稍候。", "error");
+      return;
+    }
+    // 有上传失败的图片槽 → 提醒：它不会被提交。
+    var failedCount = state.createImages.filter(function (s) { return s && s.error; }).length;
+    if (failedCount > 0 && !window.confirm("有 " + failedCount + " 张图片上传失败、不会被提交。确定继续提交吗？")) {
       return;
     }
 
@@ -2760,6 +2856,8 @@
 
     state.createEditingId = product.id || "";
     state.createCardsTouched = true; // 编辑态默认尊重已有积分，不自动覆盖。
+    state.createUploading = 0;        // 清掉上一表单脱离的在途计数
+    state.createImagesEpoch += 1;     // 作废上一表单在途上传的孤儿回调
 
     refreshCreateCatOptions();
 
@@ -3018,7 +3116,7 @@
         var p = Number(btn.getAttribute("data-orders-page"));
         if (!isNaN(p)) {
           state.ordersPage = p;
-          ordersClearSelection();
+          // 跨页保留勾选：翻页不清空（集合按 id 存，渲染时自动回勾）。
           closeOrdersDrawer();
           loadOrders(true);
         }
@@ -3239,7 +3337,7 @@
     var countEl = document.getElementById("pcOrdersSelectedCount");
     if (countEl) {
       var size = state.ordersSelectedIds ? state.ordersSelectedIds.size : 0;
-      countEl.textContent = "已选 " + size + " 单";
+      countEl.textContent = "已选 " + size + " 单" + (size > selectedOnPage ? "（含其它页）" : "");
     }
   }
 
@@ -3292,7 +3390,17 @@
       setOrdersMsg("请先勾选订单。", "error");
       return;
     }
-    if (!window.confirm("确认把 " + ids.length + " 单改为「" + ORDER_STATUS_LABEL[status] + "」？")) return;
+
+    // 确认文案：跨页勾选时披露「其它页」数量，危险终态加退积分/不可逆告警。
+    var onPage = state.ordersSelectedIds
+      ? state.orders.filter(function (o) { return state.ordersSelectedIds.has(orderId(o)); }).length
+      : 0;
+    var offPage = ids.length - onPage;
+    var msg = "确认把 " + ids.length + " 单改为「" + ORDER_STATUS_LABEL[status] + "」？";
+    if (offPage > 0) msg += "\n其中 " + offPage + " 单不在当前页、无法在此逐条核对。";
+    if (status === "cancelled") msg += "\n「已取消」通常会退还用户积分、用户端立即可见，不可轻易撤回。";
+    else if (status === "done") msg += "\n「已完成」用户端将立即显示已完成。";
+    if (!window.confirm(msg)) return;
 
     setOrdersMsg("批量更新中…", null);
     Core.callAdminOrders("update-status-bulk", { orderIds: ids, status: status })
@@ -3563,6 +3671,9 @@
     Core.callAdminOrders("update-status", { orderId: id, status: status })
       .then(function () {
         o.status = status;
+        var movedOut = state.ordersStatus !== "all" && state.ordersStatus !== status;
+        // 已移出当前筛选 → 从批量勾选集合剔除，避免随后「批量应用」把这条已单独改过的单再次刷成另一目标态。
+        if (movedOut && state.ordersSelectedIds) state.ordersSelectedIds.delete(id);
         // 就地更新表格该行徽标 + 抽屉标题，不关抽屉、不整页重拉（保留作业上下文）。
         renderOrdersTable();
         var titleEl = document.getElementById("pcOrdersDrawerTitle");
@@ -3573,7 +3684,6 @@
         var rowEl = document.querySelector('[data-orders-row="' + ordersCssEscape(id) + '"]');
         if (rowEl) rowEl.classList.add("pc-orders-row-active"); // 重渲染后重新高亮当前行
         var label = ORDER_STATUS_LABEL[status] || status;
-        var movedOut = state.ordersStatus !== "all" && state.ordersStatus !== status;
         setOrdersDrawerMsg("已更新为「" + label + "」。", "success");
         toast(movedOut ? "已更新为「" + label + "」（已不在当前筛选，刷新后隐藏）" : "已更新为「" + label + "」", "success");
         loadBadges(); // 刷新待办角标
