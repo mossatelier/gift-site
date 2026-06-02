@@ -36,6 +36,29 @@ function httpsGet(url, headers) {
   });
 }
 
+// 分页拉取整张 Supabase 表，绕开「单次 limit=1000 截断 / 服务端 max-rows」——
+// 否则表内行数（含软删的 deleted 行）一旦超过 1000，超出部分拉不到，
+// 会被 syncProducts 的 orphan 逻辑误当已删从云开发清掉 → 小程序商品凭空消失。
+// 必须带稳定排序 order=id.asc，否则 offset 翻页会跳行/重复；按实际返回数推进，
+// 兼容服务端 max-rows < 页大小的情况，翻到返回空页才算到底。
+async function fetchAllFromSupabase(table) {
+  const PAGE = 1000;
+  const headers = {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+  };
+  let all = [];
+  let offset = 0;
+  for (let i = 0; i < 100; i += 1) {   // 100 页 = 10 万行兜底，正常远不触及
+    const url = `${SUPABASE_URL}/rest/v1/${table}?select=*&order=id.asc&limit=${PAGE}&offset=${offset}`;
+    const page = await httpsGet(url, headers);
+    if (!Array.isArray(page) || page.length === 0) break;
+    all = all.concat(page);
+    offset += page.length;
+  }
+  return all;
+}
+
 function normalizeProduct(p) {
   const images = Array.isArray(p.images) && p.images.length > 0
     ? p.images
@@ -207,26 +230,14 @@ exports.main = async (event, context) => {
   const result = { success: true, products: null, banks: null };
 
   try {
-    // 1. Products
-    const supabaseProducts = await httpsGet(
-      `${SUPABASE_URL}/rest/v1/products?select=*&limit=1000`,
-      {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`
-      }
-    );
+    // 1. Products（分页拉全量，不再截断在前 1000）
+    const supabaseProducts = await fetchAllFromSupabase('products');
     result.products = Array.isArray(supabaseProducts)
       ? await syncProducts(supabaseProducts)
       : { error: 'Supabase /products did not return an array' };
 
-    // 2. Banks
-    const supabaseBanks = await httpsGet(
-      `${SUPABASE_URL}/rest/v1/banks_earn?select=*&limit=200`,
-      {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`
-      }
-    );
+    // 2. Banks（同样分页拉全量）
+    const supabaseBanks = await fetchAllFromSupabase('banks_earn');
     result.banks = Array.isArray(supabaseBanks)
       ? await syncBanks(supabaseBanks)
       : { error: 'Supabase /banks_earn did not return an array' };
