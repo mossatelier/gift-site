@@ -120,6 +120,7 @@
   // ============ 顶栏全局搜索 → 跳到「编辑」面板按关键词过滤 ============
   function globalSearch(term) {
     term = (term || "").trim();
+    state.editShowDeleted = false; // 全局搜索一律落到普通商品列表，不进回收站
     activatePanel("edit");
     var input = document.getElementById("pcEditSearch");
     if (input) input.value = term;
@@ -673,6 +674,7 @@
       + "</select>"
       + '<span class="pc-edit-count" id="pcEditCount"></span>'
       + '<button class="pc-btn-ghost pc-edit-trash" id="pcEditTrashBtn" type="button">🗑 回收站</button>'
+      + '<button class="pc-btn-ghost pc-edit-empty-trash" id="pcEditEmptyTrashBtn" type="button" hidden>清空回收站</button>'
       + '<button class="pc-btn-ghost pc-edit-refresh" id="pcEditRefreshBtn" type="button">刷新</button>'
       + "</div>"
       + '<div class="pc-edit-table-wrap" id="pcEditTableWrap"></div>'
@@ -720,10 +722,13 @@
       trashEl.addEventListener("click", function () {
         state.editShowDeleted = !state.editShowDeleted;
         state.editPage = 0;
-        trashEl.classList.toggle("pc-edit-trash-on", state.editShowDeleted);
-        trashEl.textContent = state.editShowDeleted ? "← 返回商品列表" : "🗑 回收站";
-        renderEditTable();
+        renderEditTable(); // 内部调用 syncTrashControls() 更新按钮文案/可见性
       });
+    }
+
+    var emptyTrashEl = document.getElementById("pcEditEmptyTrashBtn");
+    if (emptyTrashEl) {
+      emptyTrashEl.addEventListener("click", handleEmptyRecycleBin);
     }
 
     // 表格区交互（事件委托：排序表头 + 行操作 + 分页）
@@ -850,11 +855,30 @@
     return "";
   }
 
+  // 同步「回收站」相关按钮：回收站按钮文案/高亮 + 清空按钮可见性/数量。
+  function syncTrashControls() {
+    var trashBtn = document.getElementById("pcEditTrashBtn");
+    var emptyBtn = document.getElementById("pcEditEmptyTrashBtn");
+    var deletedCount = state.editProducts.filter(function (p) { return p.deleted; }).length;
+    if (trashBtn) {
+      trashBtn.classList.toggle("pc-edit-trash-on", state.editShowDeleted);
+      trashBtn.textContent = state.editShowDeleted
+        ? "← 返回商品列表"
+        : (deletedCount ? "🗑 回收站（" + deletedCount + "）" : "🗑 回收站");
+    }
+    if (emptyBtn) {
+      emptyBtn.hidden = !state.editShowDeleted;
+      emptyBtn.disabled = deletedCount === 0 || Boolean(state.editPendingId);
+      emptyBtn.textContent = "清空回收站" + (deletedCount ? "（" + deletedCount + "）" : "");
+    }
+  }
+
   function renderEditTable() {
     var wrap = document.getElementById("pcEditTableWrap");
     var countEl = document.getElementById("pcEditCount");
     var pagerEl = document.getElementById("pcEditPager");
     if (!wrap) return;
+    syncTrashControls();
 
     if (!state.editLoaded) {
       wrap.innerHTML = '<p class="pc-empty-text">加载中…</p>';
@@ -903,7 +927,8 @@
       var statusCls = (deletedView || !item.is_active) ? "pc-order-status-cancelled" : "pc-order-status-done";
       var statusLabel = deletedView ? "已删除" : (item.is_active ? "已上架" : "未上架");
       var toggleLabel = item.is_active ? "下架" : "上架";
-      var disabled = pending ? " disabled" : "";
+      // 任意操作在途（含清空回收站的 "__empty__"）时禁用所有行按钮，避免点了被静默吞。
+      var disabled = state.editPendingId ? " disabled" : "";
       var img = item.image_url
         ? '<img class="pc-edit-thumb" src="' + escapeHtml(item.image_url) + '" alt="" loading="lazy">'
         : '<span class="pc-edit-thumb pc-edit-thumb-empty"></span>';
@@ -918,6 +943,7 @@
         + '<td class="pc-edit-col-actions">'
         + (deletedView
             ? '<button class="pc-edit-act pc-edit-act-restore" type="button" data-edit-restore="' + id + '"' + disabled + ">恢复</button>"
+              + '<button class="pc-edit-act pc-edit-act-harddel" type="button" data-edit-harddel="' + id + '"' + disabled + ">彻底删除</button>"
             : '<button class="pc-edit-act pc-edit-act-edit" type="button" data-edit-edit="' + id + '"' + disabled + ">编辑</button>"
               + '<button class="pc-edit-act pc-edit-act-toggle" type="button" data-edit-toggle="' + id + '"' + disabled + ">" + toggleLabel + "</button>"
               + '<button class="pc-edit-act pc-edit-act-del" type="button" data-edit-del="' + id + '"' + disabled + ">删除</button>")
@@ -982,6 +1008,12 @@
       handleEditProductRestore(restoreBtn.getAttribute("data-edit-restore"));
       return;
     }
+
+    var hardDelBtn = event.target.closest("[data-edit-harddel]");
+    if (hardDelBtn) {
+      handleEditProductHardDelete(hardDelBtn.getAttribute("data-edit-harddel"));
+      return;
+    }
   }
 
   function findEditProduct(id) {
@@ -1040,6 +1072,7 @@
     if (!ok) return;
 
     state.editPendingId = id;
+    renderEditTable(); // 立即禁用所有行按钮（防并发误触）
     var rowEl = document.querySelector('[data-edit-row="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
     if (rowEl) rowEl.classList.add("pc-edit-row-fading");
     setEditMsg("正在删除…", null);
@@ -1077,6 +1110,7 @@
     if (state.editPendingId) return;
 
     state.editPendingId = id;
+    renderEditTable(); // 立即禁用所有行按钮
     setEditMsg("正在找回…", null);
 
     Core.restoreProduct(id)
@@ -1093,6 +1127,72 @@
         renderEditTable();
         setEditMsg((err && err.message) || "找回失败", "error");
         toast((err && err.message) || "找回失败", "error");
+      });
+  }
+
+  // 单件彻底删除（不可恢复，从库永久移除）。
+  function handleEditProductHardDelete(id) {
+    var p = findEditProduct(id);
+    if (!p) { setEditMsg("没有找到该礼品。", "error"); return; }
+    if (state.editPendingId) return;
+
+    if (!window.confirm("彻底删除“" + (p.title || "这件礼品") + "”？\n将从数据库永久移除，不可恢复、无法找回。")) return;
+
+    hideToast(); // 清掉可能残留的「撤销」toast，避免它指向即将被永久删除的条目
+    state.editPendingId = id;
+    renderEditTable(); // 立即禁用所有行按钮
+    var rowEl = document.querySelector('[data-edit-row="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
+    if (rowEl) rowEl.classList.add("pc-edit-row-fading");
+    setEditMsg("正在彻底删除…", null);
+
+    Core.hardDeleteProducts([id])
+      .then(function () {
+        var apply = function () {
+          state.editProducts = state.editProducts.filter(function (x) { return x.id !== id; });
+          state.editPendingId = "";
+          renderEditTable();
+          setEditMsg("已彻底删除：" + (p.title || id), "success");
+          toast("已彻底删除：" + (p.title || id), "success");
+        };
+        if (rowEl) setTimeout(apply, 260);
+        else apply();
+      })
+      .catch(function (err) {
+        state.editPendingId = "";
+        if (rowEl) rowEl.classList.remove("pc-edit-row-fading");
+        renderEditTable();
+        setEditMsg((err && err.message) || "彻底删除失败", "error");
+        toast((err && err.message) || "彻底删除失败", "error", { duration: 6000 });
+      });
+  }
+
+  // 清空回收站：把所有软删商品一次性彻底删除（按显式 id 列表，绝不误删整表）。
+  function handleEmptyRecycleBin() {
+    if (state.editPendingId) return;
+    var deletedItems = state.editProducts.filter(function (p) { return p.deleted; });
+    if (deletedItems.length === 0) { setEditMsg("回收站是空的。", null); return; }
+
+    if (!window.confirm("彻底清空回收站？\n将永久删除 " + deletedItems.length + " 件商品，不可恢复、无法找回。")) return;
+
+    hideToast(); // 清掉可能残留的「撤销」toast，避免它指向即将被永久删除的条目
+    var ids = deletedItems.map(function (p) { return p.id; });
+    state.editPendingId = "__empty__"; // 占位，阻止并发其它行操作
+    renderEditTable(); // 立即让所有行按钮 + 清空按钮进入禁用态
+    setEditMsg("正在清空回收站…", null);
+
+    Core.hardDeleteProducts(ids)
+      .then(function (n) {
+        state.editProducts = state.editProducts.filter(function (p) { return !p.deleted; });
+        state.editPendingId = "";
+        renderEditTable();
+        setEditMsg("已清空回收站，彻底删除 " + (n || ids.length) + " 件。", "success");
+        toast("已清空回收站（" + (n || ids.length) + " 件）", "success");
+      })
+      .catch(function (err) {
+        state.editPendingId = "";
+        renderEditTable();
+        setEditMsg((err && err.message) || "清空失败", "error");
+        toast((err && err.message) || "清空失败", "error", { duration: 6000 });
       });
   }
 

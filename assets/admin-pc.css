@@ -1159,11 +1159,35 @@ body.pc-admin {
   color: var(--green, #167a61);
 }
 
+.pc-edit-act-harddel {
+  border-color: rgba(181, 59, 27, 0.45);
+  color: var(--red-deep, #b53b1b);
+}
+.pc-edit-act-harddel:hover {
+  border-color: var(--red-deep, #b53b1b);
+  background: rgba(181, 59, 27, 0.12);
+  color: var(--red-deep, #b53b1b);
+}
+
 /* 回收站切换：开启时高亮，提示当前在回收站视图 */
 .pc-edit-trash-on {
   border-color: var(--red) !important;
   background: rgba(214, 75, 42, 0.1) !important;
   color: var(--red) !important;
+}
+
+/* 清空回收站：危险操作，红底强调 */
+.pc-edit-empty-trash {
+  border-color: var(--red-deep, #b53b1b);
+  color: #fff;
+  background: var(--red-deep, #b53b1b);
+}
+.pc-edit-empty-trash:hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+.pc-edit-empty-trash:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* 分页 */

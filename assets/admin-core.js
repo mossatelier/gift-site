@@ -401,6 +401,33 @@
     return updateProduct(productId, { deleted: false, is_active: true });
   }
 
+  // 彻底删除（不可恢复）：按显式 id 列表 DELETE。用显式 id 而非 deleted=eq.true 过滤，
+  // 即使 RLS / 过滤异常也只会命中已知的回收站条目，绝不会误删整表。返回被删数量。
+  async function hardDeleteProducts(ids) {
+    if (!Array.isArray(ids)) return 0;
+    var clean = ids.map(function (id) { return String(id).trim(); }).filter(Boolean);
+    if (clean.length === 0) return 0;
+
+    // 分批删，控制 URL 长度（每个 UUID 约 37 字符，大批量一次拼接会触发 414）。
+    var BATCH = 80;
+    var total = 0;
+    for (var i = 0; i < clean.length; i += BATCH) {
+      var inList = clean.slice(i, i + BATCH).map(encodeURIComponent).join(",");
+      var response = await authedFetch(
+        productsEndpoint() + "?id=in.(" + inList + ")",
+        { method: "DELETE" },
+        { Prefer: "return=representation" }
+      );
+      if (!response.ok) {
+        var errorText = await response.text();
+        throw new Error("彻底删除失败：已删 " + total + " 件，本批 " + response.status + " " + errorText);
+      }
+      var data = await response.json();
+      total += Array.isArray(data) ? data.length : 0;
+    }
+    return total;
+  }
+
   // 上下架薄封装。
   function setProductActive(productId, isActive) {
     return updateProduct(productId, { is_active: Boolean(isActive) });
@@ -615,6 +642,7 @@
     updateProduct: updateProduct,
     deleteProduct: deleteProduct,
     restoreProduct: restoreProduct,
+    hardDeleteProducts: hardDeleteProducts,
     setProductActive: setProductActive,
 
     // 图片
