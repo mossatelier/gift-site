@@ -25,7 +25,8 @@ Page({
     content: '',
     rating: 5,
     submitting: false,
-    maxImages: MAX_IMAGES
+    maxImages: MAX_IMAGES,
+    showPrivacy: false
   },
 
   onLoad(query) {
@@ -36,6 +37,37 @@ Page({
     this.setData({ orderId, productId, productTitle, productImage });
     const back = `/pages/review-edit/review-edit?orderId=${orderId}&productId=${productId}`;
     if (!auth.ensureLogin(back)) return;
+
+    // 隐私授权：选图(chooseMedia)受隐私接口管控，首次调用时由微信触发本回调，
+    // 弹自定义同意弹窗，用户同意后再放行被挂起的接口。
+    if (wx.onNeedPrivacyAuthorization) {
+      wx.onNeedPrivacyAuthorization((resolve) => {
+        this._privacyResolve = resolve;
+        this.setData({ showPrivacy: true });
+      });
+    }
+  },
+
+  // 同意（按钮 open-type=agreePrivacyAuthorization，点击即记录同意）→ 放行被挂起的接口。
+  onPrivacyAgree() {
+    this.setData({ showPrivacy: false });
+    if (this._privacyResolve) {
+      this._privacyResolve({ event: 'agree', buttonId: 'privacy-agree-btn' });
+      this._privacyResolve = null;
+    }
+  },
+
+  onPrivacyDisagree() {
+    this.setData({ showPrivacy: false });
+    if (this._privacyResolve) {
+      this._privacyResolve({ event: 'disagree' });
+      this._privacyResolve = null;
+    }
+    wx.showToast({ title: '需同意后才能上传图片', icon: 'none' });
+  },
+
+  openPrivacyContract() {
+    if (wx.openPrivacyContract) wx.openPrivacyContract({ fail: () => {} });
   },
 
   chooseImage() {

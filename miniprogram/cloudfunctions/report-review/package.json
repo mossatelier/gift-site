@@ -1,0 +1,9 @@
+{
+  "name": "report-review",
+  "version": "1.0.0",
+  "description": "User report on a UGC showcase review (writes to reports collection for admin handling)",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}

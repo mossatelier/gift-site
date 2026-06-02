@@ -159,3 +159,60 @@
 .bottom-spacer {
   height: 40rpx;
 }
+
+/* 隐私授权弹窗 */
+.privacy-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.privacy-box {
+  width: 600rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 40rpx 36rpx 28rpx;
+}
+.privacy-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  margin-bottom: 20rpx;
+}
+.privacy-text {
+  font-size: 26rpx;
+  line-height: 1.7;
+  color: var(--muted);
+  margin-bottom: 32rpx;
+}
+.privacy-link {
+  color: var(--red);
+}
+.privacy-btns {
+  display: flex;
+  gap: 20rpx;
+}
+.privacy-btn {
+  flex: 1;
+  margin: 0;
+  font-size: 28rpx;
+  font-weight: 700;
+  border-radius: 999rpx;
+  line-height: 80rpx;
+  height: 80rpx;
+}
+.privacy-btn::after {
+  border: none;
+}
+.privacy-disagree {
+  background: #f2efe9;
+  color: var(--muted);
+}
+.privacy-agree {
+  background: linear-gradient(135deg, var(--red) 0%, var(--red-deep) 100%);
+  color: #fff;
+}

@@ -57,4 +57,16 @@
 
   <text class="re-tip">发布后需审核通过才会公开展示，请勿上传违规内容。</text>
   <view class="bottom-spacer"></view>
+
+  <!-- 隐私授权弹窗：首次使用相册/相机前征得同意 -->
+  <view class="privacy-mask" wx:if="{{showPrivacy}}" catchtouchmove="true">
+    <view class="privacy-box">
+      <view class="privacy-title">温馨提示</view>
+      <view class="privacy-text">上传晒图需要使用你的相册 / 相机。我们仅将所选图片用于晒图展示，详情见<text class="privacy-link" catchtap="openPrivacyContract">《用户隐私保护指引》</text>。</view>
+      <view class="privacy-btns">
+        <button class="privacy-btn privacy-disagree" catchtap="onPrivacyDisagree">不同意</button>
+        <button class="privacy-btn privacy-agree" id="privacy-agree-btn" open-type="agreePrivacyAuthorization" bindagreeprivacyauthorization="onPrivacyAgree">同意</button>
+      </view>
+    </view>
+  </view>
 </view>

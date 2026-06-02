@@ -67,6 +67,27 @@ Page({
     wx.navigateTo({ url: `/pages/product/product?id=${id}` });
   },
 
+  // 举报晒图：选理由 → report-review 云函数写入 reports 集合，供后台处理。
+  onReport(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    const reasons = ['色情低俗', '广告/导流', '虚假信息', '侵权/抄袭', '其他'];
+    wx.showActionSheet({
+      itemList: reasons,
+      success: (res) => {
+        wx.cloud.callFunction({
+          name: 'report-review',
+          data: { reviewId: id, reason: reasons[res.tapIndex] }
+        }).then((cf) => {
+          const ok = cf && cf.result && cf.result.success;
+          wx.showToast({ title: ok ? '已收到举报，感谢反馈' : '举报失败，请重试', icon: 'none' });
+        }).catch(() => {
+          wx.showToast({ title: '举报失败，请重试', icon: 'none' });
+        });
+      }
+    });
+  },
+
   onShareAppMessage() {
     return { title: '加加好物图集 · 大家的晒图种草', path: '/pages/review-list/review-list' };
   }

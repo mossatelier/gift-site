@@ -18,6 +18,7 @@
           </view>
         </view>
         <text class="rl-date">{{item.createdText}}</text>
+        <text class="rl-report" catchtap="onReport" data-id="{{item._id}}">举报</text>
       </view>
 
       <text class="rl-content" wx:if="{{item.content}}">{{item.content}}</text>
