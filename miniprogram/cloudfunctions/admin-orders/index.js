@@ -787,6 +787,17 @@ exports.main = async (event) => {
     return buildResponse(400, { ok: false, error: '请求体解析失败' });
   }
 
+  // 公开动作：网页端兜底下单（无需管理员登录，必须在 verifyAdmin 之前处理）
+  if (body.action === 'web-submit-order') {
+    try {
+      const data = await webSubmitOrder(body);
+      return buildResponse(200, { ok: true, data });
+    } catch (err) {
+      console.error('[admin-orders] web-submit-order', err);
+      return buildResponse(400, { ok: false, error: err.message || '提交失败' });
+    }
+  }
+
   // 取 token
   const headers = event.headers || {};
   const authHeader = headers.Authorization || headers.authorization || '';
