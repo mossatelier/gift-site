@@ -3668,7 +3668,7 @@
       setOrdersMsg("请选择要改成的状态。", "error");
       return;
     }
-    var ids = state.ordersSelectedIds ? Array.prototype.slice.call(state.ordersSelectedIds) : [];
+    var ids = state.ordersSelectedIds ? Array.from(state.ordersSelectedIds) : [];
     if (ids.length === 0) {
       setOrdersMsg("请先勾选订单。", "error");
       return;
@@ -3706,7 +3706,7 @@
 
   // 批量硬删（清理测试单）：二次确认 → delete-orders-bulk → 失效看板缓存 → 重拉当前页。
   function handleOrdersBulkDelete() {
-    var ids = state.ordersSelectedIds ? Array.prototype.slice.call(state.ordersSelectedIds) : [];
+    var ids = state.ordersSelectedIds ? Array.from(state.ordersSelectedIds) : [];
     if (ids.length === 0) {
       setOrdersMsg("请先勾选订单。", "error");
       return;
