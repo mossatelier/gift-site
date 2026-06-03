@@ -522,8 +522,12 @@ function updateChipRow() {
       }).join("")}</div>`
     : "";
 
+  // 两行（对齐小程序）：第一行大类 + 更多；第二行排序；（更多面板在两者之间）；最后二级
   chipRow.innerHTML =
-    `<div class="chip-main-row">${sortHtml}<span class="chip-divider" aria-hidden="true"></span>${mainHtml}${moreChip}</div>${morePanel}${subHtml}`;
+    `<div class="chip-main-row">${mainHtml}${moreChip}</div>` +
+    morePanel +
+    `<div class="chip-sort-row">${sortHtml}</div>` +
+    subHtml;
 }
 
 function renderWishlistPage() {

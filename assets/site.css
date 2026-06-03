@@ -3793,9 +3793,12 @@ body.admin-logged-in #adminLogoutButtonLogged {
 /* ====== 全部商品页：大类 + 更多下拉 + 二级（多行筛选，对齐小程序） ====== */
 #chipRow { display: block; overflow: visible; padding: 0; }
 .chip-main-row,
+.chip-sort-row,
 .chip-sub-row { display: flex; align-items: center; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 4px 0; }
 .chip-main-row::-webkit-scrollbar,
+.chip-sort-row::-webkit-scrollbar,
 .chip-sub-row::-webkit-scrollbar { display: none; }
+.chip-sort-row { margin-top: 6px; }
 .chip-sub-row { margin-top: 6px; }
 .chip-more { background: rgba(255, 244, 230, 0.95); color: var(--red-deep); border-color: rgba(224, 172, 77, 0.4); }
 .chip-more-panel { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; padding: 10px 12px; background: rgba(255, 255, 255, 0.94); border: 1px solid rgba(234, 223, 206, 0.9); border-radius: 14px; box-shadow: var(--shadow); }
