@@ -22,6 +22,9 @@
     "#jg-gate .jg-qr{width:210px;height:210px;object-fit:contain;background:#fff;border-radius:14px;",
     "border:1px solid #eaded0;padding:6px;}",
     "#jg-gate .jg-tip{font-size:13px;font-weight:700;color:#d64b2a;margin:12px 0 0;}",
+    "#jg-gate .jg-search{font-size:13px;color:#3a2a1a;margin:14px 0 0;background:#fff4e3;",
+    "border-radius:10px;padding:10px 12px;line-height:1.5;}",
+    "#jg-gate .jg-search b{color:#d64b2a;font-size:14px;}",
     "#jg-gate .jg-hr{height:1px;background:#f0e6d8;margin:22px 0 18px;}",
     "#jg-gate .jg-kefu-label{font-size:12.5px;color:#8a7560;margin:0 0 12px;}",
     "#jg-gate .jg-kefu{width:128px;height:128px;object-fit:contain;background:#fff;border-radius:12px;",
@@ -39,9 +42,10 @@
     '<div class="jg-card">' +
       '<p class="jg-logo">🏠 加加好物图集</p>' +
       '<h1 class="jg-title">请进入微信小程序</h1>' +
-      '<p class="jg-sub">本服务已升级为微信小程序，<br>请微信扫码或长按识别下方小程序码进入浏览与下单。</p>' +
+      '<p class="jg-sub">本服务已升级为微信小程序，<br>扫码进入，或在微信直接搜索小程序名进入。</p>' +
       '<img class="jg-qr" src="' + MP_QR + '" alt="小程序码">' +
       '<p class="jg-tip">微信「扫一扫」 / 长按识别进入小程序</p>' +
+      '<p class="jg-search">或打开微信 →「搜索」→ 输入 <b>加加好物图集</b> → 进入小程序</p>' +
       '<div class="jg-hr"></div>' +
       '<p class="jg-kefu-label">也可扫码添加客服微信咨询</p>' +
       '<img class="jg-kefu" src="' + KEFU_QR + '" alt="客服微信二维码" onerror="this.style.display=\'none\'">' +
