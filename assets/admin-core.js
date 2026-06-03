@@ -355,6 +355,19 @@
     return Array.isArray(data) ? data[0] : data;
   }
 
+  // 写 Supabase app_config（upsert，key 为主键）。供 H5 直读（如首页海报 home_banners）。
+  async function saveAppConfig(key, value) {
+    var response = await authedFetch(
+      config.supabaseUrl + "/rest/v1/app_config",
+      { method: "POST", body: JSON.stringify({ key: key, value: value, updated_at: new Date().toISOString() }) },
+      { "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }
+    );
+    if (!response.ok) {
+      var errorText = await response.text();
+      throw new Error("Supabase 配置写入失败：" + response.status + " " + errorText);
+    }
+  }
+
   async function updateProduct(productId, payload) {
     var response = await authedFetch(
       productsEndpoint() + "?id=eq." + encodeURIComponent(productId),
@@ -653,6 +666,9 @@
 
     // 银行
     listBanks: listBanks,
-    saveBankPoints: saveBankPoints
+    saveBankPoints: saveBankPoints,
+
+    // 通用配置（写 Supabase，供 H5 直读）
+    saveAppConfig: saveAppConfig
   };
 })();

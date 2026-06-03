@@ -1969,9 +1969,15 @@
     setHaibaoMsg("保存中…", null);
     Core.callAdminOrders("save-home-banners", { banners: payload })
       .then(function () {
+        // 同时写 Supabase，供 H5 网页端读取（写失败不影响小程序，仅提示）。
+        return Core.saveAppConfig("home_banners", payload).catch(function (err) {
+          toast("小程序已更新；网页端同步失败：" + ((err && err.message) || ""), "error");
+        });
+      })
+      .then(function () {
         state.haibaoSaving = false; state.haibaoDirty = false; syncHaibaoSaveBtn();
-        setHaibaoMsg("已保存，小程序下拉刷新或重进首页即可看到。", "success");
-        toast("首页海报已保存", "success");
+        setHaibaoMsg("已保存，小程序下拉刷新 / H5 刷新即可看到。", "success");
+        toast("首页海报已保存（小程序 + 网页端）", "success");
       })
       .catch(function (err) {
         state.haibaoSaving = false; syncHaibaoSaveBtn();

@@ -4,8 +4,9 @@ const categoryLabelMap = new Map(categories.map((item) => [item.value, item.labe
 const nonAllCategories = categories.filter((item) => item.value !== "all");
 
 const track = document.getElementById("bannerTrack");
-const slides = Array.from(document.querySelectorAll(".banner-slide"));
-const dots = Array.from(document.querySelectorAll(".dot"));
+let slides = Array.from(document.querySelectorAll(".banner-slide"));
+let dots = Array.from(document.querySelectorAll(".dot"));
+const bannerDots = document.querySelector(".banner-dots");
 const mallNavItems = Array.from(document.querySelectorAll("[data-category-link]"));
 const sortButtons = Array.from(document.querySelectorAll("[data-sort]"));
 const categoryFilter = document.getElementById("categoryFilter");
@@ -775,6 +776,65 @@ if (productSearchInput && state.query) {
   productSearchInput.value = state.query;
 }
 
+// 后台海报点击目标(小程序页路径)→ H5 页面映射
+const MP_PAGE_TO_H5 = {
+  "/pages/list/list": "list.html",
+  "/pages/category/category": "category.html",
+  "/pages/wishlist/wishlist": "wishlist.html",
+  "/pages/earn/earn": "earn.html",
+  "/pages/progress/progress": "progress.html",
+  "/pages/card-flow/card-flow": "card-flow.html",
+  "/pages/claim-guide/claim-guide": "claim-guide.html",
+  "/pages/bank-new-user/bank-new-user": "bank-new-user.html",
+  "/pages/promo/promo": "promo.html"
+};
+
+function bannerHref(b) {
+  if (!b || !b.linkType || b.linkType === "none") return "";
+  if (b.linkType === "product" && b.linkValue) return `product.html?id=${encodeURIComponent(b.linkValue)}`;
+  if ((b.linkType === "tab" || b.linkType === "page") && b.linkValue) return MP_PAGE_TO_H5[b.linkValue] || "";
+  return "";
+}
+
+// 读后台配置的首页海报(Supabase app_config)，有则替换静态轮播，无则保留兜底两张图
+async function fetchHomeBanners() {
+  if (!track || !isSupabaseConfigured()) return;
+  try {
+    const url = `${config.supabaseUrl}/rest/v1/app_config?key=eq.home_banners&select=value&limit=1`;
+    const res = await fetch(url, {
+      headers: { apikey: config.supabaseAnonKey, Authorization: `Bearer ${config.supabaseAnonKey}` }
+    });
+    if (!res.ok) return;
+    const rows = await res.json();
+    const list = (rows && rows[0] && Array.isArray(rows[0].value)) ? rows[0].value : [];
+    const valid = list.filter((b) => b && b.imageUrl);
+    if (valid.length === 0) return; // 后台未配置 → 保留静态兜底
+
+    track.innerHTML = valid.map((b) => {
+      const href = bannerHref(b);
+      const img = `<img class="banner-image" src="${escapeHtml(b.imageUrl)}" alt="${escapeHtml(b.title || "活动海报")}">`;
+      return href
+        ? `<a class="banner-slide" href="${escapeHtml(href)}">${img}</a>`
+        : `<div class="banner-slide">${img}</div>`;
+    }).join("");
+    if (bannerDots) {
+      bannerDots.innerHTML = valid.map((_, i) =>
+        `<button class="dot ${i === 0 ? "active" : ""}" type="button" aria-label="第 ${i + 1} 张" data-slide="${i}"></button>`
+      ).join("");
+    }
+    slides = Array.from(document.querySelectorAll(".banner-slide"));
+    dots = Array.from(document.querySelectorAll(".dot"));
+    dots.forEach((dot) => {
+      dot.addEventListener("click", () => { goToSlide(Number(dot.dataset.slide || 0)); startAutoplay(); });
+    });
+    state.currentSlide = 0;
+    goToSlide(0);
+    startAutoplay();
+  } catch (err) {
+    // 读取失败保留静态兜底
+  }
+}
+
 async function loadEarnBanks() {
   if (!earnBankList) {
     return;
@@ -828,3 +888,4 @@ goToSlide(0);
 startAutoplay();
 loadProducts();
 loadEarnBanks();
+fetchHomeBanners();

@@ -2631,7 +2631,17 @@ adminHaibaoSave?.addEventListener("click", async () => {
       .filter((s) => s.imageUrl)
       .map((s) => ({ imageUrl: s.imageUrl, linkType: s.linkType || "none", linkValue: s.linkValue || "", title: s.title || "" }));
     await callAdminOrders("save-home-banners", { banners });
-    setHaibaoMessage("已保存，小程序下拉刷新或重进首页生效。", "success");
+    // 同时写 Supabase，供 H5 网页端读取（失败不影响小程序）。
+    try {
+      await authedFetch(
+        `${config.supabaseUrl}/rest/v1/app_config`,
+        { method: "POST", body: JSON.stringify({ key: "home_banners", value: banners, updated_at: new Date().toISOString() }) },
+        { "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }
+      );
+      setHaibaoMessage("已保存，小程序下拉刷新 / H5 刷新生效。", "success");
+    } catch (e2) {
+      setHaibaoMessage("小程序已更新；网页端同步失败：" + (e2.message || ""), "error");
+    }
   } catch (err) {
     setHaibaoMessage(err.message, "error");
   }
