@@ -3332,6 +3332,7 @@
       + '<span class="pc-orders-bulk-count" id="pcOrdersSelectedCount">已选 0 单</span>'
       + '<select class="pc-orders-bulk-select" id="pcOrdersBulkStatus">' + bulkStatusOptions + "</select>"
       + '<button class="pc-btn-primary pc-orders-bulk-apply" id="pcOrdersBulkApply" type="button">应用</button>'
+      + '<button class="pc-orders-bulk-delete" id="pcOrdersBulkDelete" type="button">批量删除</button>'
       + '<button class="pc-btn-ghost pc-orders-bulk-clear" id="pcOrdersBulkClear" type="button">清空</button>'
       + "</div>"
       // 详情抽屉（遮罩 + 右侧面板）
@@ -3425,6 +3426,8 @@
     }
     var bulkApply = document.getElementById("pcOrdersBulkApply");
     if (bulkApply) bulkApply.addEventListener("click", handleOrdersBulkUpdate);
+    var bulkDelete = document.getElementById("pcOrdersBulkDelete");
+    if (bulkDelete) bulkDelete.addEventListener("click", handleOrdersBulkDelete);
     var bulkClear = document.getElementById("pcOrdersBulkClear");
     if (bulkClear) {
       bulkClear.addEventListener("click", function () {
@@ -3698,6 +3701,40 @@
       .catch(function (err) {
         setOrdersMsg((err && err.message) || "批量更新失败", "error");
         toast((err && err.message) || "批量更新失败", "error");
+      });
+  }
+
+  // 批量硬删（清理测试单）：二次确认 → delete-orders-bulk → 失效看板缓存 → 重拉当前页。
+  function handleOrdersBulkDelete() {
+    var ids = state.ordersSelectedIds ? Array.prototype.slice.call(state.ordersSelectedIds) : [];
+    if (ids.length === 0) {
+      setOrdersMsg("请先勾选订单。", "error");
+      return;
+    }
+    var onPage = state.ordersSelectedIds
+      ? state.orders.filter(function (o) { return state.ordersSelectedIds.has(orderId(o)); }).length
+      : 0;
+    var offPage = ids.length - onPage;
+    var msg = "确认永久删除 " + ids.length + " 单？\n不可恢复；数据看板统计会相应减少。仅建议用于清理测试单。";
+    if (offPage > 0) msg += "\n其中 " + offPage + " 单不在当前页、无法在此逐条核对。";
+    if (!window.confirm(msg)) return;
+
+    setOrdersMsg("批量删除中…", null);
+    Core.deleteOrdersBulk(ids)
+      .then(function (res) {
+        ordersClearSelection();
+        var deleted = (res && res.deleted != null) ? res.deleted : ids.length;
+        var failed = (res && res.failed) || 0;
+        state.statsLoaded = false; // 失效看板缓存 → 下次打开数据看板重算
+        setOrdersMsg("已删除 " + deleted + " 单" + (failed ? "，失败 " + failed + " 单" : "") + "。", failed ? "error" : "success");
+        toast("批量删除：成功 " + deleted + " 单" + (failed ? "，失败 " + failed + " 单" : ""), failed ? "error" : "success");
+        closeOrdersDrawer();
+        loadOrders(true); // 重拉刷新 total / 列表
+        loadBadges();
+      })
+      .catch(function (err) {
+        setOrdersMsg((err && err.message) || "批量删除失败", "error");
+        toast((err && err.message) || "批量删除失败", "error");
       });
   }
 

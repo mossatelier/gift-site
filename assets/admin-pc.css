@@ -2977,3 +2977,7 @@ body.pc-admin {
 .pc-orders-danger { border-top: 1px dashed rgba(214,75,42,0.3); margin-top: 4px; padding-top: 14px; }
 .pc-orders-delete-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border: 1px solid rgba(214,75,42,0.4); border-radius: 10px; background: rgba(214,75,42,0.06); color: #c0392b; font-size: 13px; font-weight: 700; cursor: pointer; }
 .pc-orders-delete-btn:hover { background: rgba(214,75,42,0.12); }
+
+/* 批量条：批量删除（危险） */
+.pc-orders-bulk-delete { padding: 8px 14px; border: 1px solid rgba(214,75,42,0.4); border-radius: 8px; background: rgba(214,75,42,0.06); color: #c0392b; font-size: 13px; font-weight: 700; cursor: pointer; }
+.pc-orders-bulk-delete:hover { background: rgba(214,75,42,0.12); }

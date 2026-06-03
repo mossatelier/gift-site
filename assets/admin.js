@@ -61,6 +61,7 @@ const adminOrdersSelectAll = document.getElementById("adminOrdersSelectAll");
 const adminOrdersSelectedCount = document.getElementById("adminOrdersSelectedCount");
 const adminOrdersBulkStatus = document.getElementById("adminOrdersBulkStatus");
 const adminOrdersBulkApply = document.getElementById("adminOrdersBulkApply");
+const adminOrdersBulkDelete = document.getElementById("adminOrdersBulkDelete");
 const adminOrdersBulkClear = document.getElementById("adminOrdersBulkClear");
 const adminTabStats = document.getElementById("adminTabStats");
 const adminStatsPanel = document.getElementById("adminStatsPanel");
@@ -1737,6 +1738,25 @@ async function handleBulkUpdate() {
   }
 }
 
+// 批量硬删（清理测试单）：二次确认 → delete-orders-bulk → 重拉。看板每次进入重拉，自动同步。
+async function handleBulkDelete() {
+  const ids = Array.from(state.selectedOrderIds);
+  if (ids.length === 0) {
+    setOrdersMessage("请先勾选订单。", "error");
+    return;
+  }
+  if (!confirm(`确认永久删除 ${ids.length} 单？\n不可恢复；数据看板统计会相应减少。仅建议用于清理测试单。`)) return;
+  setOrdersMessage("批量删除中…");
+  try {
+    const res = await callAdminOrders("delete-orders-bulk", { orderIds: ids });
+    state.selectedOrderIds.clear();
+    setOrdersMessage(`已删除 ${res.deleted} 单，失败 ${res.failed || 0} 单。`, "success");
+    loadOrders();
+  } catch (err) {
+    setOrdersMessage(err.message, "error");
+  }
+}
+
 async function handleOrderStatusChange(select) {
   const orderId = select.dataset.orderId;
   const status = select.value;
@@ -1991,6 +2011,7 @@ adminOrdersSelectAll?.addEventListener("change", () => {
 });
 
 adminOrdersBulkApply?.addEventListener("click", handleBulkUpdate);
+adminOrdersBulkDelete?.addEventListener("click", handleBulkDelete);
 
 adminOrdersBulkClear?.addEventListener("click", () => {
   state.selectedOrderIds.clear();
