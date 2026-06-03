@@ -18,6 +18,45 @@ const MAX_ITEMS = 50;
 const RATE_WINDOW_MS = 60 * 1000;
 const RATE_MAX = 3;
 
+// 「下单成功通知」订阅消息模板 ID（与小程序端 config.orderPlacedTmplId 同一个）
+const ORDER_PLACED_TMPL_ID = '4zU26DwALOyDtm8yRSNmO0vnriyKWW-usUtk2MjGjkg';
+
+// 北京时间 YYYY-MM-DD HH:mm（云函数默认 UTC，+8 小时取墙钟）
+function fmtBeijing(d) {
+  const date = (d instanceof Date) ? d : new Date(d);
+  const t = new Date(date.getTime() + 8 * 3600 * 1000);
+  const p = n => String(n).padStart(2, '0');
+  return `${t.getUTCFullYear()}-${p(t.getUTCMonth() + 1)}-${p(t.getUTCDate())} ${p(t.getUTCHours())}:${p(t.getUTCMinutes())}`;
+}
+
+// 下单成功 → 立即推一条订阅消息。失败不影响下单主流程。
+// 模板字段：thing1=商品名称 date2=下单时间 thing13=收货人姓名 phone_number11=收货人电话 character_string4=订单编号
+async function sendOrderPlacedNotify(openid, orderId, order) {
+  if (!ORDER_PLACED_TMPL_ID || !openid) return;
+  const items = Array.isArray(order.items) ? order.items : [];
+  const first = (items[0] && items[0].title) || '礼品';
+  const goods = items.length > 1 ? `${first.slice(0, 12)}等${items.length}件` : first.slice(0, 20);
+  const addr = order.address || {};
+  try {
+    await cloud.openapi.subscribeMessage.send({
+      touser: openid,
+      templateId: ORDER_PLACED_TMPL_ID,
+      page: `pages/order-detail/order-detail?id=${orderId}`,
+      miniprogramState: 'formal',
+      lang: 'zh_CN',
+      data: {
+        thing1: { value: goods },                                       // 商品名称
+        date2: { value: fmtBeijing(order.createdAt || new Date()) },    // 下单时间
+        thing13: { value: (addr.recipient || '客户').slice(0, 20) },     // 收货人姓名
+        phone_number11: { value: (addr.phone || '').slice(0, 17) },     // 收货人电话
+        character_string4: { value: String(orderId).slice(0, 32) }      // 订单编号
+      }
+    });
+  } catch (err) {
+    console.warn('[submit-order] sendOrderPlacedNotify failed', err);
+  }
+}
+
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext();
   if (!OPENID) return { success: false, error: '未登录' };
@@ -114,5 +153,7 @@ exports.main = async (event, context) => {
   };
 
   const add = await db.collection('orders').add({ data: order });
+  // 下单成功 → 立即推一条「下单成功通知」（用户在下单时已授权；失败不阻断）
+  await sendOrderPlacedNotify(OPENID, add._id, order);
   return { success: true, orderId: add._id, itemCount: itemSnapshots.length, totalCards };
 };

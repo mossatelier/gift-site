@@ -144,11 +144,12 @@ Page({
     const items = this.data.items.map(it => ({ _id: it._id, qty: 1 }));
     const remark = this.data.remark || '';
 
-    // 在点击手势链路内请求订阅「发货提醒」，无论同意与否都继续提交
-    const tmplId = config.shipNotifyTmplId;
-    if (tmplId) {
+    // 在点击手势链路内请求订阅（下单成功通知 + 发货提醒），一次最多 3 个；
+    // 只请求已配置 ID 的模板；无论同意与否都继续提交
+    const tmplIds = [config.orderPlacedTmplId, config.shipNotifyTmplId].filter(Boolean);
+    if (tmplIds.length) {
       wx.requestSubscribeMessage({
-        tmplIds: [tmplId],
+        tmplIds,
         complete: () => this.doSubmitOrder(items, remark)
       });
     } else {

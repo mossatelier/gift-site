@@ -57,5 +57,8 @@ module.exports = {
   customerServiceQrPath: '/images/wechat-qr.jpg',
   // 「发货通知」订阅消息模板 ID（小程序后台→订阅消息→公共模板库申请后填）
   // 前端授权和云端推送用的是同一个模板 ID（云端在 admin-orders 里也要填同一个值）
-  shipNotifyTmplId: 'ogImsJ3zh8t9wc_AX2gPzLCPqsfTmqH9JqbwLhGlUWQ'
+  shipNotifyTmplId: 'ogImsJ3zh8t9wc_AX2gPzLCPqsfTmqH9JqbwLhGlUWQ',
+  // 「下单成功通知」订阅消息模板 ID（信息查询类，编号 7368）
+  // 用于：用户提交订单后立刻推一条"已收到申请"。云端推送在 submit-order 里用同一个值。
+  orderPlacedTmplId: '4zU26DwALOyDtm8yRSNmO0vnriyKWW-usUtk2MjGjkg'
 };
