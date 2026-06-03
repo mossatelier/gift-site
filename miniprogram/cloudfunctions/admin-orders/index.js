@@ -49,6 +49,55 @@ function httpsReq(urlString, { method = 'GET', headers = {}, body } = {}) {
   });
 }
 
+// 二进制下载（图片字节）
+function httpsGetBuffer(urlString) {
+  return new Promise((resolve, reject) => {
+    const u = new URL(urlString);
+    https.get({ hostname: u.hostname, port: u.port || 443, path: u.pathname + u.search }, (res) => {
+      if (res.statusCode >= 300) { res.resume(); reject(new Error('下载失败 ' + res.statusCode)); return; }
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => resolve(Buffer.concat(chunks)));
+    }).on('error', reject);
+  });
+}
+
+// 上传字节到 Supabase Storage（用管理员 JWT，桶 product-images）
+function uploadToSupabaseStorage(objectPath, buffer, contentType, token) {
+  return new Promise((resolve, reject) => {
+    const u = new URL(`${SUPABASE_URL}/storage/v1/object/${objectPath}`);
+    const req = https.request({
+      method: 'POST',
+      hostname: u.hostname, port: 443, path: u.pathname + u.search,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: SUPABASE_ANON_KEY,
+        'Content-Type': contentType,
+        'Content-Length': buffer.length,
+        'x-upsert': 'true'
+      }
+    }, (res) => {
+      let data = ''; res.on('data', (c) => { data += c; });
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) resolve(true);
+        else reject(new Error('Storage 上传失败 ' + res.statusCode + ' ' + data));
+      });
+    });
+    req.on('error', reject); req.write(buffer); req.end();
+  });
+}
+
+// 昵称打码（与小程序 db.js maskNick 一致）
+function maskNick(name) {
+  name = String(name || '').trim();
+  if (!name) return '微信用户';
+  const chars = Array.from(name);
+  if (chars.length <= 1) return chars[0] || '微信用户';
+  if (chars.length === 2) return chars[0] + '*';
+  const stars = '*'.repeat(Math.min(chars.length - 2, 4));
+  return chars[0] + stars + chars[chars.length - 1];
+}
+
 // ---------- Supabase admin auth ----------
 
 async function verifyAdmin(accessToken) {
@@ -536,12 +585,79 @@ async function listReviews({ status = 'pending', limit = 50, skip = 0 }) {
   return { items, total: countRes.total || 0 };
 }
 
-async function reviewStatus({ reviewId, status }) {
+// 把一条晒图镜像到 Supabase reviews 表（供 H5 晒图广场直读）：
+// 图片从云存储转存到 Supabase Storage 拿稳定公网 URL，昵称打码后写入。
+async function mirrorReviewToSupabase(review, token) {
+  if (!token || !review || !review._id) return;
+  const fileIDs = (Array.isArray(review.images) ? review.images : []).slice(0, 9);
+  const publicUrls = [];
+  if (fileIDs.length) {
+    const t = await cloud.getTempFileURL({ fileList: fileIDs });
+    const map = {};
+    (t.fileList || []).forEach((f) => { if (f.fileID && f.tempFileURL) map[f.fileID] = f.tempFileURL; });
+    for (let i = 0; i < fileIDs.length; i += 1) {
+      const temp = map[fileIDs[i]];
+      if (!temp) continue;
+      try {
+        const buf = await httpsGetBuffer(temp);
+        let ext = (String(fileIDs[i]).split('?')[0].split('.').pop() || 'jpg').toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'webp'].indexOf(ext) < 0) ext = 'jpg';
+        const objectPath = `product-images/reviews/${review._id}-${i}.${ext}`;
+        await uploadToSupabaseStorage(objectPath, buf, 'image/' + (ext === 'jpg' ? 'jpeg' : ext), token);
+        publicUrls.push(`${SUPABASE_URL}/storage/v1/object/public/${objectPath}`);
+      } catch (e) {
+        console.warn('[mirror] 图片转存失败', e.message);
+      }
+    }
+  }
+  const row = {
+    id: review._id,
+    nick_masked: maskNick(review.nickName),
+    rating: Number(review.rating) || 0,
+    content: String(review.content || '').slice(0, 500),
+    images: publicUrls,
+    product_id: review.productId || '',
+    product_title: review.productTitle || '',
+    created_at: review.createdAt ? new Date(review.createdAt).toISOString() : new Date().toISOString()
+  };
+  const res = await httpsReq(`${SUPABASE_URL}/rest/v1/reviews`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      Prefer: 'resolution=merge-duplicates,return=minimal'
+    },
+    body: JSON.stringify(row)
+  });
+  if (res.status >= 300) throw new Error('镜像 reviews 失败 ' + res.status + ' ' + res.body);
+}
+
+async function deleteSupabaseReview(reviewId, token) {
+  if (!token || !reviewId) return;
+  await httpsReq(`${SUPABASE_URL}/rest/v1/reviews?id=eq.${encodeURIComponent(reviewId)}`, {
+    method: 'DELETE',
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}`, Prefer: 'return=minimal' }
+  });
+}
+
+async function reviewStatus({ reviewId, status }, token) {
   if (!reviewId) throw new Error('缺少 reviewId');
   if (!['approved', 'rejected', 'pending'].includes(status)) throw new Error('非法状态');
   await db.collection('reviews').doc(reviewId).update({
     data: { status, updatedAt: new Date() }
   });
+  // 镜像到 Supabase 供 H5 读取：通过→镜像；拒绝/撤回→删镜像。失败不阻断审核（仅日志）。
+  try {
+    if (status === 'approved') {
+      const doc = await db.collection('reviews').doc(reviewId).get();
+      if (doc && doc.data) await mirrorReviewToSupabase(doc.data, token);
+    } else {
+      await deleteSupabaseReview(reviewId, token);
+    }
+  } catch (e) {
+    console.warn('[admin-orders] 镜像 Supabase 失败', e.message);
+  }
   return { reviewId, status };
 }
 
@@ -626,7 +742,7 @@ exports.main = async (event) => {
         data = await listReviews(body);
         break;
       case 'review-status':
-        data = await reviewStatus(body);
+        data = await reviewStatus(body, token);
         break;
       default:
         return buildResponse(400, { ok: false, error: '未知 action' });

@@ -882,6 +882,67 @@ async function loadEarnBanks() {
   }
 }
 
+// ===== 晒图广场（读 Supabase reviews 镜像表，只读已通过） =====
+async function fetchApprovedReviews(opts) {
+  opts = opts || {};
+  if (!isSupabaseConfigured()) return [];
+  let qs = `select=*&order=created_at.desc&limit=${Number(opts.limit) || 30}`;
+  if (opts.productId) qs += `&product_id=eq.${encodeURIComponent(opts.productId)}`;
+  try {
+    const res = await fetch(`${config.supabaseUrl}/rest/v1/reviews?${qs}`, {
+      headers: { apikey: config.supabaseAnonKey, Authorization: `Bearer ${config.supabaseAnonKey}` }
+    });
+    if (!res.ok) return [];
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  } catch (err) {
+    return [];
+  }
+}
+
+function reviewCard(r) {
+  const imgs = Array.isArray(r.images) ? r.images : [];
+  const n = Math.max(0, Math.min(5, Number(r.rating) || 0));
+  const stars = "★".repeat(n) + "☆".repeat(5 - n);
+  const imgsHtml = imgs.length === 1
+    ? `<img class="rv-img-one" src="${escapeHtml(imgs[0])}" alt="晒图" data-gallery-zoom loading="lazy">`
+    : (imgs.length > 1 ? `<div class="rv-imgs">${imgs.map((u) => `<img class="rv-img" src="${escapeHtml(u)}" alt="晒图" data-gallery-zoom loading="lazy">`).join("")}</div>` : "");
+  const product = r.product_title
+    ? `<a class="rv-product" href="product.html?id=${encodeURIComponent(r.product_id || "")}">🎁 ${escapeHtml(r.product_title)} ›</a>`
+    : "";
+  const date = r.created_at ? String(r.created_at).slice(0, 10) : "";
+  return `<article class="rv-card">
+    <div class="rv-head"><span class="rv-nick">${escapeHtml(r.nick_masked || "微信用户")}</span><span class="rv-stars">${stars}</span><span class="rv-date">${date}</span></div>
+    ${r.content ? `<p class="rv-content">${escapeHtml(r.content)}</p>` : ""}
+    ${imgsHtml}
+    ${product}
+  </article>`;
+}
+
+async function renderReviewsWall() {
+  const wall = document.getElementById("reviewsWall");
+  if (!wall) return;
+  const list = await fetchApprovedReviews({ limit: 50 });
+  wall.innerHTML = list.length
+    ? list.map(reviewCard).join("")
+    : '<div class="rv-empty"><span class="rv-empty-emoji">🌱</span><p>还没有人晒图，敬请期待～</p></div>';
+}
+
+async function renderHomeReviewStrip() {
+  const strip = document.getElementById("homeReviewStrip");
+  if (!strip) return;
+  const section = document.getElementById("homeReviewSection");
+  const list = await fetchApprovedReviews({ limit: 10 });
+  if (list.length === 0) { if (section) section.hidden = true; return; }
+  strip.innerHTML = list.map((r) => {
+    const img = (Array.isArray(r.images) && r.images[0]) ? r.images[0] : "";
+    return `<a class="home-rv-card" href="reviews.html">
+      ${img ? `<img class="home-rv-img" src="${escapeHtml(img)}" alt="晒图" loading="lazy">` : ""}
+      <div class="home-rv-body"><span class="home-rv-nick">${escapeHtml(r.nick_masked || "微信用户")}</span>${r.content ? `<span class="home-rv-text">${escapeHtml(r.content)}</span>` : ""}</div>
+    </a>`;
+  }).join("");
+}
+
 bindEvents();
 bindCategoryRail();
 goToSlide(0);
@@ -889,3 +950,5 @@ startAutoplay();
 loadProducts();
 loadEarnBanks();
 fetchHomeBanners();
+renderReviewsWall();
+renderHomeReviewStrip();
