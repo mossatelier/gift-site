@@ -315,42 +315,8 @@ async function getMyOrder(openid, id) {
   return order;
 }
 
-// ============ 晒图（reviews 集合） ============
-
-// 昵称打码：保留首尾、中间用 * 代替（按码点切，兼容 emoji；中间星号最多 4 个）。
-// 仅用于公开展示（广场 / 首页）；后台审核走云函数读原始昵称，不受影响。
-function maskNick(name) {
-  name = (name || '').trim();
-  if (!name) return '微信用户';
-  const chars = Array.from(name);
-  if (chars.length <= 1) return chars[0] || '微信用户';
-  if (chars.length === 2) return chars[0] + '*';
-  const stars = '*'.repeat(Math.min(chars.length - 2, 4));
-  return chars[0] + stars + chars[chars.length - 1];
-}
-
-// 首页/广场展示：已通过审核的晒图，按时间倒序（公开展示，昵称打码）
-async function listApprovedReviews({ limit = 20, skip = 0, productId = null } = {}) {
-  const where = { status: 'approved' };
-  if (productId) where.productId = productId;
-  const res = await db().collection('reviews')
-    .where(where)
-    .orderBy('createdAt', 'desc')
-    .skip(skip)
-    .limit(limit)
-    .get();
-  return res.data.map(r => Object.assign({}, r, { nickName: maskNick(r.nickName) }));
-}
-
-// 查某订单是否已晒过（控制入口按钮状态）
-async function getMyReviewForOrder(openid, orderId) {
-  if (!openid || !orderId) return null;
-  const res = await db().collection('reviews')
-    .where({ openid, orderId })
-    .limit(1)
-    .get();
-  return res.data[0] || null;
-}
+// 注：晒图(reviews)功能已下线（个人主体「社交-笔记」类目未开放）；
+// 相关页面移至 repo 根 parked-pages/，小程序端不再提供晒图。H5 网页端承载晒图广场。
 
 module.exports = {
   listProducts,
@@ -373,8 +339,5 @@ module.exports = {
   setDefaultAddress,
   // orders
   listMyOrders,
-  getMyOrder,
-  // reviews
-  listApprovedReviews,
-  getMyReviewForOrder
+  getMyOrder
 };
