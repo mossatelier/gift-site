@@ -943,6 +943,36 @@ async function renderHomeReviewStrip() {
   }).join("");
 }
 
+// 全站悬浮：咨询客服(弹二维码) + 返回顶部。site.js 在每页加载，故每页都有。
+function injectFloatWidgets() {
+  if (document.querySelector(".float-widgets")) return;
+  const qrSrc = config.kefuQr || "images/wechat-qr.jpg";
+  const wechatId = config.kefuWechat || "L1916959";
+  const wrap = document.createElement("div");
+  wrap.className = "float-widgets";
+  wrap.innerHTML = `
+    <button class="float-btn float-top" type="button" aria-label="返回顶部" hidden>↑</button>
+    <button class="float-btn float-chat" type="button" aria-label="联系客服"><span class="float-chat-emoji">💬</span><span class="float-chat-label">咨询</span></button>
+    <div class="kefu-pop" hidden>
+      <div class="kefu-pop-mask"></div>
+      <div class="kefu-pop-card">
+        <p class="kefu-pop-title">添加客服微信</p>
+        <img class="kefu-pop-qr" src="${escapeHtml(qrSrc)}" alt="客服二维码">
+        <p class="kefu-pop-tip">长按二维码保存 / 识别添加<br>微信号：${escapeHtml(wechatId)}</p>
+        <button class="kefu-pop-close" type="button">关闭</button>
+      </div>
+    </div>`;
+  document.body.appendChild(wrap);
+  const topBtn = wrap.querySelector(".float-top");
+  const pop = wrap.querySelector(".kefu-pop");
+  const hide = () => { pop.hidden = true; };
+  wrap.querySelector(".float-chat").addEventListener("click", () => { pop.hidden = false; });
+  wrap.querySelector(".kefu-pop-mask").addEventListener("click", hide);
+  wrap.querySelector(".kefu-pop-close").addEventListener("click", hide);
+  topBtn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+  window.addEventListener("scroll", () => { topBtn.hidden = window.scrollY < 400; }, { passive: true });
+}
+
 bindEvents();
 bindCategoryRail();
 goToSlide(0);
@@ -952,3 +982,4 @@ loadEarnBanks();
 fetchHomeBanners();
 renderReviewsWall();
 renderHomeReviewStrip();
+injectFloatWidgets();
