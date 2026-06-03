@@ -299,6 +299,14 @@
     return callAdminOrders("stats", { period: period });
   }
 
+  // 薄封装：硬删除订单（清理测试单）。删后数据看板实时重算自动同步。
+  function deleteOrder(orderId) {
+    return callAdminOrders("delete-order", { orderId: orderId });
+  }
+  function deleteOrdersBulk(orderIds) {
+    return callAdminOrders("delete-orders-bulk", { orderIds: orderIds });
+  }
+
   // ============ 商品（Supabase REST） ============
 
   function productsEndpoint() {
@@ -648,6 +656,8 @@
     authedFetch: authedFetch,
     callAdminOrders: callAdminOrders,
     getStats: getStats,
+    deleteOrder: deleteOrder,
+    deleteOrdersBulk: deleteOrdersBulk,
 
     // 商品
     listProducts: listProducts,

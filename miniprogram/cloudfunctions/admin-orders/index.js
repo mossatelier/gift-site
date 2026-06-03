@@ -550,6 +550,29 @@ async function updateNote({ orderId, adminNote }) {
   return { orderId };
 }
 
+// 硬删除订单（真删文档，用于清理测试单）。删除后数据看板因实时查询会自动同步。
+async function deleteOrder({ orderId }) {
+  if (!orderId) throw new Error('缺少 orderId');
+  await db.collection('orders').doc(orderId).remove();
+  return { deleted: true, orderId };
+}
+
+// 批量硬删除订单
+async function deleteOrdersBulk({ orderIds }) {
+  if (!Array.isArray(orderIds) || orderIds.length === 0) throw new Error('缺少 orderIds');
+  let deleted = 0;
+  let failed = 0;
+  for (const id of orderIds) {
+    try {
+      await db.collection('orders').doc(id).remove();
+      deleted += 1;
+    } catch (err) {
+      failed += 1;
+    }
+  }
+  return { deleted, failed, total: orderIds.length };
+}
+
 // ---------- 晒图审核 ----------
 
 async function listReviews({ status = 'pending', limit = 50, skip = 0 }) {
@@ -722,6 +745,12 @@ exports.main = async (event) => {
         break;
       case 'update-note':
         data = await updateNote(body);
+        break;
+      case 'delete-order':
+        data = await deleteOrder(body);
+        break;
+      case 'delete-orders-bulk':
+        data = await deleteOrdersBulk(body);
         break;
       case 'get-category-order':
         data = await getCategoryOrder(body);

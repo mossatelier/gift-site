@@ -1686,6 +1686,10 @@ function renderOrdersList() {
             <div class="admin-order-section admin-order-actions">
               <label>更新状态：${statusSelect}</label>
             </div>
+            <div class="admin-order-section admin-order-danger">
+              <strong>删除订单 <span class="admin-order-danger-hint">永久删除，仅用于清理测试单</span></strong>
+              <button class="admin-secondary-btn admin-order-delete-btn" data-delete-order="${escapeHtml(o._id)}" type="button">🗑 删除此订单</button>
+            </div>
           </div>
         ` : ""}
       </div>
@@ -1799,6 +1803,28 @@ async function handleNoteSave(orderId) {
   }
 }
 
+// 硬删订单（清理测试单）：二次确认 → delete-order → 内存移除 + 总数-1 + 重渲染。
+// 数据看板每次进入都重新拉取，故删除后自动同步，无需额外处理。
+async function handleOrderDelete(id) {
+  const o = state.orders.find((x) => x._id === id);
+  if (!o) return;
+  const addr = o.address || {};
+  const who = addr.recipient ? `「${addr.recipient}」的` : "这笔";
+  if (!confirm(`永久删除${who}订单？\n不可恢复；数据看板统计会相应减少。仅建议用于清理测试单。`)) return;
+  setOrdersMessage("正在删除…");
+  try {
+    await callAdminOrders("delete-order", { orderId: id });
+    state.orders = state.orders.filter((x) => x._id !== id);
+    state.selectedOrderIds.delete(id);
+    state.ordersTotal = Math.max(0, state.ordersTotal - 1);
+    if (state.expandedOrderId === id) state.expandedOrderId = "";
+    renderOrdersList();
+    setOrdersMessage("订单已删除，数据看板将自动同步。", "success");
+  } catch (err) {
+    setOrdersMessage(err.message || "删除失败", "error");
+  }
+}
+
 function copyOrderAddress(orderId) {
   const o = state.orders.find((x) => x._id === orderId);
   if (!o) return;
@@ -1856,6 +1882,12 @@ adminOrdersList?.addEventListener("click", (event) => {
   if (saveNote) {
     event.stopPropagation();
     handleNoteSave(saveNote.dataset.saveNote);
+    return;
+  }
+  const delOrder = event.target.closest("[data-delete-order]");
+  if (delOrder) {
+    event.stopPropagation();
+    handleOrderDelete(delOrder.dataset.deleteOrder);
     return;
   }
   const carrierChip = event.target.closest(".carrier-chip");

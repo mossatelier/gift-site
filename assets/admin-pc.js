@@ -3793,6 +3793,11 @@
       + escapeHtml(o.adminNote || "") + '" data-orders-note="' + idEsc + '">'
       + '<button class="pc-btn-ghost pc-orders-note-save" type="button" data-orders-save-note="' + idEsc + '">保存备注</button>'
       + "</section>"
+      // 删除订单（硬删，主要用于清理测试单；删后数据看板自动同步）
+      + '<section class="pc-orders-sec pc-orders-danger">'
+      + '<div class="pc-orders-sec-head"><strong>删除订单</strong><span class="pc-orders-sec-hint">永久删除，不可恢复，仅用于清理测试单</span></div>'
+      + '<button class="pc-orders-delete-btn" type="button" data-orders-delete="' + idEsc + '">🗑 删除此订单</button>'
+      + "</section>"
       // 抽屉内联消息
       + '<p class="pc-inline-msg" id="pcOrdersDrawerMsg"></p>';
   }
@@ -3904,6 +3909,11 @@
       handleOrdersNoteSave(saveNote.getAttribute("data-orders-save-note"));
       return;
     }
+    var del = event.target.closest("[data-orders-delete]");
+    if (del) {
+      handleOrdersDelete(del.getAttribute("data-orders-delete"));
+      return;
+    }
   }
 
   // 抽屉 change 委托：状态下拉 → update-status。
@@ -4000,6 +4010,33 @@
       })
       .catch(function (err) {
         setOrdersDrawerMsg((err && err.message) || "保存失败", "error");
+      });
+  }
+
+  // 硬删订单（清理测试单）：二次确认 → delete-order → 内存移除 + 总数-1 + 重渲染表
+  //   + 失效看板缓存（下次打开数据看板会重新拉取实时统计）+ 关抽屉。
+  function handleOrdersDelete(id) {
+    if (!id) return;
+    var o = findOrder(id);
+    if (!o) return;
+    var addr = o.address || {};
+    var who = addr.recipient ? "「" + addr.recipient + "」的" : "这笔";
+    if (!window.confirm("永久删除" + who + "订单？\n不可恢复；数据看板统计会相应减少。仅建议用于清理测试单。")) return;
+    setOrdersDrawerMsg("正在删除…", null);
+    Core.deleteOrder(id)
+      .then(function () {
+        state.orders = state.orders.filter(function (x) { return orderId(x) !== id; });
+        if (state.ordersSelectedIds) state.ordersSelectedIds.delete(id);
+        if (typeof state.ordersTotal === "number") state.ordersTotal = Math.max(0, state.ordersTotal - 1);
+        state.statsLoaded = false; // 失效看板缓存 → 下次打开重算（getStats 实时查 orders）
+        closeOrdersDrawer();
+        renderOrdersTable();
+        toast("订单已删除，数据看板将自动同步", "success");
+        loadBadges();
+      })
+      .catch(function (err) {
+        setOrdersDrawerMsg((err && err.message) || "删除失败", "error");
+        toast((err && err.message) || "删除失败", "error");
       });
   }
 
