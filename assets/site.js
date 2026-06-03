@@ -319,7 +319,9 @@ function productCard(item) {
     : "";
   const wishlisted = isWishlisted(item.id);
   const detailHref = `product.html?id=${encodeURIComponent(item.id)}`;
-  const tagText = item.category === "referral" ? "推荐可兑" : "办卡可兑";
+  const isReferral = item.category === "referral";
+  const tagText = isReferral ? "推荐可兑" : "办卡可兑";
+  const tagClass = isReferral ? "title-tag title-tag-referral" : "title-tag title-tag-card";
   const pointsText = buildPointsText(item);
 
   return `
@@ -329,7 +331,7 @@ function productCard(item) {
           <img class="product-image" src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.title)}">
         </div>
         <div class="product-body">
-          <h3 class="product-title"><span class="title-tag">${tagText}</span>${escapeHtml(item.title)}</h3>
+          <h3 class="product-title"><span class="${tagClass}">${tagText}</span>${escapeHtml(item.title)}</h3>
           ${priceText}
           ${pointsText ? `<p class="product-cards">${escapeHtml(pointsText)}</p>` : ""}
         </div>

@@ -1730,6 +1730,14 @@ body.admin-logged-in #adminLogoutButtonLogged {
   vertical-align: middle;
   white-space: nowrap;
 }
+/* 办卡可兑 —— 红色（主色） */
+.title-tag-card {
+  background: linear-gradient(135deg, var(--red) 0%, var(--red-deep) 100%);
+}
+/* 推荐可兑 —— 青绿色（与办卡明显区分，避免客户混淆） */
+.title-tag-referral {
+  background: linear-gradient(135deg, #1f9488 0%, #36b39e 100%);
+}
 
 /* Category page === */
 .cat-shell {
