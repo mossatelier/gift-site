@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>心愿单 · 加加好物图集</title>
   <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
-  <link rel="stylesheet" href="assets/site.css?v=19">
+  <link rel="stylesheet" href="assets/site.css?v=20">
 </head>
 <body id="top">
   <div class="page-shell">
@@ -43,6 +43,12 @@
 
         <form class="web-order-form" id="webOrderForm">
           <h3 class="web-order-title">填写收货信息，提交领取申请</h3>
+
+          <div class="web-order-paste">
+            <textarea class="web-order-paste-input" id="webOrderPaste" rows="2" placeholder="粘贴整段地址，自动识别 ——&#10;例：张三 13800138000 广东省深圳市南山区科技园路1号"></textarea>
+            <button class="web-order-paste-btn" id="webOrderPasteBtn" type="button">识别填入</button>
+          </div>
+
           <div class="web-order-row">
             <input class="web-order-input" name="recipient" type="text" placeholder="收件人姓名" autocomplete="name" maxlength="40" required>
             <input class="web-order-input" name="phone" type="tel" placeholder="手机号" autocomplete="tel" inputmode="numeric" maxlength="11" required>
@@ -53,7 +59,7 @@
             <input class="web-order-input" name="district" type="text" placeholder="区/县（选填）" maxlength="40">
           </div>
           <input class="web-order-input" name="detail" type="text" placeholder="详细地址（街道、门牌号）" maxlength="200" required>
-          <input class="web-order-input" name="remark" type="text" placeholder="备注（选填，例如希望办卡的银行）" maxlength="200">
+          <input class="web-order-input" name="remark" type="text" placeholder="备注（选填）：想要的颜色 / 规格 / 想办的银行 等" maxlength="200">
           <button class="web-order-submit" type="submit">提交领取申请</button>
           <p class="web-order-msg" id="webOrderMsg"></p>
           <p class="web-order-hint">提交后客服会主动联系你核对并安排办理；也可用下方二维码直接联系客服 / 进小程序。</p>
@@ -162,6 +168,6 @@
   </nav>
 
   <script src="assets/config.js"></script>
-  <script src="assets/site.js?v=19"></script>
+  <script src="assets/site.js?v=20"></script>
 </body>
 </html>

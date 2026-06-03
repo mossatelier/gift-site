@@ -600,6 +600,99 @@ function fallbackCopyText(text, done) {
   }
 }
 
+// 省级名称标准化（与小程序 address-edit 同一套）
+const PROVINCE_MAP = {
+  "北京": "北京市", "天津": "天津市", "上海": "上海市", "重庆": "重庆市",
+  "河北": "河北省", "山西": "山西省", "辽宁": "辽宁省", "吉林": "吉林省", "黑龙江": "黑龙江省",
+  "江苏": "江苏省", "浙江": "浙江省", "安徽": "安徽省", "福建": "福建省", "江西": "江西省",
+  "山东": "山东省", "河南": "河南省", "湖北": "湖北省", "湖南": "湖南省", "广东": "广东省",
+  "海南": "海南省", "四川": "四川省", "贵州": "贵州省", "云南": "云南省", "陕西": "陕西省",
+  "甘肃": "甘肃省", "青海": "青海省", "台湾": "台湾省",
+  "内蒙古": "内蒙古自治区", "广西": "广西壮族自治区", "西藏": "西藏自治区",
+  "宁夏": "宁夏回族自治区", "新疆": "新疆维吾尔自治区",
+  "香港": "香港特别行政区", "澳门": "澳门特别行政区"
+};
+const MUNICIPALITIES = ["北京市", "天津市", "上海市", "重庆市"];
+
+// 从一整段文字里尽力解析出 收件人/手机/省市区/详细（移植自小程序 parseAddress）
+function parseAddress(raw) {
+  const out = { recipient: "", phone: "", province: "", city: "", district: "", detail: "" };
+  let text = String(raw || "").replace(/[\r\n\t]+/g, " ");
+
+  const pm = text.match(/(?:\+?86[\s-]?)?1[3-9]\d(?:[\s-]?\d){8}/);
+  if (pm) {
+    out.phone = pm[0].replace(/[^\d]/g, "").replace(/^86/, "");
+    text = text.replace(pm[0], " ");
+  }
+
+  text = text.replace(/收货人|收件人|收货|收件|姓名|联系电话|联系方式|电话|手机号码|手机号|手机|详细地址|地址/g, " ");
+  text = text.replace(/[,，。;；:：、|/\\]/g, " ").replace(/\s+/g, " ").trim();
+
+  let provKey = "", provIdx = -1;
+  for (const k of Object.keys(PROVINCE_MAP)) {
+    const i = text.indexOf(k);
+    if (i >= 0 && (provIdx === -1 || i < provIdx)) { provIdx = i; provKey = k; }
+  }
+  let rest = text;
+  if (provKey) {
+    out.province = PROVINCE_MAP[provKey];
+    const before = text.slice(0, provIdx).trim();
+    if (before) out.recipient = before.split(" ").filter(Boolean)[0] || "";
+    rest = text.slice(provIdx + provKey.length)
+      .replace(/^(壮族自治区|回族自治区|维吾尔自治区|特别行政区|自治区|省|市)/, "")
+      .trim();
+  }
+
+  const cityMatch = rest.match(/^(.*?(?:市|自治州|地区|盟))/);
+  if (cityMatch) {
+    out.city = cityMatch[1].trim();
+    rest = rest.slice(cityMatch[1].length).trim();
+  } else if (MUNICIPALITIES.includes(out.province)) {
+    out.city = out.province;
+  }
+
+  const distMatch = rest.match(/^(.*?(?:区|县|旗|市))/);
+  if (distMatch) {
+    out.district = distMatch[1].trim();
+    rest = rest.slice(distMatch[1].length).trim();
+  }
+
+  out.detail = rest.trim();
+
+  if (!out.recipient && !out.province) {
+    const parts = text.split(" ").filter(Boolean);
+    if (parts.length) {
+      out.recipient = parts[0];
+      out.detail = parts.slice(1).join(" ");
+    }
+  }
+  return out;
+}
+
+// 居中专业成功弹窗（替代简陋的 alert）
+function showOrderSuccessModal() {
+  if (document.getElementById("webOrderSuccess")) return;
+  const wrap = document.createElement("div");
+  wrap.id = "webOrderSuccess";
+  wrap.className = "wo-success";
+  wrap.innerHTML =
+    '<div class="wo-success-mask"></div>' +
+    '<div class="wo-success-card" role="dialog" aria-modal="true">' +
+      '<div class="wo-success-icon">✓</div>' +
+      '<h3 class="wo-success-title">提交成功</h3>' +
+      '<p class="wo-success-text">我们已收到你的领取申请，<br>客服会尽快主动联系你核对并安排办理。</p>' +
+      '<div class="wo-success-actions">' +
+        '<a class="wo-success-btn wo-success-btn-primary" href="#contact" data-wo-close>联系客服</a>' +
+        '<button class="wo-success-btn" type="button" data-wo-close>好的</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(wrap);
+  const close = () => { wrap.remove(); document.body.style.overflow = ""; };
+  wrap.querySelector(".wo-success-mask").addEventListener("click", close);
+  wrap.querySelectorAll("[data-wo-close]").forEach((b) => b.addEventListener("click", close));
+  document.body.style.overflow = "hidden";
+}
+
 // 网页端下单（兜底通道）：心愿单里填收货信息 → 写入云开发 orders（与小程序订单同后台）
 function setWebOrderMsg(text, tone) {
   if (!webOrderMsg) return;
@@ -614,6 +707,32 @@ function bindWebOrder() {
     event.preventDefault();
     submitWebOrder();
   });
+
+  // 粘贴地址自动识别
+  const pasteBtn = document.getElementById("webOrderPasteBtn");
+  const pasteInput = document.getElementById("webOrderPaste");
+  if (pasteBtn && pasteInput) {
+    pasteBtn.addEventListener("click", () => {
+      const raw = pasteInput.value || "";
+      if (!raw.trim()) { setWebOrderMsg("请先粘贴整段地址。", "error"); return; }
+      const r = parseAddress(raw);
+      const setIf = (name, val) => {
+        const el = webOrderForm.querySelector(`[name="${name}"]`);
+        if (el && val) el.value = val;
+      };
+      setIf("recipient", r.recipient);
+      setIf("phone", r.phone);
+      setIf("province", r.province);
+      setIf("city", r.city);
+      setIf("district", r.district);
+      setIf("detail", r.detail);
+      if (!r.recipient && !r.province && !r.phone) {
+        setWebOrderMsg("未能识别，请手动填写。", "error");
+      } else {
+        setWebOrderMsg("已识别，请核对后提交。", "success");
+      }
+    });
+  }
 }
 
 function submitWebOrder() {
@@ -668,7 +787,7 @@ function submitWebOrder() {
       saveWishlist([]);
       webOrderForm.reset();
       renderAll();
-      window.alert("✅ 提交成功！客服会尽快联系你核对并安排办理。");
+      showOrderSuccessModal();
     })
     .catch((err) => {
       setWebOrderMsg((err && err.message) || "提交失败，请重试或扫码联系客服。", "error");
