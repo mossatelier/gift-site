@@ -3748,6 +3748,7 @@ body.admin-logged-in #adminLogoutButtonLogged {
 .float-chat-label { font-size: 11px; font-weight: 700; }
 .float-top { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.96); color: var(--text); font-size: 20px; font-weight: 800; align-self: center; }
 .kefu-pop { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; }
+.kefu-pop[hidden] { display: none; }
 .kefu-pop-mask { position: absolute; inset: 0; background: rgba(0,0,0,0.5); }
 .kefu-pop-card { position: relative; width: 280px; background: #fff; border-radius: 18px; padding: 22px; text-align: center; }
 .kefu-pop-title { margin: 0 0 14px; font-size: 16px; font-weight: 800; color: var(--text); }
