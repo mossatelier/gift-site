@@ -686,6 +686,72 @@ async function reviewStatus({ reviewId, status }, token) {
   return { reviewId, status };
 }
 
+// 网页端公开下单：无微信登录，写入云开发 orders（source='web'），商家在同一后台「订单管理」核对。
+// 不收款，仅领取登记；做基本校验 + 商品快照（按 supabaseId 校正标题/积分）。
+async function webSubmitOrder({ items, address, remark }) {
+  const list = Array.isArray(items) ? items : [];
+  if (list.length === 0) throw new Error('心愿单为空');
+  if (list.length > 50) throw new Error('商品过多');
+  const addr = address || {};
+  const recipient = String(addr.recipient || '').trim();
+  const phone = String(addr.phone || '').trim();
+  if (!recipient) throw new Error('请填写收件人姓名');
+  if (!/^1\d{10}$/.test(phone)) throw new Error('手机号格式不正确');
+  if (!String(addr.province || '').trim() || !String(addr.city || '').trim()) throw new Error('请填写所在省 / 市');
+  if (!String(addr.detail || '').trim()) throw new Error('请填写详细地址');
+
+  // 商品快照：优先用云开发 products（按 supabaseId 匹配）校正标题/积分，找不到则用前端传值
+  const ids = Array.from(new Set(list.map(it => String((it && (it.supabaseId || it.id)) || '')).filter(Boolean)));
+  const map = {};
+  if (ids.length) {
+    try {
+      const r = await db.collection('products').where({ supabaseId: _.in(ids) }).limit(50).get();
+      r.data.forEach(p => { if (p.supabaseId) map[String(p.supabaseId)] = p; });
+    } catch (e) { /* 匹配失败则用前端值 */ }
+  }
+  const itemSnapshots = [];
+  let totalCards = 0;
+  for (const it of list) {
+    const key = String((it && (it.supabaseId || it.id)) || '');
+    const p = map[key];
+    const cards = Number(p && p.cardsNeeded != null ? p.cardsNeeded : (it && it.cardsNeeded)) || 0;
+    const qty = Math.max(1, Math.min(99, Number(it && it.qty) || 1));
+    itemSnapshots.push({
+      productId: (p && p._id) || '',
+      supabaseId: key,
+      title: String((p && p.title) || (it && it.title) || '礼品').slice(0, 60),
+      imageUrl: String((p && ((Array.isArray(p.images) && p.images[0]) || p.imageUrl)) || (it && it.imageUrl) || '').slice(0, 500),
+      cardsNeeded: cards,
+      price: Number(p && p.price != null ? p.price : (it && it.price)) || 0,
+      qty
+    });
+    totalCards += cards * qty;
+  }
+
+  const now = new Date();
+  const order = {
+    openid: '',
+    source: 'web',
+    items: itemSnapshots,
+    address: {
+      recipient: recipient.slice(0, 40),
+      phone,
+      province: String(addr.province).trim().slice(0, 40),
+      city: String(addr.city).trim().slice(0, 40),
+      district: String(addr.district || '').trim().slice(0, 40),
+      detail: String(addr.detail).trim().slice(0, 200)
+    },
+    remark: String(remark || '').trim().slice(0, 500),
+    totalCards,
+    itemCount: itemSnapshots.length,
+    status: 'pending',
+    createdAt: now,
+    updatedAt: now
+  };
+  const add = await db.collection('orders').add({ data: order });
+  return { success: true, orderId: add._id };
+}
+
 // ---------- Entry ----------
 
 function buildResponse(statusCode, payload) {

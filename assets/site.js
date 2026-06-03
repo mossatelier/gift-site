@@ -25,6 +25,8 @@ const catContentTitle = document.getElementById("catContentTitle");
 const wishlistGrid = document.getElementById("wishlistGrid");
 const wishlistEmpty = document.getElementById("wishlistEmpty");
 const wishlistGridWrap = document.getElementById("wishlistGridWrap");
+const webOrderForm = document.getElementById("webOrderForm");
+const webOrderMsg = document.getElementById("webOrderMsg");
 const productDetailEl = document.getElementById("productDetail");
 const imageViewer = document.getElementById("imageViewer");
 const imageViewerImg = imageViewer ? imageViewer.querySelector(".image-viewer-img") : null;
@@ -596,6 +598,84 @@ function fallbackCopyText(text, done) {
   } catch (err) {
     /* 复制失败静默，用户仍可手动选 */
   }
+}
+
+// 网页端下单（兜底通道）：心愿单里填收货信息 → 写入云开发 orders（与小程序订单同后台）
+function setWebOrderMsg(text, tone) {
+  if (!webOrderMsg) return;
+  webOrderMsg.textContent = text || "";
+  if (tone) webOrderMsg.dataset.tone = tone;
+  else delete webOrderMsg.dataset.tone;
+}
+
+function bindWebOrder() {
+  if (!webOrderForm) return;
+  webOrderForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    submitWebOrder();
+  });
+}
+
+function submitWebOrder() {
+  if (!webOrderForm) return;
+  const ids = getWishlist();
+  const items = state.products.filter((p) => ids.includes(String(p.id)));
+  if (items.length === 0) {
+    setWebOrderMsg("心愿单是空的，先去添加礼品吧。", "error");
+    return;
+  }
+  if (!config.adminOrdersUrl) {
+    setWebOrderMsg("下单服务暂未配置，请直接扫码联系客服。", "error");
+    return;
+  }
+  const fd = new FormData(webOrderForm);
+  const get = (k) => (fd.get(k) || "").toString().trim();
+  const address = {
+    recipient: get("recipient"),
+    phone: get("phone"),
+    province: get("province"),
+    city: get("city"),
+    district: get("district"),
+    detail: get("detail")
+  };
+  const remark = get("remark");
+  if (!address.recipient) { setWebOrderMsg("请填写收件人姓名。", "error"); return; }
+  if (!/^1\d{10}$/.test(address.phone)) { setWebOrderMsg("请填写正确的 11 位手机号。", "error"); return; }
+  if (!address.province || !address.city) { setWebOrderMsg("请填写省份和城市。", "error"); return; }
+  if (!address.detail) { setWebOrderMsg("请填写详细地址。", "error"); return; }
+
+  const payload = {
+    action: "web-submit-order",
+    items: items.map((p) => ({ id: p.id, supabaseId: p.id, title: p.title, cardsNeeded: p.cardsNeeded, price: p.price, imageUrl: p.imageUrl, qty: 1 })),
+    address,
+    remark
+  };
+
+  const btn = webOrderForm.querySelector(".web-order-submit");
+  if (btn) btn.disabled = true;
+  setWebOrderMsg("提交中…", null);
+
+  fetch(config.adminOrdersUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  })
+    .then((res) => res.json().catch(() => ({})))
+    .then((json) => {
+      if (!json || !json.ok) {
+        throw new Error((json && json.error) || "提交失败");
+      }
+      saveWishlist([]);
+      webOrderForm.reset();
+      renderAll();
+      window.alert("✅ 提交成功！客服会尽快联系你核对并安排办理。");
+    })
+    .catch((err) => {
+      setWebOrderMsg((err && err.message) || "提交失败，请重试或扫码联系客服。", "error");
+    })
+    .finally(() => {
+      if (btn) btn.disabled = false;
+    });
 }
 
 const viewedProductIds = new Set();
@@ -1191,6 +1271,7 @@ function injectFloatWidgets() {
 
 bindEvents();
 bindCategoryRail();
+bindWebOrder();
 goToSlide(0);
 startAutoplay();
 loadProducts();

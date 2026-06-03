@@ -3811,3 +3811,19 @@ body.admin-logged-in #adminLogoutButtonLogged {
 @media (max-width: 360px) {
   .cat-product-grid { gap: 8px; }
 }
+
+/* ====== 网页端下单表单（小程序审核期兜底接单） ====== */
+.web-order-form { margin-top: 14px; padding: 16px; border-radius: 16px; background: rgba(255,255,255,0.96); border: 1px solid rgba(234,223,206,0.9); box-shadow: var(--shadow); }
+.web-order-title { margin: 0 0 12px; font-size: 15px; font-weight: 800; color: var(--text); }
+.web-order-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.web-order-row .web-order-input { flex: 1 1 0; min-width: 0; }
+.web-order-input { width: 100%; box-sizing: border-box; margin-bottom: 8px; padding: 11px 12px; border-radius: 10px; border: 1px solid rgba(234,223,206,0.95); background: #fff; font-size: 14px; color: var(--text); }
+.web-order-row .web-order-input { margin-bottom: 0; }
+.web-order-input::placeholder { color: #b8a98f; }
+.web-order-input:focus { outline: none; border-color: var(--red); }
+.web-order-submit { width: 100%; margin-top: 4px; min-height: 48px; border: none; border-radius: 999px; background: linear-gradient(135deg, var(--red) 0%, var(--red-deep) 100%); color: #fff; font-size: 15px; font-weight: 800; cursor: pointer; box-shadow: 0 12px 22px rgba(214,75,42,0.28); }
+.web-order-submit:disabled { opacity: 0.6; cursor: default; }
+.web-order-msg { margin: 10px 0 0; font-size: 13px; font-weight: 700; text-align: center; min-height: 18px; }
+.web-order-msg[data-tone="error"] { color: #c0392b; }
+.web-order-msg[data-tone="success"] { color: #2d8a82; }
+.web-order-hint { margin: 8px 0 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
