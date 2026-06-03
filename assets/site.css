@@ -3789,3 +3789,22 @@ body.admin-logged-in #adminLogoutButtonLogged {
 .admin-order-danger { border-top: 1px dashed rgba(214, 75, 42, 0.3); }
 .admin-order-danger-hint { font-weight: 400; font-size: 11px; color: #a05; opacity: 0.7; margin-left: 4px; }
 .admin-order-delete-btn { color: #c0392b; border-color: rgba(214, 75, 42, 0.4); }
+
+/* ====== 全部商品页：大类 + 更多下拉 + 二级（多行筛选，对齐小程序） ====== */
+#chipRow { display: block; overflow: visible; padding: 0; }
+.chip-main-row,
+.chip-sub-row { display: flex; align-items: center; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 4px 0; }
+.chip-main-row::-webkit-scrollbar,
+.chip-sub-row::-webkit-scrollbar { display: none; }
+.chip-sub-row { margin-top: 6px; }
+.chip-more { background: rgba(255, 244, 230, 0.95); color: var(--red-deep); border-color: rgba(224, 172, 77, 0.4); }
+.chip-more-panel { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; padding: 10px 12px; background: rgba(255, 255, 255, 0.94); border: 1px solid rgba(234, 223, 206, 0.9); border-radius: 14px; box-shadow: var(--shadow); }
+.chip-sub { font-size: 11.5px; padding: 6px 12px; }
+
+/* ====== 分类页：二级条 + 完整卡片网格（带彩色标签） ====== */
+.cat-content-body { min-width: 0; }
+.cat-sub-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.cat-product-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 360px) {
+  .cat-product-grid { gap: 8px; }
+}

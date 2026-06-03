@@ -75,7 +75,7 @@ const urlParams = (() => {
 
 function initialCategory() {
   const fromUrl = urlParams.get("category");
-  if (fromUrl && categoryLabelMap.has(fromUrl)) {
+  if (fromUrl && (categoryLabelMap.has(fromUrl) || fromUrl === "mombaby")) {
     return fromUrl;
   }
   return "all";
@@ -96,6 +96,8 @@ const state = {
   sort: initialSort(),
   priceDirection: "asc",
   category: initialCategory(),
+  sub: "",
+  showMore: false,
   query: urlParams.get("q") || ""
 };
 
@@ -117,6 +119,50 @@ function buildPointsText(item) {
     return "推荐办理可领";
   }
   return item.cardsNeeded > 0 ? `兑换积分：${item.cardsNeeded} 分` : "";
+}
+
+// ====== 分类：大类 + 更多 + 二级（与小程序 list 页口径一致） ======
+const subcategories = (config.subcategories && typeof config.subcategories === "object") ? config.subcategories : {};
+// 「母婴好物」虚拟大类 = 这一组细分类
+const MOMBABY_GROUP = ["stroller", "playpen", "carseat", "carrier", "earlyedu", "toy", "chairtable", "ride"];
+// 全部商品页顶部平铺的大类
+const DISPLAY_CATS = [
+  { value: "all", label: "全部礼品" },
+  { value: "referral", label: "推荐有礼" },
+  { value: "mombaby", label: "母婴好物" },
+  { value: "pet", label: "宠物用品" },
+  { value: "camping", label: "户外露营" }
+];
+// 「更多」下拉里的大类
+const MORE_CATS = [
+  { value: "digital", label: "电子数码" },
+  { value: "appliance", label: "家用电器" }
+];
+// 某展示分类的二级 [{value,label}]：mombaby→8 细类；referral/toy/ride→subcategories
+function subItemsOf(display) {
+  if (display === "mombaby") return MOMBABY_GROUP.map((v) => ({ value: v, label: categoryLabel(v) }));
+  const subs = subcategories[display] || [];
+  return subs.map((s) => ({ value: s, label: s }));
+}
+// 把（可能是细类的）category 解析成 {display, sub}
+function resolveDisplay(cat) {
+  if (!cat || cat === "all") return { display: "all", sub: "" };
+  if (MOMBABY_GROUP.indexOf(cat) >= 0) return { display: "mombaby", sub: cat };
+  return { display: cat, sub: "" };
+}
+function displayCatLabel(value) {
+  const f = DISPLAY_CATS.concat(MORE_CATS).find((c) => c.value === value);
+  return f ? f.label : categoryLabel(value);
+}
+// 列表页分类匹配：all / mombaby(整组或单细类) / 普通分类(+二级)
+function categoryMatch(item) {
+  const cat = state.category;
+  if (cat === "all") return true;
+  if (cat === "mombaby") {
+    return state.sub ? item.category === state.sub : MOMBABY_GROUP.indexOf(item.category) >= 0;
+  }
+  if (item.category !== cat) return false;
+  return state.sub ? item.subcategory === state.sub : true;
 }
 
 function parseDate(dateValue) {
@@ -282,9 +328,7 @@ function filteredProducts(items = state.products) {
   const keyword = state.query.trim().toLowerCase();
 
   const filtered = items.filter((item) => {
-    const matchCategory = state.category === "all" || item.category === state.category;
-
-    if (!matchCategory) {
+    if (!categoryMatch(item)) {
       return false;
     }
 
@@ -409,22 +453,32 @@ function renderCategoryPage() {
     return `<button class="cat-rail-item ${isActive ? "active" : ""}" type="button" data-cat-rail="${escapeHtml(item.value)}">${escapeHtml(item.label)}</button>`;
   }).join("");
 
+  const items = state.products.filter((item) => {
+    if (item.category !== state.category) return false;
+    return state.sub ? item.subcategory === state.sub : true;
+  });
+
   const activeLabel = categoryLabel(state.category);
   if (catContentTitle) {
-    catContentTitle.innerHTML = `
-      <span>${escapeHtml(activeLabel)}</span>
-      <a class="cat-content-more" href="list.html?category=${encodeURIComponent(state.category)}">查看全部</a>
-    `;
+    catContentTitle.innerHTML =
+      `<span>${escapeHtml(activeLabel)}</span>` +
+      `<a class="cat-content-more" href="list.html?category=${encodeURIComponent(state.category)}">查看 ${items.length} 件全部 ›</a>`;
   }
 
-  const items = state.products.filter((item) => item.category === state.category).slice(0, 12);
+  // 二级 chips（当前分类有二级时显示）
+  const subs = subItemsOf(state.category);
+  const subHtml = subs.length > 0
+    ? `<div class="cat-sub-row"><button class="chip-item chip-sub ${state.sub === "" ? "active" : ""}" type="button" data-cat-sub="">全部</button>${subs.map((item) => {
+        return `<button class="chip-item chip-sub ${state.sub === item.value ? "active" : ""}" type="button" data-cat-sub="${escapeHtml(item.value)}">${escapeHtml(item.label)}</button>`;
+      }).join("")}</div>`
+    : "";
 
-  if (items.length === 0) {
-    catContentGrid.innerHTML = "<p class=\"cat-empty\">这个分类还没有礼品，去看看其他分类吧。</p>";
-    return;
-  }
+  // 完整商品卡片（带彩色兑换标签），与列表页一致
+  const gridHtml = items.length === 0
+    ? "<p class=\"cat-empty\">这个分类还没有礼品，去看看其他分类吧。</p>"
+    : `<div class="product-grid cat-product-grid">${items.map(productCard).join("")}</div>`;
 
-  catContentGrid.innerHTML = items.map(categoryGridItem).join("");
+  catContentGrid.innerHTML = subHtml + gridHtml;
 }
 
 function updateChipRow() {
@@ -434,33 +488,42 @@ function updateChipRow() {
 
   const priceArrow = state.priceDirection === "asc" ? " ↑" : " ↓";
   const sortChips = [
-    {
-      value: "price",
-      label: state.sort === "price" ? `积分${priceArrow}` : "积分",
-      active: state.sort === "price"
-    },
-    {
-      value: "newest",
-      label: "最新",
-      active: state.sort === "newest"
-    }
+    { value: "price", label: state.sort === "price" ? `积分${priceArrow}` : "积分", active: state.sort === "price" },
+    { value: "newest", label: "最新", active: state.sort === "newest" }
   ];
-
-  const categoryChips = [
-    { value: "all", label: "全部" },
-    ...nonAllCategories
-  ];
-
   const sortHtml = sortChips.map((item) => {
     return `<button class="chip-item chip-sort ${item.active ? "active" : ""}" type="button" data-chip-sort="${escapeHtml(item.value)}">${escapeHtml(item.label)}</button>`;
   }).join("");
 
-  const categoryHtml = categoryChips.map((item) => {
+  // 大类 chips
+  const mainHtml = DISPLAY_CATS.map((item) => {
     const isActive = item.value === state.category;
     return `<button class="chip-item ${isActive ? "active" : ""}" type="button" data-chip="${escapeHtml(item.value)}">${escapeHtml(item.label)}</button>`;
   }).join("");
 
-  chipRow.innerHTML = sortHtml + "<span class=\"chip-divider\" aria-hidden=\"true\"></span>" + categoryHtml;
+  // 「更多」chip：选中的是更多里的分类时高亮并显示其名
+  const moreActive = MORE_CATS.some((c) => c.value === state.category);
+  const moreLabel = moreActive ? displayCatLabel(state.category) : "更多";
+  const moreChip = `<button class="chip-item chip-more ${moreActive || state.showMore ? "active" : ""}" type="button" data-chip-more>${escapeHtml(moreLabel)} ${state.showMore ? "▴" : "▾"}</button>`;
+
+  // 「更多」下拉面板
+  const morePanel = state.showMore
+    ? `<div class="chip-more-panel">${MORE_CATS.map((item) => {
+        const a = item.value === state.category;
+        return `<button class="chip-item ${a ? "active" : ""}" type="button" data-chip="${escapeHtml(item.value)}">${escapeHtml(item.label)}</button>`;
+      }).join("")}</div>`
+    : "";
+
+  // 二级 chips（当前大类有二级时显示）
+  const subs = subItemsOf(state.category);
+  const subHtml = subs.length > 0
+    ? `<div class="chip-sub-row"><button class="chip-item chip-sub ${state.sub === "" ? "active" : ""}" type="button" data-chip-sub="">全部</button>${subs.map((item) => {
+        return `<button class="chip-item chip-sub ${state.sub === item.value ? "active" : ""}" type="button" data-chip-sub="${escapeHtml(item.value)}">${escapeHtml(item.label)}</button>`;
+      }).join("")}</div>`
+    : "";
+
+  chipRow.innerHTML =
+    `<div class="chip-main-row">${sortHtml}<span class="chip-divider" aria-hidden="true"></span>${mainHtml}${moreChip}</div>${morePanel}${subHtml}`;
 }
 
 function renderWishlistPage() {
@@ -695,7 +758,18 @@ function bindCategoryRail() {
     if (state.category === "all" && nonAllCategories.length > 0) {
       state.category = nonAllCategories[0].value;
     }
+    state.sub = ""; // 切分类清掉二级，避免旧二级把新分类过滤空
 
+    renderCategoryPage();
+  });
+
+  // 分类页右侧二级 chips
+  catContentGrid?.addEventListener("click", (event) => {
+    const subBtn = event.target.closest("[data-cat-sub]");
+    if (!subBtn) {
+      return;
+    }
+    state.sub = subBtn.getAttribute("data-cat-sub") || "";
     renderCategoryPage();
   });
 }
@@ -746,13 +820,30 @@ function bindEvents() {
       return;
     }
 
-    const categoryBtn = event.target.closest("[data-chip]");
-
-    if (!categoryBtn) {
+    // 「更多」开合
+    const moreBtn = event.target.closest("[data-chip-more]");
+    if (moreBtn) {
+      state.showMore = !state.showMore;
+      renderProducts();
       return;
     }
 
+    // 二级筛选
+    const subBtn = event.target.closest("[data-chip-sub]");
+    if (subBtn) {
+      state.sub = subBtn.getAttribute("data-chip-sub") || "";
+      renderProducts();
+      return;
+    }
+
+    // 大类（含「更多」面板里的分类）→ 切大类、清二级、收起更多面板
+    const categoryBtn = event.target.closest("[data-chip]");
+    if (!categoryBtn) {
+      return;
+    }
     state.category = categoryBtn.dataset.chip || "all";
+    state.sub = "";
+    state.showMore = false;
 
     if (categoryFilter) {
       categoryFilter.value = state.category;
@@ -874,8 +965,19 @@ function bindEvents() {
   });
 }
 
-if (state.category === "all" && catRail && nonAllCategories.length > 0) {
-  state.category = nonAllCategories[0].value;
+// 初始化分类/二级：分类页用真实分类（左栏）；列表页把分类解析成 大类 + 二级
+if (catRail) {
+  const rawCat = urlParams.get("category");
+  if (rawCat && categoryLabelMap.has(rawCat) && rawCat !== "all") {
+    state.category = rawCat;
+  } else if (nonAllCategories.length > 0) {
+    state.category = nonAllCategories[0].value;
+  }
+  state.sub = "";
+} else if (productGrid) {
+  const resolved = resolveDisplay(state.category);
+  state.category = resolved.display;
+  state.sub = resolved.sub;
 }
 
 if (categoryFilter && categoryLabelMap.has(state.category)) {
