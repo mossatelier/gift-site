@@ -176,6 +176,19 @@ function escapeHtml(value) {
   });
 }
 
+// 转义后保留换行（商品描述多行排版用）
+function escapeMultiline(value) {
+  return escapeHtml(value).replace(/\r?\n/g, "<br>");
+}
+
+// 客服信息（后续可在 config.js 配置，缺省走默认；改号一处即可）
+function kefuQrSrc() {
+  return (typeof config !== "undefined" && config.kefuQr) || "images/wechat-qr.jpg";
+}
+function kefuWechatId() {
+  return (typeof config !== "undefined" && config.kefuWechat) || "L1916959";
+}
+
 async function fetchProductsFromSupabase() {
   const params = new URLSearchParams({
     select: "id,title,category,subcategory,price,cards_needed,description,image_url,images,sort_order,is_active,created_at,view_count",
@@ -467,6 +480,53 @@ function renderWishlistPage() {
   if (wishlistGrid) {
     wishlistGrid.innerHTML = items.map(productCard).join("");
   }
+
+  const countEl = document.getElementById("wishlistCount");
+  if (countEl) {
+    countEl.textContent = `已选 ${items.length} 件`;
+  }
+}
+
+// 一键复制心愿清单文本（拿去发客服）
+function copyWishlistText(btn) {
+  const ids = getWishlist();
+  const items = state.products.filter((item) => ids.includes(String(item.id)));
+  if (items.length === 0) return;
+  const lines = items.map((it, i) => `${i + 1}. ${it.title}`);
+  const text = `我的心愿清单（加加好物图集）：\n${lines.join("\n")}\n共 ${items.length} 件，想了解如何免费办卡领取~`;
+  const done = () => {
+    if (!btn) return;
+    const old = btn.dataset.label || btn.textContent;
+    btn.dataset.label = old;
+    btn.textContent = "已复制 ✓";
+    btn.classList.add("copied");
+    setTimeout(() => {
+      btn.textContent = btn.dataset.label || "📋 复制清单";
+      btn.classList.remove("copied");
+    }, 1800);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopyText(text, done));
+  } else {
+    fallbackCopyText(text, done);
+  }
+}
+
+function fallbackCopyText(text, done) {
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    done();
+  } catch (err) {
+    /* 复制失败静默，用户仍可手动选 */
+  }
 }
 
 const viewedProductIds = new Set();
@@ -520,14 +580,35 @@ function renderProductDetail() {
     : "";
   const pointsText = buildPointsText(item);
   const descText = item.description
-    ? `<p class="product-detail-desc">${escapeHtml(item.description)}</p>`
+    ? `<div class="product-detail-section"><h2 class="product-detail-subhead">礼品说明</h2><p class="product-detail-desc">${escapeMultiline(item.description)}</p></div>`
     : "";
 
   const imageList = item.images && item.images.length > 0 ? item.images : [item.imageUrl];
   const galleryHtml = imageList.length > 1
-    ? `<div class="product-detail-gallery">${imageList.map((src) => `<img class="product-detail-gallery-img" src="${escapeHtml(src)}" alt="${escapeHtml(item.title)}" data-gallery-zoom>`).join("")}</div>`
+    ? `<div class="product-detail-gallery">${imageList.map((src, i) => `<img class="product-detail-gallery-img${i === 0 ? " active" : ""}" src="${escapeHtml(src)}" alt="${escapeHtml(item.title)}" data-gallery-pick="${escapeHtml(src)}">`).join("")}</div>`
     : "";
-  const subText = item.subcategory ? `<span class="product-cards">${escapeHtml(item.subcategory)}</span>` : "";
+
+  // 分类 / 二级分类 chip
+  const catChip = item.category ? `<span class="pd-chip">${escapeHtml(item.category)}</span>` : "";
+  const subChip = item.subcategory ? `<span class="pd-chip pd-chip-sub">${escapeHtml(item.subcategory)}</span>` : "";
+  const tagsHtml = (catChip || subChip) ? `<div class="product-detail-tags">${catChip}${subChip}</div>` : "";
+
+  // 内联客服卡：就地加客服，不跳走
+  const qr = kefuQrSrc();
+  const wx = kefuWechatId();
+  const kefuCard = `
+    <div class="product-detail-kefu">
+      <p class="pd-kefu-title">喜欢这件？联系客服免费领取</p>
+      <div class="pd-kefu-row">
+        <img class="pd-kefu-qr" src="${escapeHtml(qr)}" alt="客服二维码" data-qr-popup="${escapeHtml(qr)}">
+        <div class="pd-kefu-info">
+          <p class="pd-kefu-step">① 长按 / 扫码加客服微信</p>
+          <p class="pd-kefu-step">② 发送礼品名：<b>${escapeHtml(item.title)}</b></p>
+          <p class="pd-kefu-step">③ 客服核对并指引免费办卡领取</p>
+          <p class="pd-kefu-wx">微信号：${escapeHtml(wx)}</p>
+        </div>
+      </div>
+    </div>`;
 
   productDetailEl.innerHTML = `
     <div class="product-detail-media" data-image-zoom>
@@ -542,14 +623,16 @@ function renderProductDetail() {
     ${galleryHtml}
     <div class="product-detail-body">
       <h1 class="product-detail-title">${escapeHtml(item.title)}</h1>
-      ${descText}
-      <p class="product-detail-views" id="productDetailViews">👁 浏览 ${escapeHtml(item.viewCount || 0)} 次</p>
+      ${tagsHtml}
       <div class="product-detail-meta">
         ${priceText}
         ${pointsText ? `<span class="product-cards">${escapeHtml(pointsText)}</span>` : ""}
-        ${subText}
       </div>
-      <a class="product-detail-cta" href="wishlist.html">联系客服领取</a>
+      <p class="product-detail-views" id="productDetailViews">👁 浏览 ${escapeHtml(item.viewCount || 0)} 次</p>
+      <a class="pd-points-link" href="earn.html">💡 积分怎么来？查看「获取积分」对照表 ›</a>
+      ${descText}
+      ${kefuCard}
+      <a class="product-detail-cta product-detail-cta-ghost" href="wishlist.html">查看我的心愿单 ›</a>
     </div>
   `;
 
@@ -735,6 +818,13 @@ function bindEvents() {
       return;
     }
 
+    const copyBtn = event.target.closest("[data-wishlist-copy]");
+    if (copyBtn) {
+      event.preventDefault();
+      copyWishlistText(copyBtn);
+      return;
+    }
+
     const zoomTarget = event.target.closest("[data-image-zoom]");
     if (zoomTarget) {
       event.preventDefault();
@@ -743,10 +833,23 @@ function bindEvents() {
       return;
     }
 
-    const galleryThumb = event.target.closest("[data-gallery-zoom]");
-    if (galleryThumb) {
+    // 缩略图：切换主图（不直接放大，主图点一下才放大）
+    const galleryPick = event.target.closest("[data-gallery-pick]");
+    if (galleryPick) {
       event.preventDefault();
-      openImageViewer(galleryThumb.src);
+      const mainImg = document.querySelector(".product-detail-media img");
+      if (mainImg) mainImg.src = galleryPick.dataset.galleryPick;
+      document.querySelectorAll(".product-detail-gallery-img").forEach((el) => {
+        el.classList.toggle("active", el === galleryPick);
+      });
+      return;
+    }
+
+    // 晒图墙图片：点击放大
+    const galleryZoom = event.target.closest("[data-gallery-zoom]");
+    if (galleryZoom) {
+      event.preventDefault();
+      openImageViewer(galleryZoom.src);
       return;
     }
 

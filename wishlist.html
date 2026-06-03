@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>心愿单 · 加加好物图集</title>
   <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
-  <link rel="stylesheet" href="assets/site.css?v=10">
+  <link rel="stylesheet" href="assets/site.css?v=11">
 </head>
 <body id="top">
   <div class="page-shell">
@@ -31,11 +31,19 @@
       </div>
 
       <div class="wishlist-grid-wrap" id="wishlistGridWrap" hidden>
+        <div class="wishlist-toolbar">
+          <span class="wishlist-count" id="wishlistCount">已选 0 件</span>
+          <div class="wishlist-toolbar-actions">
+            <button class="wishlist-copy-btn" type="button" data-wishlist-copy>📋 复制清单</button>
+            <a class="wishlist-jump-btn" href="#contact">联系客服领取 ›</a>
+          </div>
+        </div>
+        <p class="wishlist-toolbar-tip">复制清单后，把它发给客服微信即可咨询如何免费办卡领取~</p>
         <div class="wishlist-grid" id="wishlistGrid"></div>
       </div>
     </section>
 
-    <section class="wishlist-contact">
+    <section class="wishlist-contact" id="contact">
       <h2 class="wishlist-contact-title">联系我</h2>
       <div class="wishlist-qr">
         <img src="images/wishlist-wechat-qr.jpg" alt="客服微信二维码" onerror="this.style.display='none';this.nextElementSibling.hidden=false;">
@@ -125,6 +133,6 @@
   </nav>
 
   <script src="assets/config.js"></script>
-  <script src="assets/site.js?v=10"></script>
+  <script src="assets/site.js?v=11"></script>
 </body>
 </html>
