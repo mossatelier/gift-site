@@ -90,6 +90,10 @@
   box-shadow: 0 10rpx 30rpx rgba(46, 35, 18, 0.08);
 }
 
+.product-detail-taghead {
+  margin-bottom: 12rpx;
+}
+
 .product-detail-title {
   font-size: 34rpx;
   font-weight: 800;

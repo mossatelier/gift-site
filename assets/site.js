@@ -595,6 +595,10 @@ function renderProductDetail() {
   const subChip = item.subcategory ? `<span class="pd-chip pd-chip-sub">${escapeHtml(item.subcategory)}</span>` : "";
   const tagsHtml = (catChip || subChip) ? `<div class="product-detail-tags">${catChip}${subChip}</div>` : "";
 
+  // 兑换方式色标（与列表卡片同色：推荐可兑=青绿，办卡可兑=红）
+  const isReferral = item.category === "referral";
+  const tagHead = `<div class="product-detail-taghead"><span class="title-tag ${isReferral ? "title-tag-referral" : "title-tag-card"}">${isReferral ? "推荐可兑" : "办卡可兑"}</span></div>`;
+
   // 内联客服卡：就地加客服，不跳走
   const qr = kefuQrSrc();
   const wx = kefuWechatId();
@@ -624,6 +628,7 @@ function renderProductDetail() {
     </div>
     ${galleryHtml}
     <div class="product-detail-body">
+      ${tagHead}
       <h1 class="product-detail-title">${escapeHtml(item.title)}</h1>
       ${tagsHtml}
       <div class="product-detail-meta">

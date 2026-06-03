@@ -60,6 +60,9 @@
 
   <!-- 商品信息卡 -->
   <view class="product-detail-card">
+    <view class="product-detail-taghead">
+      <text class="title-tag {{product.category === 'referral' ? 'title-tag-referral' : 'title-tag-card'}}">{{product.category === 'referral' ? '推荐可兑' : '办卡可兑'}}</text>
+    </view>
     <text class="product-detail-title">{{product.title}}</text>
     <view class="product-detail-meta">
       <text class="product-detail-points" wx:if="{{pointsText}}">{{pointsText}}</text>

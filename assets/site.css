@@ -1738,6 +1738,14 @@ body.admin-logged-in #adminLogoutButtonLogged {
 .title-tag-referral {
   background: linear-gradient(135deg, #1f9488 0%, #36b39e 100%);
 }
+/* 详情页：兑换方式色标放标题上方一行 */
+.product-detail-taghead {
+  margin-bottom: 8px;
+}
+.product-detail-taghead .title-tag {
+  font-size: 12px;
+  padding: 3px 10px;
+}
 
 /* Category page === */
 .cat-shell {
