@@ -6,6 +6,16 @@
   <title>进度查询 · 加加好物图集</title>
   <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
   <link rel="stylesheet" href="assets/site.css?v=7">
+  <style>
+    .bank-qr-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    .bank-qr-card { background: rgba(255,255,255,0.92); border: 1px solid rgba(234,223,206,0.9); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; box-shadow: 0 8px 20px rgba(46,35,18,0.06); }
+    .bank-qr-head { display: flex; align-items: center; gap: 8px; }
+    .bank-qr-logo { width: 26px; height: 26px; border-radius: 6px; object-fit: contain; background: #fff; }
+    .bank-qr-name { font-size: 14px; font-weight: 700; color: var(--text); }
+    .bank-qr-code { width: 100%; max-width: 200px; aspect-ratio: 1; object-fit: contain; border-radius: 8px; background: #fff; }
+    .bank-qr-copy { width: 100%; padding: 8px 0; border: 1px solid var(--line); border-radius: 999px; background: rgba(214,75,42,0.06); color: var(--red-deep); font-size: 13px; font-weight: 700; cursor: pointer; }
+    @media (max-width: 360px) { .bank-qr-list { grid-template-columns: 1fr; } }
+  </style>
 </head>
 <body id="top">
   <div class="page-shell">
@@ -24,72 +34,47 @@
       </div>
 
       <div class="bank-table">
-        <p class="bank-intro">点击下方银行名称，跳转到对应银行的官方进度查询页。</p>
+        <p class="bank-intro">长按二维码保存到相册 → 打开微信「扫一扫」选相册里的二维码即可跳转查询；也可「复制链接」在浏览器打开。</p>
 
-        <ul class="bank-list">
-          <li class="bank-item">
-            <a class="bank-link" href="https://e.creditcard.ecitic.com/citiccard/ebank-ocp/bsvc-card/index.html#/cardInput" target="_blank" rel="noopener noreferrer">
-              <img class="bank-logo" src="images/banks/citic.jpg" alt="中信银行">
-              <span class="bank-arrow">查询 ›</span>
-            </a>
+        <ul class="bank-qr-list">
+          <li class="bank-qr-card">
+            <div class="bank-qr-head"><img class="bank-qr-logo" src="images/banks/citic.jpg" alt="中信银行"><span class="bank-qr-name">中信银行</span></div>
+            <img class="bank-qr-code" src="images/progress/citic-qr.png" alt="中信银行进度查询二维码" data-qr-popup>
+            <button class="bank-qr-copy" type="button" data-copy="https://e.creditcard.ecitic.com/citiccard/ebank-ocp/bsvc-card/index.html#/cardInput">复制查询链接</button>
           </li>
-          <li class="bank-item">
-            <a class="bank-link" href="https://bank-static.pingan.com.cn/ca/ccBooking/ccBookingHtml/query/index.html" target="_blank" rel="noopener noreferrer">
-              <img class="bank-logo" src="images/banks/pingan.jpg" alt="平安银行">
-              <span class="bank-arrow">查询 ›</span>
-            </a>
+          <li class="bank-qr-card">
+            <div class="bank-qr-head"><img class="bank-qr-logo" src="images/banks/pingan.jpg" alt="平安银行"><span class="bank-qr-name">平安银行</span></div>
+            <img class="bank-qr-code" src="images/progress/pingan-qr.png" alt="平安银行进度查询二维码" data-qr-popup>
+            <button class="bank-qr-copy" type="button" data-copy="https://bank-static.pingan.com.cn/ca/ccBooking/ccBookingHtml/query/index.html">复制查询链接</button>
           </li>
-          <li class="bank-item">
-            <a class="bank-link" href="https://creditcardapp.bankcomm.com/cpqweb/apply/status/preinquiry.html" target="_blank" rel="noopener noreferrer">
-              <img class="bank-logo" src="images/banks/bocom.jpg" alt="交通银行">
-              <span class="bank-arrow">查询 ›</span>
-            </a>
+          <li class="bank-qr-card">
+            <div class="bank-qr-head"><img class="bank-qr-logo" src="images/banks/spdb.jpg" alt="浦发银行"><span class="bank-qr-name">浦发银行</span></div>
+            <img class="bank-qr-code" src="images/progress/spdb-qr.png" alt="浦发银行进度查询二维码" data-qr-popup>
+            <button class="bank-qr-copy" type="button" data-copy="https://adsp.spdbccc.com.cn/adsp/view/mobile/phoneCheck.html?ciphertext=E85B42DFBE1844DA0392D08EC07186A1FE1FA5ACAFDF0319739C36E5A24A958E1D7CA7516A994BE28301511984F668EF11AB915BD1C47ABCFEEB9616A14D26D0">复制查询链接</button>
           </li>
-          <li class="bank-item">
-            <a class="bank-link" href="https://adsp.spdbccc.com.cn/adsp/view/mobile/phoneCheck.html?ciphertext=E85B42DFBE1844DA0392D08EC07186A1FE1FA5ACAFDF0319739C36E5A24A958E1D7CA7516A994BE28301511984F668EF11AB915BD1C47ABCFEEB9616A14D26D0" target="_blank" rel="noopener noreferrer">
-              <img class="bank-logo" src="images/banks/spdb.jpg" alt="浦发银行">
-              <span class="bank-arrow">查询 ›</span>
-            </a>
+          <li class="bank-qr-card">
+            <div class="bank-qr-head"><img class="bank-qr-logo" src="images/banks/bocom.jpg" alt="交通银行"><span class="bank-qr-name">交通银行</span></div>
+            <img class="bank-qr-code" src="images/progress/bocom-qr.jpg" alt="交通银行进度查询二维码" data-qr-popup>
+            <button class="bank-qr-copy" type="button" data-copy="https://creditcardapp.bankcomm.com/cpqweb/apply/status/preinquiry.html">复制查询链接</button>
           </li>
-          <li class="bank-item">
-            <a class="bank-link" href="https://xyk.cmbchina.com/card-management-site/progress-query" target="_blank" rel="noopener noreferrer">
-              <img class="bank-logo" src="images/banks/cmb.jpg" alt="招商银行">
-              <span class="bank-arrow">查询 ›</span>
-            </a>
+          <li class="bank-qr-card">
+            <div class="bank-qr-head"><img class="bank-qr-logo" src="images/banks/cmb.jpg" alt="招商银行"><span class="bank-qr-name">招商银行</span></div>
+            <img class="bank-qr-code" src="images/progress/cmb-qr.jpg" alt="招商银行进度查询二维码" data-qr-popup>
+            <button class="bank-qr-copy" type="button" data-copy="https://xyk.cmbchina.com/card-management-site/progress-query">复制查询链接</button>
           </li>
-          <li class="bank-item">
-            <a class="bank-link" href="https://wx.creditcard.cmbc.com.cn/front/creditGetProgressSeaNew" target="_blank" rel="noopener noreferrer">
-              <span class="bank-name">民生银行</span>
-              <span class="bank-arrow">查询 ›</span>
-            </a>
+          <li class="bank-qr-card">
+            <div class="bank-qr-head"><img class="bank-qr-logo" src="images/banks/cib.jpg" alt="兴业银行"><span class="bank-qr-name">兴业银行</span></div>
+            <img class="bank-qr-code" src="images/progress/cib-qr.jpg" alt="兴业银行进度查询二维码" data-qr-popup>
+            <button class="bank-qr-copy" type="button" data-copy="https://personalbank.cib.com.cn/pers/creditCard/outer/querySchedule.do">复制查询链接</button>
           </li>
-          <li class="bank-item">
-            <a class="bank-link" href="https://wxstatic.creditcard.hxb.com.cn/nwxhx/6304/#/identityVerification/identityVerification" target="_blank" rel="noopener noreferrer">
-              <span class="bank-name">华夏银行</span>
-              <span class="bank-arrow">查询 ›</span>
-            </a>
-          </li>
-          <li class="bank-item">
-            <a class="bank-link" href="http://t.cn/A667YPJ1" target="_blank" rel="noopener noreferrer">
-              <span class="bank-name">光大银行</span>
-              <span class="bank-arrow">查询 ›</span>
-            </a>
-          </li>
-          <li class="bank-item">
-            <a class="bank-link" href="https://creditapply.fubonchina.com/ws-gateway/mvue/m/#/queryInfo?business=CJ04" target="_blank" rel="noopener noreferrer">
-              <span class="bank-name">富邦华一银行</span>
-              <span class="bank-arrow">查询 ›</span>
-            </a>
-          </li>
-          <li class="bank-item">
-            <a class="bank-link" href="https://wap.cgbchina.com.cn/h5-mobilebank-web/h5/ws/subfield/index?srcChannel=WS&mbp_subcode=200003112" target="_blank" rel="noopener noreferrer">
-              <span class="bank-name">广发银行</span>
-              <span class="bank-arrow">查询 ›</span>
-            </a>
+          <li class="bank-qr-card">
+            <div class="bank-qr-head"><img class="bank-qr-logo" src="images/banks/cmbc.jpg" alt="民生银行"><span class="bank-qr-name">民生银行</span></div>
+            <img class="bank-qr-code" src="images/progress/cmbc-qr.png" alt="民生银行进度查询二维码" data-qr-popup>
+            <button class="bank-qr-copy" type="button" data-copy="https://wx.creditcard.cmbc.com.cn/front/creditGetProgressSeaNew">复制查询链接</button>
           </li>
         </ul>
 
-        <p class="bank-tip">提示：链接会打开银行官网。如打不开请联系客服微信 <strong>L1916959</strong>。</p>
+        <p class="bank-tip">提示：如二维码无法识别，可「复制链接」在浏览器打开；仍有问题请联系客服微信 <strong>L1916959</strong>。</p>
       </div>
     </section>
 
@@ -140,5 +125,24 @@
 
   <script src="assets/config.js"></script>
   <script src="assets/site.js?v=7"></script>
+  <script>
+    // 复制查询链接（navigator.clipboard + execCommand 兜底）
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-copy]');
+      if (!btn) return;
+      var text = btn.getAttribute('data-copy');
+      var ok = function () { var t = btn.textContent; btn.textContent = '已复制 ✓'; setTimeout(function () { btn.textContent = t; }, 1500); };
+      var fallback = function () {
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        try { document.execCommand('copy'); ok(); } catch (err) { btn.textContent = '请长按链接手动复制'; }
+        document.body.removeChild(ta);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(ok, fallback);
+      } else { fallback(); }
+    });
+  </script>
 </body>
 </html>
