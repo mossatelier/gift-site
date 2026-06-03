@@ -623,7 +623,7 @@
       statsCard(periodLabel + "最受申请礼品 TOP 5", renderTopList(top, "requested")),
       statsCard("浏览 TOP 10", renderTopList(topViewed, "viewed"), "累计"),
       statsCard("心愿 TOP 10", renderTopList(topWishlisted, "wishlisted"), "未变现意向"),
-      statsCard("省份 TOP 5", renderRegionList(dist.provinces), "累计 " + (dist.total || 0) + " 个地址"),
+      statsCard("省份 TOP 5", renderRegionList(dist.provinces), periodLabel + (dist.total || 0) + " 单"),
       statsCard("城市 TOP 10", renderRegionList(dist.cities))
     ].join("") + sampleNote;
 

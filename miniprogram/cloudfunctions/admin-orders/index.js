@@ -249,7 +249,6 @@ async function getStats({ period = 'today' }) {
     productsNewRes,
     topViewedRes,
     allWishlists,
-    allAddresses,
     prevUsersRes,
     prevOrdersTotalRes,
     prevOrdersDataRes
@@ -261,7 +260,6 @@ async function getStats({ period = 'today' }) {
     since ? db.collection('products').where({ createdAt: _.gte(since) }).count() : Promise.resolve({ total: 0 }),
     db.collection('products').where({ isActive: true }).orderBy('viewCount', 'desc').limit(10).get(),
     fetchAll(db.collection('wishlists'), 5000),
-    fetchAll(db.collection('addresses'), 5000),
     prevWhere ? db.collection('users').where(prevWhere).count() : Promise.resolve({ total: 0 }),
     prevWhere ? db.collection('orders').where(prevWhere).count() : Promise.resolve({ total: 0 }),
     prevWhere ? db.collection('orders').where(prevWhere).orderBy('createdAt', 'desc').limit(1000).get() : Promise.resolve({ data: [] })
@@ -352,12 +350,16 @@ async function getStats({ period = 'today' }) {
     };
   });
 
-  // 地域分布（累计）
+  // 地域分布（按周期内订单的收货地址快照统计，与订单口径一致；删订单即随之减少）
   const provCount = {};
   const cityCount = {};
-  for (const a of allAddresses) {
-    if (a.province) provCount[a.province] = (provCount[a.province] || 0) + 1;
-    if (a.province && a.city) {
+  let geoTotal = 0;
+  for (const o of orders) {
+    const a = o.address || {};
+    if (!a.province) continue;
+    provCount[a.province] = (provCount[a.province] || 0) + 1;
+    geoTotal += 1;
+    if (a.city) {
       const key = `${a.province} ${a.city}`;
       cityCount[key] = (cityCount[key] || 0) + 1;
     }
@@ -394,7 +396,7 @@ async function getStats({ period = 'today' }) {
     topViewed,
     topWishlisted,
     addressDistribution: {
-      total: allAddresses.length,
+      total: geoTotal,
       provinces,
       cities
     },

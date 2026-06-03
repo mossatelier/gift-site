@@ -2199,7 +2199,7 @@ function renderStats() {
 
     <div class="admin-stats-doublerow">
       <div class="admin-stats-section">
-        <h3 class="admin-stats-section-title">省份 TOP 5 <span class="admin-stats-section-tag">累计 ${escapeHtml(dist.total)} 个地址</span></h3>
+        <h3 class="admin-stats-section-title">省份 TOP 5 <span class="admin-stats-section-tag">${escapeHtml(PERIOD_LABEL[state.statsPeriod] || "")}${escapeHtml(dist.total)} 单</span></h3>
         ${dist.provinces.length === 0
           ? '<p class="admin-status-text">暂无地址数据。</p>'
           : `<div class="admin-stats-region-list">${dist.provinces.map((p, i) => `
