@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>心愿单 · 加加好物图集</title>
   <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
-  <link rel="stylesheet" href="assets/site.css?v=11">
+  <link rel="stylesheet" href="assets/site.css?v=12">
 </head>
 <body id="top">
   <div class="page-shell">
@@ -44,13 +44,24 @@
     </section>
 
     <section class="wishlist-contact" id="contact">
-      <h2 class="wishlist-contact-title">联系我</h2>
-      <div class="wishlist-qr">
-        <img src="images/wishlist-wechat-qr.jpg" alt="客服微信二维码" onerror="this.style.display='none';this.nextElementSibling.hidden=false;">
-        <span class="wishlist-qr-fallback" hidden>扫码<br>添加客服</span>
+      <h2 class="wishlist-contact-title">联系我 · 下单</h2>
+      <div class="wishlist-qr-row">
+        <div class="wishlist-qr-card">
+          <div class="wishlist-qr wishlist-qr-sm">
+            <img src="images/wishlist-wechat-qr.jpg" alt="客服微信二维码" data-qr-popup="images/wishlist-wechat-qr.jpg" onerror="this.style.display='none';this.nextElementSibling.hidden=false;">
+            <span class="wishlist-qr-fallback" hidden>扫码<br>添加客服</span>
+          </div>
+          <p class="wishlist-qr-cap">加客服微信</p>
+        </div>
+        <div class="wishlist-qr-card">
+          <div class="wishlist-qr wishlist-qr-sm">
+            <img src="images/miniprogram-qr.png" alt="小程序码" data-qr-popup="images/miniprogram-qr.png">
+          </div>
+          <p class="wishlist-qr-cap">微信扫码进小程序</p>
+        </div>
       </div>
       <p class="wishlist-wechat-id">客服微信：<strong>L1916959</strong></p>
-      <p class="wishlist-tip">点击放大，长按识别二维码或保存</p>
+      <p class="wishlist-tip">点击二维码放大，长按识别或保存；小程序可直接下单查进度</p>
       <p class="wishlist-channels">💳 信用卡　💰 存款　📈 证券</p>
       <p class="wishlist-channels-tip">以上方式均可领取礼品</p>
     </section>
@@ -133,6 +144,6 @@
   </nav>
 
   <script src="assets/config.js"></script>
-  <script src="assets/site.js?v=11"></script>
+  <script src="assets/site.js?v=12"></script>
 </body>
 </html>

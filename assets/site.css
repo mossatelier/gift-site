@@ -2282,6 +2282,36 @@ body.admin-logged-in #adminLogoutButtonLogged {
   height: 100%;
   object-fit: contain;
   border-radius: 12px;
+  cursor: zoom-in;
+}
+
+/* 双二维码并排（客服 + 小程序码） */
+.wishlist-qr-row {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 0 0 8px;
+}
+
+.wishlist-qr-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.wishlist-qr-sm {
+  width: 152px;
+  height: 152px;
+  margin: 0;
+}
+
+.wishlist-qr-cap {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
 }
 
 .wishlist-wechat-id {
