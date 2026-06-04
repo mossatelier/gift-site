@@ -2981,3 +2981,6 @@ body.pc-admin {
 /* 批量条：批量删除（危险） */
 .pc-orders-bulk-delete { padding: 8px 14px; border: 1px solid rgba(214,75,42,0.4); border-radius: 8px; background: rgba(214,75,42,0.06); color: #c0392b; font-size: 13px; font-weight: 700; cursor: pointer; }
 .pc-orders-bulk-delete:hover { background: rgba(214,75,42,0.12); }
+
+/* 隐藏的侧栏入口（如晒图审核暂时下线）——避免 display:flex 压过 [hidden] */
+.pc-nav-item[hidden] { display: none; }
