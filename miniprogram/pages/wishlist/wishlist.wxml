@@ -54,7 +54,7 @@
 
       <textarea
         class="submit-remark"
-        placeholder="备注（可选）：办卡进度 / 偏好颜色 / 其他说明…"
+        placeholder="备注（必填）：想要的颜色 / 规格 / 想办的银行等，方便我们准备发货"
         value="{{remark}}"
         bindinput="onRemarkInput"
         maxlength="500"

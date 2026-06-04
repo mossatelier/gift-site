@@ -762,6 +762,7 @@ function submitWebOrder() {
   if (!/^1\d{10}$/.test(address.phone)) { setWebOrderMsg("请填写正确的 11 位手机号。", "error"); return; }
   if (!address.province || !address.city) { setWebOrderMsg("请填写省份和城市。", "error"); return; }
   if (!address.detail) { setWebOrderMsg("请填写详细地址。", "error"); return; }
+  if (!remark) { setWebOrderMsg("请填写备注：想要的颜色 / 规格 / 想办的银行等。", "error"); return; }
 
   const payload = {
     action: "web-submit-order",

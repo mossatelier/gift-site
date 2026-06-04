@@ -141,8 +141,20 @@ Page({
       return;
     }
 
+    // 备注必填：客户需写明颜色/规格，否则商家无法准备发货
+    if (!this.data.remark || !this.data.remark.trim()) {
+      wx.showModal({
+        title: '请填写备注',
+        content: '下单前请在备注里写明想要的颜色 / 规格 / 想办的银行等，方便我们准备发货。',
+        showCancel: false,
+        confirmText: '去填写',
+        confirmColor: '#d64b2a'
+      });
+      return;
+    }
+
     const items = this.data.items.map(it => ({ _id: it._id, qty: 1 }));
-    const remark = this.data.remark || '';
+    const remark = this.data.remark.trim();
 
     // 在点击手势链路内请求订阅（下单成功通知 + 发货提醒），一次最多 3 个；
     // 只请求已配置 ID 的模板；无论同意与否都继续提交
