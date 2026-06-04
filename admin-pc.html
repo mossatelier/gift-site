@@ -91,11 +91,23 @@
           </div>
 
           <div class="pc-nav-group">
-            <p class="pc-nav-group-title">运营</p>
-            <a class="pc-nav-item" data-panel="orders" href="#orders">
+            <p class="pc-nav-group-title">订单管理</p>
+            <a class="pc-nav-item" data-panel="orders" data-orders-status="pending" href="#orders">
               <span class="pc-nav-ico">📦</span>
-              <span class="pc-nav-text">订单管理</span>
+              <span class="pc-nav-text">待处理</span>
               <span class="pc-nav-badge" id="pcBadgeOrders" hidden>0</span>
+            </a>
+            <a class="pc-nav-item" data-panel="orders" data-orders-status="done" href="#orders">
+              <span class="pc-nav-ico">🚚</span>
+              <span class="pc-nav-text">已发货</span>
+            </a>
+            <a class="pc-nav-item" data-panel="orders" data-orders-status="cancelled" href="#orders">
+              <span class="pc-nav-ico">🚫</span>
+              <span class="pc-nav-text">已取消</span>
+            </a>
+            <a class="pc-nav-item" data-panel="orders" data-orders-status="all" href="#orders">
+              <span class="pc-nav-ico">📋</span>
+              <span class="pc-nav-text">全部订单</span>
             </a>
             <!-- 晒图审核暂时下线（晒图未在收集）；恢复：去掉此 a 上的 hidden 即可 -->
             <a class="pc-nav-item" data-panel="reviews" href="#reviews" hidden>
@@ -201,6 +213,6 @@
 
   <script src="assets/config.js?v=11"></script>
   <script src="assets/admin-core.js?v=5"></script>
-  <script src="assets/admin-pc.js?v=13"></script>
+  <script src="assets/admin-pc.js?v=14"></script>
 </body>
 </html>

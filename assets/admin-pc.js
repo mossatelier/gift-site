@@ -260,7 +260,19 @@
       item.addEventListener("click", function (event) {
         event.preventDefault();
         var key = item.getAttribute("data-panel");
-        if (key) activatePanel(key);
+        if (!key) return;
+        // 订单管理的 4 个入口共用 orders 面板，按 data-orders-status 切筛选
+        var ost = item.getAttribute("data-orders-status");
+        if (ost && key === "orders") {
+          var changed = state.ordersStatus !== ost;
+          state.ordersStatus = ost;
+          state.ordersPage = 0;
+          if (typeof ordersClearSelection === "function") ordersClearSelection();
+          activatePanel(key);
+          loadOrders(true); // 强制按新状态重拉
+          return;
+        }
+        activatePanel(key);
       });
     });
 
@@ -384,7 +396,10 @@
     try { history.replaceState(null, "", "#" + key); } catch (e) {}
 
     pcNavItems.forEach(function (item) {
-      item.classList.toggle("active", item.getAttribute("data-panel") === key);
+      var samePanel = item.getAttribute("data-panel") === key;
+      var ost = item.getAttribute("data-orders-status");
+      // 订单管理 4 入口：只高亮与当前筛选一致的那个
+      item.classList.toggle("active", samePanel && (!ost || ost === state.ordersStatus));
     });
 
     pcPanels.forEach(function (panel) {
@@ -3303,12 +3318,6 @@
     host.classList.remove("pc-panel-placeholder");
     host.setAttribute("data-orders-ready", "1");
 
-    var tabs = ORDER_STATUS_TABS.map(function (t) {
-      var active = t.value === state.ordersStatus ? " active" : "";
-      return '<button class="pc-orders-chip' + active + '" type="button" data-orders-status="'
-        + escapeHtml(t.value) + '">' + escapeHtml(t.label) + "</button>";
-    }).join("");
-
     var bulkStatusOptions = ['<option value="">批量改为…</option>'].concat(
       Object.keys(ORDER_STATUS_LABEL).map(function (s) {
         return '<option value="' + escapeHtml(s) + '">' + escapeHtml(ORDER_STATUS_LABEL[s]) + "</option>";
@@ -3317,7 +3326,6 @@
 
     host.innerHTML =
       '<div class="pc-orders-toolbar">'
-      + '<div class="pc-orders-tabs" id="pcOrdersTabs">' + tabs + "</div>"
       + '<input class="pc-orders-search" id="pcOrdersSearch" type="search" placeholder="搜索收件人 / 手机号 / 订单号…" autocomplete="off">'
       + '<span class="pc-orders-count" id="pcOrdersCount"></span>'
       + '<button class="pc-btn-ghost pc-orders-refresh" id="pcOrdersRefreshBtn" type="button">刷新</button>'
