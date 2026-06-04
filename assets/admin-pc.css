@@ -2998,3 +2998,13 @@ body.pc-admin {
 .pc-orders-src { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 6px; font-size: 11px; font-weight: 700; vertical-align: middle; }
 .pc-orders-src-web { background: rgba(31,148,136,0.12); color: #1f7a70; }
 .pc-orders-src-mp { background: rgba(7,193,96,0.12); color: #07943f; }
+
+/* 下拉框统一：去系统外观 + 自定义箭头（注：select 展开的选项列表由系统渲染，CSS 无法美化） */
+.pc-admin select {
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a3917c' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 30px;
+}
