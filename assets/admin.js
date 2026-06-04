@@ -1476,10 +1476,11 @@ adminCancelEditButton?.addEventListener("click", () => {
 
 const ORDER_STATUS_LABEL = {
   pending: "待处理",
-  processing: "处理中",
-  done: "已完成",
+  done: "已发货",
   cancelled: "已取消"
 };
+// 状态文案（历史 processing/未知 一律兜底「待处理」）
+function orderStatusText(s) { return ORDER_STATUS_LABEL[s] || "待处理"; }
 
 function setOrdersMessage(text, tone = "idle") {
   if (!adminOrdersMessage) return;
@@ -1635,11 +1636,11 @@ function renderOrdersList() {
         <div class="admin-order-head" data-toggle-order="${escapeHtml(o._id)}">
           <input type="checkbox" class="admin-order-checkbox" data-select-order="${escapeHtml(o._id)}"${isChecked ? " checked" : ""}>
           <div class="admin-order-head-left">
-            <span class="admin-order-recipient">${escapeHtml(addr.recipient || "(无收件人)")}</span>
-            <span class="admin-order-summary">${escapeHtml(items.length)} 件 / ${escapeHtml(o.totalCards || 0)} 分</span>
+            <span class="admin-order-recipient">${escapeHtml(addr.recipient || "(无收件人)")}<span class="admin-order-src ${o.source === "web" ? "admin-order-src-web" : "admin-order-src-mp"}">${o.source === "web" ? "网页" : "小程序"}</span></span>
+            <span class="admin-order-summary">${escapeHtml((items[0] && items[0].title) || "礼品")}${items.length > 1 ? "等" : ""} · ${escapeHtml(items.length)}件</span>
           </div>
           <div class="admin-order-head-right">
-            <span class="admin-order-status admin-order-status-${escapeHtml(o.status)}">${escapeHtml(ORDER_STATUS_LABEL[o.status] || o.status || "")}</span>
+            <span class="admin-order-status admin-order-status-${escapeHtml(o.status)}">${escapeHtml(orderStatusText(o.status))}</span>
             <span class="admin-order-date">${escapeHtml(formatOrderDate(o.createdAt))}</span>
           </div>
         </div>
@@ -1796,13 +1797,15 @@ async function handleTrackingSave(orderId) {
   setOrdersMessage("正在保存单号…");
   try {
     await callAdminOrders("update-tracking", { orderId, trackingNo, trackingCompany });
-    // 就地写回，避免重渲染丢失展开态
+    // 就地写回；填单号 = 发货 → 云端已自动置「已发货」，前端同步状态并重渲染徽标
     const idx = state.orders.findIndex((o) => o._id === orderId);
     if (idx >= 0) {
       state.orders[idx].trackingNo = trackingNo;
       state.orders[idx].trackingCompany = trackingCompany;
+      if (state.orders[idx].status !== "cancelled") state.orders[idx].status = "done";
     }
-    setOrdersMessage("单号已保存，用户端即可查看。", "success");
+    renderOrdersList();
+    setOrdersMessage("单号已保存，已自动标记「已发货」并推送用户。", "success");
   } catch (err) {
     setOrdersMessage(err.message, "error");
   }
@@ -1864,10 +1867,17 @@ adminTabOrders?.addEventListener("click", () => {
 
 adminOrdersRefreshButton?.addEventListener("click", () => loadOrders());
 
-adminOrdersStatusFilter?.addEventListener("change", () => {
-  state.ordersStatus = adminOrdersStatusFilter.value || "all";
+// 状态分段 tab：待处理 / 已发货 / 已取消 / 全部订单
+const adminOrdersSegs = document.getElementById("adminOrdersSegs");
+adminOrdersSegs?.addEventListener("click", (event) => {
+  const btn = event.target.closest("[data-orders-seg]");
+  if (!btn) return;
+  state.ordersStatus = btn.getAttribute("data-orders-seg") || "pending";
   state.ordersPage = 0;
   state.selectedOrderIds.clear();
+  Array.from(adminOrdersSegs.querySelectorAll(".admin-orders-seg")).forEach((b) => {
+    b.classList.toggle("active", b === btn);
+  });
   loadOrders();
 });
 
@@ -2169,8 +2179,7 @@ function renderStats() {
         <div class="admin-stats-label">订单状态分布</div>
         <div class="admin-stats-status-grid">
           <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-pending">待处理</span><span>${escapeHtml(byStatus.pending || 0)}</span></div>
-          <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-processing">处理中</span><span>${escapeHtml(byStatus.processing || 0)}</span></div>
-          <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-done">已完成</span><span>${escapeHtml(byStatus.done || 0)}</span></div>
+          <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-done">已发货</span><span>${escapeHtml(byStatus.done || 0)}</span></div>
           <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-cancelled">已取消</span><span>${escapeHtml(byStatus.cancelled || 0)}</span></div>
         </div>
       </div>

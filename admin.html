@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>加加好物图集 · 商品录入后台</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="assets/site.css?v=21">
+  <link rel="stylesheet" href="assets/site.css?v=22">
 </head>
 <body class="admin-page">
   <main class="admin-shell">
@@ -61,7 +61,7 @@
         <button class="admin-panel-tab active" id="adminTabCreate" type="button"><span class="tab-ico">📝</span>录入礼品</button>
         <button class="admin-panel-tab" id="adminTabEdit" type="button"><span class="tab-ico">✏️</span>编辑礼品</button>
         <button class="admin-panel-tab" id="adminTabBanks" type="button"><span class="tab-ico">🏦</span>银行积分</button>
-        <button class="admin-panel-tab" id="adminTabOrders" type="button"><span class="tab-ico">📦</span>申请管理</button>
+        <button class="admin-panel-tab" id="adminTabOrders" type="button"><span class="tab-ico">📦</span>订单管理</button>
         <!-- 晒图审核暂时下线（晒图未在收集）；恢复：去掉 hidden 即可 -->
         <button class="admin-panel-tab" id="adminTabReviews" type="button" hidden><span class="tab-ico">🖼️</span>晒图审核</button>
         <button class="admin-panel-tab" id="adminTabStats" type="button"><span class="tab-ico">📊</span>数据看板</button>
@@ -208,17 +208,16 @@
 
       <section class="admin-card" id="adminOrdersPanel" hidden>
         <div class="admin-status-head">
-          <h2 class="admin-section-title">用户申请订单</h2>
+          <h2 class="admin-section-title">订单管理</h2>
           <button class="admin-secondary-btn" id="adminOrdersRefreshButton" type="button">刷新</button>
         </div>
+        <div class="admin-orders-segs" id="adminOrdersSegs">
+          <button class="admin-orders-seg active" type="button" data-orders-seg="pending">待处理</button>
+          <button class="admin-orders-seg" type="button" data-orders-seg="done">已发货</button>
+          <button class="admin-orders-seg" type="button" data-orders-seg="cancelled">已取消</button>
+          <button class="admin-orders-seg" type="button" data-orders-seg="all">全部订单</button>
+        </div>
         <div class="admin-orders-toolbar">
-          <select id="adminOrdersStatusFilter">
-            <option value="all">全部状态</option>
-            <option value="pending" selected>待处理</option>
-            <option value="processing">处理中</option>
-            <option value="done">已完成</option>
-            <option value="cancelled">已取消</option>
-          </select>
           <input id="adminOrdersSearchInput" type="search" placeholder="搜索：礼品名/收件人/手机/备注">
           <span class="admin-orders-count" id="adminOrdersCount"></span>
         </div>
@@ -231,8 +230,7 @@
           <select id="adminOrdersBulkStatus">
             <option value="">改为…</option>
             <option value="pending">待处理</option>
-            <option value="processing">处理中</option>
-            <option value="done">已完成</option>
+            <option value="done">已发货</option>
             <option value="cancelled">已取消</option>
           </select>
           <button class="admin-secondary-btn" id="adminOrdersBulkApply" type="button">批量更新</button>
@@ -334,6 +332,6 @@
   </main>
 
   <script src="assets/config.js?v=11"></script>
-  <script src="assets/admin.js?v=24"></script>
+  <script src="assets/admin.js?v=25"></script>
 </body>
 </html>

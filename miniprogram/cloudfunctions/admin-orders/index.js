@@ -22,7 +22,8 @@ const _ = db.command;
 const SUPABASE_URL = 'https://ukoqffocqjokcroilyyv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrb3FmZm9jcWpva2Nyb2lseXl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzMxMDUsImV4cCI6MjA5MDkwOTEwNX0.jKFzbuDLbbDboUD8vJLAu0uTkkEzE2YnC2bHU5I8RH0';
 
-const ALLOWED_STATUS = ['pending', 'processing', 'done', 'cancelled'];
+// 状态精简为三个：待处理 / 已发货(done) / 已取消（去掉旧的 processing 处理中）
+const ALLOWED_STATUS = ['pending', 'done', 'cancelled'];
 
 // ---------- HTTP helper ----------
 
@@ -134,7 +135,12 @@ async function verifyAdmin(accessToken) {
 
 async function listOrders({ status, limit = 50, skip = 0, search = '' }) {
   const where = {};
-  if (status && ALLOWED_STATUS.includes(status)) where.status = status;
+  // 待处理 视图同时吸收历史「处理中(processing)」单，避免旧单无处可寻
+  if (status === 'pending') {
+    where.status = _.in(['pending', 'processing']);
+  } else if (status && ALLOWED_STATUS.includes(status)) {
+    where.status = status;
+  }
 
   // search 暂时只在 client 端过滤（数据量小，避免索引复杂）
   const res = await db.collection('orders')
@@ -271,10 +277,11 @@ async function getStats({ period = 'today' }) {
   const orders = ordersRes.data || [];
   const productsNew = since ? (productsNewRes.total || 0) : 0;
 
-  // 状态分布
-  const byStatus = { pending: 0, processing: 0, done: 0, cancelled: 0 };
+  // 状态分布（三态；历史 processing 归入 pending 待处理）
+  const byStatus = { pending: 0, done: 0, cancelled: 0 };
   for (const o of orders) {
-    if (byStatus[o.status] !== undefined) byStatus[o.status]++;
+    const k = o.status === 'processing' ? 'pending' : o.status;
+    if (byStatus[k] !== undefined) byStatus[k]++;
   }
 
   // TOP 5 申请
@@ -477,21 +484,26 @@ async function sendShipNotify(order, trackingNo, trackingCompany) {
   }
 }
 
-// 更新快递信息
+// 更新快递信息：填了单号 = 发货 → 自动置「已发货」(done) + 推送（已取消的不动）
 async function updateTracking({ orderId, trackingNo, trackingCompany }) {
   if (!orderId) throw new Error('缺少 orderId');
+  const trimmedNo = String(trackingNo || '').trim().slice(0, 50);
   const patch = {
-    trackingNo: String(trackingNo || '').trim().slice(0, 50),
+    trackingNo: trimmedNo,
     trackingCompany: String(trackingCompany || '').trim().slice(0, 30),
     updatedAt: new Date()
   };
+  if (trimmedNo) {
+    const cur = await db.collection('orders').doc(orderId).get();
+    if (cur.data && cur.data.status !== 'cancelled') patch.status = 'done';
+  }
   await db.collection('orders').doc(orderId).update({ data: patch });
   const r = await db.collection('orders').doc(orderId).get();
   // 录入单号后推送发货提醒（仅当填了单号）
   if (patch.trackingNo) {
     await sendShipNotify(r.data, patch.trackingNo, patch.trackingCompany);
   }
-  return r.data;
+  return { ...r.data, _autoDone: patch.status === 'done' };
 }
 
 // 分类显示顺序（存 app_config 集合，key=category_order）

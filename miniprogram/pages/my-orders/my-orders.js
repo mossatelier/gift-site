@@ -3,8 +3,7 @@ const { listMyOrders } = require('../../utils/db.js');
 
 const STATUS_LABEL = {
   pending: '待处理',
-  processing: '处理中',
-  done: '已完成',
+  done: '已发货',
   cancelled: '已取消'
 };
 

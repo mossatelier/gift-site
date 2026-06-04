@@ -4,10 +4,9 @@
   <block wx:elif="{{order}}">
     <view class="od-status-card">
       <text class="od-status-label status-{{order.status}}">{{statusLabel}}</text>
-      <text class="od-status-desc" wx:if="{{order.status === 'pending'}}">客服已收到申请，会主动联系你</text>
-      <text class="od-status-desc" wx:elif="{{order.status === 'processing'}}">客服正在为你办理，请保持微信畅通</text>
-      <text class="od-status-desc" wx:elif="{{order.status === 'done'}}">订单已完成，感谢支持</text>
+      <text class="od-status-desc" wx:if="{{order.status === 'done'}}">礼品已发货，请注意查收物流</text>
       <text class="od-status-desc" wx:elif="{{order.status === 'cancelled'}}">订单已取消</text>
+      <text class="od-status-desc" wx:else>客服已收到申请，会主动联系你</text>
     </view>
 
     <view class="od-card od-track-card" wx:if="{{order.trackingNo}}">

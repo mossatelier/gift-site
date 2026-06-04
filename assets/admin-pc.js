@@ -606,8 +606,7 @@
         + '<div class="pc-kpi-label">订单状态分布</div>'
         + '<div class="pc-stats-status-grid">'
         + '<div class="pc-stats-status-row"><span class="pc-order-status pc-order-status-pending">待处理</span><span>' + escapeHtml(byStatus.pending || 0) + "</span></div>"
-        + '<div class="pc-stats-status-row"><span class="pc-order-status pc-order-status-processing">处理中</span><span>' + escapeHtml(byStatus.processing || 0) + "</span></div>"
-        + '<div class="pc-stats-status-row"><span class="pc-order-status pc-order-status-done">已完成</span><span>' + escapeHtml(byStatus.done || 0) + "</span></div>"
+        + '<div class="pc-stats-status-row"><span class="pc-order-status pc-order-status-done">已发货</span><span>' + escapeHtml(byStatus.done || 0) + "</span></div>"
         + '<div class="pc-stats-status-row"><span class="pc-order-status pc-order-status-cancelled">已取消</span><span>' + escapeHtml(byStatus.cancelled || 0) + "</span></div>"
         + "</div>"
         + "</div>"
@@ -3215,17 +3214,17 @@
   var ORDERS_PAGE_SIZE = 50;
   var ORDER_STATUS_LABEL = {
     pending: "待处理",
-    processing: "处理中",
-    done: "已完成",
+    done: "已发货",
     cancelled: "已取消"
   };
-  // 工具栏状态筛选 tab（含 all）。
+  // 状态文案（历史 processing/未知 一律兜底显示「待处理」），用于徽标显示
+  function orderStatusText(s) { return ORDER_STATUS_LABEL[s] || "待处理"; }
+  // 工具栏状态筛选 tab（三环节 + 全部）。
   var ORDER_STATUS_TABS = [
     { value: "pending", label: "待处理" },
-    { value: "processing", label: "处理中" },
-    { value: "done", label: "已完成" },
+    { value: "done", label: "已发货" },
     { value: "cancelled", label: "已取消" },
-    { value: "all", label: "全部" }
+    { value: "all", label: "全部订单" }
   ];
   // 详情抽屉常用快递 chip（点击填公司框）。
   var ORDER_CARRIERS = [
@@ -3548,7 +3547,7 @@
       "<thead><tr>"
       + '<th class="pc-orders-col-check"></th>'
       + '<th class="pc-orders-col-recipient">收件人</th>'
-      + '<th class="pc-orders-col-summary">件数 · 积分</th>'
+      + '<th class="pc-orders-col-summary">礼品 · 件数</th>'
       + '<th class="pc-orders-col-status">状态</th>'
       + '<th class="pc-orders-col-date">下单时间</th>'
       + '<th class="pc-orders-col-view"></th>'
@@ -3564,10 +3563,11 @@
       return '<tr class="pc-orders-row' + isOpen + '" data-orders-row="' + idEsc + '">'
         + '<td class="pc-orders-col-check"><input type="checkbox" class="pc-orders-check" data-orders-select="' + idEsc + '"' + checked + "></td>"
         + '<td class="pc-orders-col-recipient"><span class="pc-orders-recipient">' + escapeHtml(addr.recipient || "(无收件人)") + "</span>"
+        + '<span class="pc-orders-src ' + (o.source === "web" ? "pc-orders-src-web" : "pc-orders-src-mp") + '">' + (o.source === "web" ? "网页" : "小程序") + "</span>"
         + (addr.phone ? '<span class="pc-orders-phone">' + escapeHtml(addr.phone) + "</span>" : "") + "</td>"
-        + '<td class="pc-orders-col-summary">' + escapeHtml(items.length) + " 件 · " + escapeHtml(o.totalCards || 0) + " 分</td>"
+        + '<td class="pc-orders-col-summary">' + escapeHtml((items[0] && items[0].title) || "礼品") + (items.length > 1 ? "等" : "") + " · " + escapeHtml(items.length) + "件</td>"
         + '<td class="pc-orders-col-status"><span class="pc-order-status ' + orderStatusCls(o.status) + '">'
-        + escapeHtml(ORDER_STATUS_LABEL[o.status] || o.status || "") + "</span></td>"
+        + escapeHtml(orderStatusText(o.status)) + "</span></td>"
         + '<td class="pc-orders-col-date">' + escapeHtml(formatOrderDate(o.createdAt)) + "</td>"
         + '<td class="pc-orders-col-view"><button class="pc-orders-view-btn" type="button" data-orders-view="' + idEsc + '">查看</button></td>'
         + "</tr>";
@@ -3682,7 +3682,7 @@
     var msg = "确认把 " + ids.length + " 单改为「" + ORDER_STATUS_LABEL[status] + "」？";
     if (offPage > 0) msg += "\n其中 " + offPage + " 单不在当前页、无法在此逐条核对。";
     if (status === "cancelled") msg += "\n「已取消」通常会退还用户积分、用户端立即可见，不可轻易撤回。";
-    else if (status === "done") msg += "\n「已完成」用户端将立即显示已完成。";
+    else if (status === "done") msg += "\n「已发货」用户端将立即显示已发货。";
     if (!window.confirm(msg)) return;
 
     setOrdersMsg("批量更新中…", null);
@@ -3879,7 +3879,7 @@
     var titleEl = document.getElementById("pcOrdersDrawerTitle");
     if (titleEl) {
       var addr = o.address || {};
-      titleEl.textContent = (addr.recipient || "订单") + " · " + (ORDER_STATUS_LABEL[o.status] || o.status || "");
+      titleEl.textContent = (addr.recipient || "订单") + " · " + orderStatusText(o.status);
     }
     renderOrdersDrawerBody(o);
 
@@ -3986,7 +3986,7 @@
     if (status === "cancelled" || status === "done") {
       var warn = status === "cancelled"
         ? "确认把该订单改为「已取消」？此操作通常会退还用户积分，且用户端立即可见，不可轻易撤回。"
-        : "确认把该订单改为「已完成」？用户端将显示已完成。";
+        : "确认把该订单改为「已发货」？用户端将显示已发货。";
       if (!window.confirm(warn)) {
         var selR = document.querySelector('[data-orders-status-select="' + ordersCssEscape(id) + '"]');
         if (selR) selR.value = o.status;
@@ -4040,10 +4040,20 @@
     setOrdersDrawerMsg("正在保存单号…", null);
 
     Core.callAdminOrders("update-tracking", { orderId: id, trackingNo: trackingNo, trackingCompany: trackingCompany })
-      .then(function () {
+      .then(function (res) {
         o.trackingNo = trackingNo;
         o.trackingCompany = trackingCompany;
-        setOrdersDrawerMsg("单号已保存，用户端即可查看。", "success");
+        // 填单号 = 发货 → 云端已自动置「已发货」，前端同步状态 + 重渲染
+        if (o.status !== "cancelled") {
+          o.status = "done";
+          renderOrdersTable();
+          var titleEl = document.getElementById("pcOrdersDrawerTitle");
+          if (titleEl) titleEl.textContent = ((o.address || {}).recipient || "订单") + " · " + orderStatusText("done");
+          var rowEl = document.querySelector('[data-orders-row="' + ordersCssEscape(id) + '"]');
+          if (rowEl) rowEl.classList.add("pc-orders-row-active");
+          loadBadges();
+        }
+        setOrdersDrawerMsg("单号已保存，已自动标记「已发货」并推送用户。", "success");
       })
       .catch(function (err) {
         setOrdersDrawerMsg((err && err.message) || "保存失败", "error");
