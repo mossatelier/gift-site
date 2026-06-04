@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>加加好物图集 · 商品录入后台</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="assets/site.css?v=24">
+  <link rel="stylesheet" href="assets/site.css?v=25">
 </head>
 <body class="admin-page">
   <main class="admin-shell">
@@ -212,10 +212,10 @@
           <button class="admin-secondary-btn" id="adminOrdersRefreshButton" type="button">刷新</button>
         </div>
         <div class="admin-orders-segs" id="adminOrdersSegs">
-          <button class="admin-orders-seg active" type="button" data-orders-seg="pending">待处理</button>
-          <button class="admin-orders-seg" type="button" data-orders-seg="done">已发货</button>
-          <button class="admin-orders-seg" type="button" data-orders-seg="cancelled">已取消</button>
-          <button class="admin-orders-seg" type="button" data-orders-seg="all">全部订单</button>
+          <button class="admin-orders-seg active" type="button" data-orders-seg="pending">待处理<span class="admin-orders-seg-count" data-seg-count="pending"></span></button>
+          <button class="admin-orders-seg" type="button" data-orders-seg="done">已发货<span class="admin-orders-seg-count" data-seg-count="done"></span></button>
+          <button class="admin-orders-seg" type="button" data-orders-seg="cancelled">已取消<span class="admin-orders-seg-count" data-seg-count="cancelled"></span></button>
+          <button class="admin-orders-seg" type="button" data-orders-seg="all">全部订单<span class="admin-orders-seg-count" data-seg-count="all"></span></button>
         </div>
         <div class="admin-orders-toolbar">
           <input id="adminOrdersSearchInput" type="search" placeholder="搜索：礼品名/收件人/手机/备注">
@@ -332,6 +332,6 @@
   </main>
 
   <script src="assets/config.js?v=11"></script>
-  <script src="assets/admin.js?v=25"></script>
+  <script src="assets/admin.js?v=26"></script>
 </body>
 </html>

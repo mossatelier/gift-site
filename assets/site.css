@@ -3892,3 +3892,7 @@ body.admin-logged-in #adminLogoutButtonLogged {
   cursor: pointer;
 }
 .admin-orders-bulk-bar select:focus { outline: none; border-color: var(--red); }
+
+/* 手机后台订单分段计数 */
+.admin-orders-seg-count { margin-left: 6px; font-size: 12px; font-weight: 800; opacity: 0.85; }
+.admin-orders-seg-count:empty { display: none; }

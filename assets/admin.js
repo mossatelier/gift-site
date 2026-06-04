@@ -1536,6 +1536,20 @@ async function callAdminOrders(action, payload = {}) {
   return json.data;
 }
 
+// 四个分段各自数量（与订单列表口径一致：待处理含历史 processing；total 不受日期影响）
+function loadOrderSegCounts() {
+  const segs = document.getElementById("adminOrdersSegs");
+  if (!segs || !activeSession()) return;
+  ["pending", "done", "cancelled", "all"].forEach((st) => {
+    callAdminOrders("list", { status: st, limit: 1 })
+      .then((data) => {
+        const el = segs.querySelector(`[data-seg-count="${st}"]`);
+        if (el) el.textContent = Number(data && data.total) || 0;
+      })
+      .catch(() => {});
+  });
+}
+
 async function loadOrders() {
   if (!adminOrdersList) return;
   if (!activeSession()) {
@@ -1544,6 +1558,7 @@ async function loadOrders() {
   }
   adminOrdersList.innerHTML = "<p class=\"admin-status-text\">加载中…</p>";
   setOrdersMessage("");
+  loadOrderSegCounts();
   try {
     const status = state.ordersStatus === "all" ? "" : state.ordersStatus;
     const skip = state.ordersPage * state.ordersPageSize;
