@@ -451,6 +451,12 @@ body.pc-admin {
   display: none;
 }
 
+/* 订单四入口角标分色：待处理红 / 已发货绿 / 已取消灰 / 全部蓝 */
+.pc-nav-badge-pending { background: #d64b2a; }
+.pc-nav-badge-done { background: #167a61; }
+.pc-nav-badge-cancelled { background: #8a8079; }
+.pc-nav-badge-all { background: #3b7ea1; }
+
 .pc-sidebar-foot {
   margin-top: auto;
   padding-top: 14px;

@@ -6,7 +6,7 @@
   <title>加加好物图集 · Admin Console（电脑版）</title>
   <meta name="robots" content="noindex,nofollow">
   <link rel="stylesheet" href="assets/site.css?v=23">
-  <link rel="stylesheet" href="assets/admin-pc.css?v=11">
+  <link rel="stylesheet" href="assets/admin-pc.css?v=12">
 </head>
 <body class="pc-admin">
 
@@ -95,19 +95,22 @@
             <a class="pc-nav-item" data-panel="orders" data-orders-status="pending" href="#orders">
               <span class="pc-nav-ico">📦</span>
               <span class="pc-nav-text">待处理</span>
-              <span class="pc-nav-badge" id="pcBadgeOrders" hidden>0</span>
+              <span class="pc-nav-badge pc-nav-badge-pending" id="pcBadgeOrders" hidden>0</span>
             </a>
             <a class="pc-nav-item" data-panel="orders" data-orders-status="done" href="#orders">
               <span class="pc-nav-ico">🚚</span>
               <span class="pc-nav-text">已发货</span>
+              <span class="pc-nav-badge pc-nav-badge-done" id="pcBadgeDone" hidden>0</span>
             </a>
             <a class="pc-nav-item" data-panel="orders" data-orders-status="cancelled" href="#orders">
               <span class="pc-nav-ico">🚫</span>
               <span class="pc-nav-text">已取消</span>
+              <span class="pc-nav-badge pc-nav-badge-cancelled" id="pcBadgeCancelled" hidden>0</span>
             </a>
             <a class="pc-nav-item" data-panel="orders" data-orders-status="all" href="#orders">
               <span class="pc-nav-ico">📋</span>
               <span class="pc-nav-text">全部订单</span>
+              <span class="pc-nav-badge pc-nav-badge-all" id="pcBadgeAll" hidden>0</span>
             </a>
             <!-- 晒图审核暂时下线（晒图未在收集）；恢复：去掉此 a 上的 hidden 即可 -->
             <a class="pc-nav-item" data-panel="reviews" href="#reviews" hidden>
@@ -213,6 +216,6 @@
 
   <script src="assets/config.js?v=11"></script>
   <script src="assets/admin-core.js?v=5"></script>
-  <script src="assets/admin-pc.js?v=14"></script>
+  <script src="assets/admin-pc.js?v=15"></script>
 </body>
 </html>

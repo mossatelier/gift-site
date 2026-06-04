@@ -31,6 +31,9 @@
   var pcNavItems = Array.prototype.slice.call(document.querySelectorAll(".pc-nav-item"));
   var pcPanels = Array.prototype.slice.call(document.querySelectorAll(".pc-panel"));
   var pcBadgeOrders = document.getElementById("pcBadgeOrders");
+  var pcBadgeDone = document.getElementById("pcBadgeDone");
+  var pcBadgeCancelled = document.getElementById("pcBadgeCancelled");
+  var pcBadgeAll = document.getElementById("pcBadgeAll");
   var pcBadgeReviews = document.getElementById("pcBadgeReviews");
 
   // 数据看板
@@ -429,21 +432,23 @@
   }
 
   function loadBadges() {
-    // 待处理订单数
-    Core.callAdminOrders("list", { status: "pending", limit: 1 })
-      .then(function (data) {
-        setBadge(pcBadgeOrders, data && data.total);
-      })
-      .catch(function () {
-        // 角标失败不打扰；保持隐藏。
-      });
-
-    // 待审核晒图数
-    Core.callAdminOrders("list-reviews", { status: "pending", limit: 1 })
-      .then(function (data) {
-        setBadge(pcBadgeReviews, data && data.total);
-      })
-      .catch(function () {});
+    // 四个订单入口各自数量（list 的 total 是该状态全量计数，不受日期影响）
+    var badgeJobs = [
+      { status: "pending", el: pcBadgeOrders },
+      { status: "done", el: pcBadgeDone },
+      { status: "cancelled", el: pcBadgeCancelled },
+      { status: "all", el: pcBadgeAll }
+    ];
+    badgeJobs.forEach(function (job) {
+      Core.callAdminOrders("list", { status: job.status, limit: 1 })
+        .then(function (data) {
+          if (!job.el) return;
+          var n = Number(data && data.total) || 0;
+          job.el.textContent = n > 99 ? "99+" : String(n);
+          job.el.hidden = false; // 四个入口都常显数量（含 0）
+        })
+        .catch(function () { /* 角标失败不打扰 */ });
+    });
   }
 
   // ============ 实时时钟（顶栏 + 看板共享一个 tick） ============
