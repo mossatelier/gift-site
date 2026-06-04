@@ -14,8 +14,10 @@ const adminLoginButton = document.getElementById("adminLoginButton");
 const adminLogoutButton = document.getElementById("adminLogoutButton");
 const adminLogoutButtonLogged = document.getElementById("adminLogoutButtonLogged");
 const adminAuthMessage = document.getElementById("adminAuthMessage");
-const adminTabCreate = document.getElementById("adminTabCreate");
-const adminTabEdit = document.getElementById("adminTabEdit");
+const adminTabGoods = document.getElementById("adminTabGoods");
+const adminGoodsSubnav = document.getElementById("adminGoodsSubnav");
+const adminGoodsTabCreate = document.getElementById("adminGoodsTabCreate");
+const adminGoodsTabEdit = document.getElementById("adminGoodsTabEdit");
 const adminCreatePanel = document.getElementById("adminCreatePanel");
 const adminEditPanel = document.getElementById("adminEditPanel");
 const productForm = document.getElementById("productForm");
@@ -468,9 +470,23 @@ function updatePanelUi() {
     catorder: adminCatOrderPanel,
     haibao: adminHaibaoPanel
   };
-  const tabs = {
-    create: adminTabCreate,
-    edit: adminTabEdit,
+  Object.keys(panels).forEach((key) => {
+    if (panels[key]) panels[key].hidden = state.activePanel !== key;
+  });
+
+  // 「礼品管理」合并 tab：录入/编辑 两个子视图共用，二者之一激活时高亮
+  const inGoods = state.activePanel === "create" || state.activePanel === "edit";
+  const tabActive = {
+    goods: inGoods,
+    banks: state.activePanel === "banks",
+    orders: state.activePanel === "orders",
+    stats: state.activePanel === "stats",
+    reviews: state.activePanel === "reviews",
+    catorder: state.activePanel === "catorder",
+    haibao: state.activePanel === "haibao"
+  };
+  const tabEls = {
+    goods: adminTabGoods,
     banks: adminTabBanks,
     orders: adminTabOrders,
     stats: adminTabStats,
@@ -478,11 +494,14 @@ function updatePanelUi() {
     catorder: adminTabCatOrder,
     haibao: adminTabHaibao
   };
-
-  Object.keys(panels).forEach((key) => {
-    if (panels[key]) panels[key].hidden = state.activePanel !== key;
-    if (tabs[key]) tabs[key].classList.toggle("active", state.activePanel === key);
+  Object.keys(tabEls).forEach((k) => {
+    if (tabEls[k]) tabEls[k].classList.toggle("active", tabActive[k]);
   });
+
+  // 礼品管理子切换（录入/编辑）：仅在礼品视图显示
+  if (adminGoodsSubnav) adminGoodsSubnav.hidden = !inGoods;
+  if (adminGoodsTabCreate) adminGoodsTabCreate.classList.toggle("active", state.activePanel === "create");
+  if (adminGoodsTabEdit) adminGoodsTabEdit.classList.toggle("active", state.activePanel === "edit");
 }
 
 function updateFormAccess() {
@@ -1299,12 +1318,20 @@ adminRefreshButton?.addEventListener("click", () => {
   loadRecentProducts();
 });
 
-adminTabCreate?.addEventListener("click", () => {
+// 礼品管理合并 tab：进入默认「录入」子视图
+adminTabGoods?.addEventListener("click", () => {
+  if (state.activePanel !== "create" && state.activePanel !== "edit") {
+    state.activePanel = "create";
+  }
+  updatePanelUi();
+});
+// 子切换：录入
+adminGoodsTabCreate?.addEventListener("click", () => {
   state.activePanel = "create";
   updatePanelUi();
 });
-
-adminTabEdit?.addEventListener("click", () => {
+// 子切换：编辑（切换时加载列表，沿用原行为）
+adminGoodsTabEdit?.addEventListener("click", () => {
   state.activePanel = "edit";
   updatePanelUi();
   loadRecentProducts();

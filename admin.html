@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>加加好物图集 · 商品录入后台</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="assets/site.css?v=25">
+  <link rel="stylesheet" href="assets/site.css?v=26">
 </head>
 <body class="admin-page">
   <main class="admin-shell">
@@ -58,8 +58,7 @@
 
     <div id="adminWorkspace" hidden>
       <section class="admin-card admin-panel-nav">
-        <button class="admin-panel-tab active" id="adminTabCreate" type="button"><span class="tab-ico">📝</span>录入礼品</button>
-        <button class="admin-panel-tab" id="adminTabEdit" type="button"><span class="tab-ico">✏️</span>编辑礼品</button>
+        <button class="admin-panel-tab active" id="adminTabGoods" type="button"><span class="tab-ico">🎁</span>礼品管理</button>
         <button class="admin-panel-tab" id="adminTabBanks" type="button"><span class="tab-ico">🏦</span>银行积分</button>
         <button class="admin-panel-tab" id="adminTabOrders" type="button"><span class="tab-ico">📦</span>订单管理</button>
         <!-- 晒图审核暂时下线（晒图未在收集）；恢复：去掉 hidden 即可 -->
@@ -68,6 +67,12 @@
         <button class="admin-panel-tab" id="adminTabCatOrder" type="button"><span class="tab-ico">🔀</span>分类排序</button>
         <button class="admin-panel-tab" id="adminTabHaibao" type="button"><span class="tab-ico">🖼️</span>首页海报</button>
       </section>
+
+      <!-- 礼品管理子切换：录入 / 编辑（仅礼品视图显示） -->
+      <div class="admin-goods-subnav" id="adminGoodsSubnav">
+        <button class="admin-goods-subbtn active" id="adminGoodsTabCreate" type="button">✏️ 录入</button>
+        <button class="admin-goods-subbtn" id="adminGoodsTabEdit" type="button">📝 编辑</button>
+      </div>
 
       <section class="admin-card" id="adminCreatePanel">
         <div class="admin-status-head">
@@ -332,6 +337,6 @@
   </main>
 
   <script src="assets/config.js?v=11"></script>
-  <script src="assets/admin.js?v=27"></script>
+  <script src="assets/admin.js?v=28"></script>
 </body>
 </html>
