@@ -263,7 +263,8 @@ async function getStats({ period = 'today' }) {
     since ? db.collection('users').where({ createdAt: _.gte(since) }).count() : Promise.resolve({ total: 0 }),
     db.collection('orders').where(orderWhere).count(),
     db.collection('orders').where(orderWhere).orderBy('createdAt', 'desc').limit(1000).get(),
-    since ? db.collection('products').where({ createdAt: _.gte(since) }).count() : Promise.resolve({ total: 0 }),
+    // 商品 createdAt 是同步自 Supabase 的 ISO 字符串（非 Date），用 ISO 字符串比较（ISO 8601 字符串序=时间序）
+    since ? db.collection('products').where({ createdAt: _.gte(since.toISOString()) }).count() : Promise.resolve({ total: 0 }),
     db.collection('products').where({ isActive: true }).orderBy('viewCount', 'desc').limit(10).get(),
     fetchAll(db.collection('wishlists'), 5000),
     prevWhere ? db.collection('users').where(prevWhere).count() : Promise.resolve({ total: 0 }),
