@@ -623,9 +623,9 @@ body.pc-admin {
 
 /* 图表 / 榜单区 */
 .pc-stats-body {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-  gap: 18px;
+  /* 瀑布流多列：卡片按内容高度自然填充，短卡（时段图/省份/城市）不再被拉伸留白 */
+  column-width: 340px;
+  column-gap: 18px;
 }
 
 /* 榜单 / 图表通用卡片容器（脚本注入） */
@@ -635,6 +635,9 @@ body.pc-admin {
   background: var(--paper);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  margin-bottom: 18px;
 }
 
 .pc-stats-card-title {

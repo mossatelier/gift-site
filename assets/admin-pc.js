@@ -641,7 +641,8 @@
       statsCard(periodLabel + "下单时段分布（24h）", renderHourlyChart(s.hourly)),
       statsCard(periodLabel + "最受申请礼品 TOP 5", renderTopList(top, "requested")),
       statsCard("浏览 TOP 10", renderTopList(topViewed, "viewed"), "累计"),
-      statsCard("心愿 TOP 10", renderTopList(topWishlisted, "wishlisted"), "未变现意向"),
+      // 心愿 TOP 10 暂时隐藏：心愿单仅登录用户上云、数据稀疏（恢复：取消本行注释）
+      // statsCard("心愿 TOP 10", renderTopList(topWishlisted, "wishlisted"), "未变现意向"),
       statsCard("省份 TOP 5", renderRegionList(dist.provinces), periodLabel + (dist.total || 0) + " 单"),
       statsCard("城市 TOP 10", renderRegionList(dist.cities))
     ].join("") + sampleNote;

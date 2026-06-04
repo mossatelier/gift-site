@@ -2210,16 +2210,11 @@ function renderStats() {
       ${renderTopList(top, 'requested')}
     </div>
 
-    <div class="admin-stats-doublerow">
-      <div class="admin-stats-section">
-        <h3 class="admin-stats-section-title">浏览 TOP 10 <span class="admin-stats-section-tag">累计</span></h3>
-        ${renderTopList(topViewed, 'viewed')}
-      </div>
-      <div class="admin-stats-section">
-        <h3 class="admin-stats-section-title">心愿 TOP 10 <span class="admin-stats-section-tag">未变现意向</span></h3>
-        ${renderTopList(topWishlisted, 'wishlisted')}
-      </div>
+    <div class="admin-stats-section">
+      <h3 class="admin-stats-section-title">浏览 TOP 10 <span class="admin-stats-section-tag">累计</span></h3>
+      ${renderTopList(topViewed, 'viewed')}
     </div>
+    <!-- 心愿 TOP 10 暂时隐藏：心愿单仅登录用户上云、数据稀疏 -->
 
     <div class="admin-stats-doublerow">
       <div class="admin-stats-section">
