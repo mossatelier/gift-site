@@ -1165,10 +1165,18 @@ async function restoreSession() {
   loadRecentProducts();
 }
 
-// 记住上次登录邮箱，预填省得手输长邮箱（密码交给浏览器密码管理器保存/自动填）
+// 登录标识解析：含 @ 当邮箱直接用；不含 @ 当用户名 → 映射到邮箱（config.adminUsernames）
+function resolveLoginId(input) {
+  const v = (input || "").trim();
+  if (!v || v.indexOf("@") >= 0) return v;
+  const map = (config && config.adminUsernames) || {};
+  return map[v.toLowerCase()] || map[v] || v;
+}
+
+// 记住上次输入的用户名/邮箱，预填省得手输（密码交给浏览器密码管理器保存/自动填）
 try {
-  const _savedEmail = localStorage.getItem("gift-site-admin-email");
-  if (adminEmailInput && _savedEmail && !adminEmailInput.value) adminEmailInput.value = _savedEmail;
+  const _savedId = localStorage.getItem("gift-site-admin-email");
+  if (adminEmailInput && _savedId && !adminEmailInput.value) adminEmailInput.value = _savedId;
 } catch (e) { /* ignore */ }
 
 // 显示密码开关
@@ -1185,11 +1193,12 @@ adminAuthForm?.addEventListener("submit", async (event) => {
     return;
   }
 
-  const email = adminEmailInput.value.trim();
+  const rawId = adminEmailInput.value.trim();
+  const email = resolveLoginId(rawId);
   const password = adminPasswordInput.value;
 
-  if (!email || !password) {
-    setAuthMessage("请输入管理员邮箱和密码。", "error");
+  if (!rawId || !password) {
+    setAuthMessage("请输入用户名 / 邮箱和密码。", "error");
     return;
   }
 
@@ -1202,7 +1211,7 @@ adminAuthForm?.addEventListener("submit", async (event) => {
     const nextSession = { ...session, user };
     await verifyAdminAccess(nextSession.access_token);
     saveSession(nextSession);
-    try { localStorage.setItem("gift-site-admin-email", email); } catch (e) { /* ignore */ }
+    try { localStorage.setItem("gift-site-admin-email", rawId); } catch (e) { /* ignore */ }
     adminPasswordInput.value = "";
     setAuthMessage("登录成功，现在可以新增和编辑商品。", "success");
     updateAuthUi();

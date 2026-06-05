@@ -334,14 +334,23 @@
     }
   }
 
+  // 登录标识解析：含 @ 当邮箱；不含 @ 当用户名 → 映射到邮箱（config.adminUsernames）
+  function resolveLoginId(input) {
+    var v = (input || "").trim();
+    if (!v || v.indexOf("@") >= 0) return v;
+    var map = (Core.config && Core.config.adminUsernames) || {};
+    return map[v.toLowerCase()] || map[v] || v;
+  }
+
   function handleLogin(event) {
     event.preventDefault();
 
-    var email = (pcLoginEmail && pcLoginEmail.value || "").trim();
+    var rawId = (pcLoginEmail && pcLoginEmail.value || "").trim();
+    var email = resolveLoginId(rawId);
     var password = (pcLoginPassword && pcLoginPassword.value) || "";
 
-    if (!email || !password) {
-      setLoginMsg("请输入管理员邮箱和密码。", "error");
+    if (!rawId || !password) {
+      setLoginMsg("请输入用户名 / 邮箱和密码。", "error");
       return;
     }
 
@@ -359,7 +368,7 @@
       })
       .then(function (session) {
         Core.saveSession(session);
-        try { localStorage.setItem("gift-site-admin-email", email); } catch (e) { /* ignore */ }
+        try { localStorage.setItem("gift-site-admin-email", rawId); } catch (e) { /* ignore */ }
         if (pcLoginPassword) pcLoginPassword.value = "";
         setLoginMsg("登录成功。", "success");
         enterApp(session);

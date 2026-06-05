@@ -10,6 +10,11 @@ window.APP_CONFIG = {
   // 云开发 admin-orders 云函数的 HTTP 访问 URL
   // 在云开发控制台 → 环境管理 → HTTP 访问服务 → 添加路由 /admin-orders 关联 admin-orders 函数
   adminOrdersUrl: "https://cloud1-d0gtch1v896d24828-1436264391.ap-shanghai.app.tcloudbase.com/admin-orders",
+  // 后台登录用户名映射：登录框可输「用户名」或「邮箱」。无 @ 视为用户名 → 映射到下面的邮箱再登。
+  // 键=用户名(小写)，值=该管理员的登录邮箱。可自行增删/改名。
+  adminUsernames: {
+    jiajia: "shiyuanl.zjgsu@gmail.com"
+  },
   categories: [
     { value: "all", label: "全部礼品" },
     { value: "referral", label: "推荐有礼" },
