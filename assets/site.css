@@ -3902,3 +3902,7 @@ body.admin-logged-in #adminLogoutButtonLogged {
 .admin-goods-subnav[hidden] { display: none; }
 .admin-goods-subbtn { flex: 1 1 0; padding: 11px 0; border-radius: 12px; border: 1px solid rgba(234,223,206,0.95); background: rgba(255,255,255,0.96); color: var(--muted); font-size: 15px; font-weight: 700; cursor: pointer; }
 .admin-goods-subbtn.active { background: linear-gradient(135deg, var(--red) 0%, var(--red-deep) 100%); border-color: transparent; color: #fff; }
+
+/* 后台登录：显示密码开关 */
+.admin-show-pw { display: flex; align-items: center; gap: 6px; margin: -2px 0 6px; font-size: 13px; color: var(--muted); cursor: pointer; }
+.admin-show-pw input[type="checkbox"] { width: auto; margin: 0; }

@@ -1171,6 +1171,12 @@ try {
   if (adminEmailInput && _savedEmail && !adminEmailInput.value) adminEmailInput.value = _savedEmail;
 } catch (e) { /* ignore */ }
 
+// 显示密码开关
+const adminShowPw = document.getElementById("adminShowPw");
+adminShowPw?.addEventListener("change", () => {
+  if (adminPasswordInput) adminPasswordInput.type = adminShowPw.checked ? "text" : "password";
+});
+
 adminAuthForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
 

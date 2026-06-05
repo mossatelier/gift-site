@@ -259,6 +259,13 @@
       var savedEmail = localStorage.getItem("gift-site-admin-email");
       if (pcLoginEmail && savedEmail && !pcLoginEmail.value) pcLoginEmail.value = savedEmail;
     } catch (e) { /* ignore */ }
+    // 显示密码开关
+    var pcShowPw = document.getElementById("pcShowPw");
+    if (pcShowPw && pcLoginPassword) {
+      pcShowPw.addEventListener("change", function () {
+        pcLoginPassword.type = pcShowPw.checked ? "text" : "password";
+      });
+    }
     if (pcLogoutBtn) {
       pcLogoutBtn.addEventListener("click", handleLogout);
     }

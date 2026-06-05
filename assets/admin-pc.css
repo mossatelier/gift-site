@@ -3011,3 +3011,7 @@ body.pc-admin {
   background-position: right 12px center;
   padding-right: 30px;
 }
+
+/* 登录：显示密码开关 */
+.pc-show-pw { display: flex; align-items: center; gap: 6px; margin: -4px 0 4px; font-size: 13px; color: var(--muted); cursor: pointer; }
+.pc-show-pw input[type="checkbox"] { width: auto; margin: 0; }
