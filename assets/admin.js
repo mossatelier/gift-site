@@ -1517,6 +1517,7 @@ adminCancelEditButton?.addEventListener("click", () => {
 const ORDER_STATUS_LABEL = {
   pending: "待处理",
   done: "已发货",
+  closed: "已结单",
   cancelled: "已取消"
 };
 // 状态文案（历史 processing/未知 一律兜底「待处理」）
@@ -1580,7 +1581,7 @@ async function callAdminOrders(action, payload = {}) {
 function loadOrderSegCounts() {
   const segs = document.getElementById("adminOrdersSegs");
   if (!segs || !activeSession()) return;
-  ["pending", "done", "cancelled", "all"].forEach((st) => {
+  ["pending", "done", "closed", "cancelled", "all"].forEach((st) => {
     callAdminOrders("list", { status: st, limit: 1 })
       .then((data) => {
         const el = segs.querySelector(`[data-seg-count="${st}"]`);
@@ -2235,6 +2236,7 @@ function renderStats() {
         <div class="admin-stats-status-grid">
           <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-pending">待处理</span><span>${escapeHtml(byStatus.pending || 0)}</span></div>
           <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-done">已发货</span><span>${escapeHtml(byStatus.done || 0)}</span></div>
+          <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-closed">已结单</span><span>${escapeHtml(byStatus.closed || 0)}</span></div>
           <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-cancelled">已取消</span><span>${escapeHtml(byStatus.cancelled || 0)}</span></div>
         </div>
       </div>

@@ -451,9 +451,10 @@ body.pc-admin {
   display: none;
 }
 
-/* 订单四入口角标分色：待处理红 / 已发货绿 / 已取消灰 / 全部蓝 */
+/* 订单入口角标分色：待处理红 / 已发货绿 / 已结单紫 / 已取消灰 / 全部蓝 */
 .pc-nav-badge-pending { background: #d64b2a; }
 .pc-nav-badge-done { background: #167a61; }
+.pc-nav-badge-closed { background: #7a5cc4; }
 .pc-nav-badge-cancelled { background: #8a8079; }
 .pc-nav-badge-all { background: #3b7ea1; }
 
@@ -789,6 +790,7 @@ body.pc-admin {
 .pc-order-status-pending    { color: var(--red);   background: rgba(214, 75, 42, 0.10); }
 .pc-order-status-processing { color: #b87a18;       background: rgba(224, 172, 77, 0.18); }
 .pc-order-status-done       { color: #167a61;       background: rgba(22, 122, 97, 0.12); }
+.pc-order-status-closed     { color: #6b4ea3;       background: rgba(122, 92, 196, 0.12); }
 .pc-order-status-cancelled  { color: var(--muted);  background: rgba(114, 105, 92, 0.10); }
 
 /* 订单状态分布 */

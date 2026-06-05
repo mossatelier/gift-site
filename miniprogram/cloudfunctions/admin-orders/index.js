@@ -22,8 +22,8 @@ const _ = db.command;
 const SUPABASE_URL = 'https://ukoqffocqjokcroilyyv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrb3FmZm9jcWpva2Nyb2lseXl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzMxMDUsImV4cCI6MjA5MDkwOTEwNX0.jKFzbuDLbbDboUD8vJLAu0uTkkEzE2YnC2bHU5I8RH0';
 
-// 状态精简为三个：待处理 / 已发货(done) / 已取消（去掉旧的 processing 处理中）
-const ALLOWED_STATUS = ['pending', 'done', 'cancelled'];
+// 订单状态：待处理 / 已发货(done) / 已结单(closed,客户已收到) / 已取消（去掉旧的 processing）
+const ALLOWED_STATUS = ['pending', 'done', 'closed', 'cancelled'];
 
 // ---------- HTTP helper ----------
 
@@ -278,8 +278,8 @@ async function getStats({ period = 'today' }) {
   const orders = ordersRes.data || [];
   const productsNew = since ? (productsNewRes.total || 0) : 0;
 
-  // 状态分布（三态；历史 processing 归入 pending 待处理）
-  const byStatus = { pending: 0, done: 0, cancelled: 0 };
+  // 状态分布（历史 processing 归入 pending 待处理）
+  const byStatus = { pending: 0, done: 0, closed: 0, cancelled: 0 };
   for (const o of orders) {
     const k = o.status === 'processing' ? 'pending' : o.status;
     if (byStatus[k] !== undefined) byStatus[k]++;

@@ -32,6 +32,7 @@
   var pcPanels = Array.prototype.slice.call(document.querySelectorAll(".pc-panel"));
   var pcBadgeOrders = document.getElementById("pcBadgeOrders");
   var pcBadgeDone = document.getElementById("pcBadgeDone");
+  var pcBadgeClosed = document.getElementById("pcBadgeClosed");
   var pcBadgeCancelled = document.getElementById("pcBadgeCancelled");
   var pcBadgeAll = document.getElementById("pcBadgeAll");
   var pcBadgeReviews = document.getElementById("pcBadgeReviews");
@@ -449,6 +450,7 @@
     var badgeJobs = [
       { status: "pending", el: pcBadgeOrders },
       { status: "done", el: pcBadgeDone },
+      { status: "closed", el: pcBadgeClosed },
       { status: "cancelled", el: pcBadgeCancelled },
       { status: "all", el: pcBadgeAll }
     ];
@@ -640,6 +642,7 @@
         + '<div class="pc-stats-status-grid">'
         + '<div class="pc-stats-status-row"><span class="pc-order-status pc-order-status-pending">待处理</span><span>' + escapeHtml(byStatus.pending || 0) + "</span></div>"
         + '<div class="pc-stats-status-row"><span class="pc-order-status pc-order-status-done">已发货</span><span>' + escapeHtml(byStatus.done || 0) + "</span></div>"
+        + '<div class="pc-stats-status-row"><span class="pc-order-status pc-order-status-closed">已结单</span><span>' + escapeHtml(byStatus.closed || 0) + "</span></div>"
         + '<div class="pc-stats-status-row"><span class="pc-order-status pc-order-status-cancelled">已取消</span><span>' + escapeHtml(byStatus.cancelled || 0) + "</span></div>"
         + "</div>"
         + "</div>"
@@ -3249,14 +3252,16 @@
   var ORDER_STATUS_LABEL = {
     pending: "待处理",
     done: "已发货",
+    closed: "已结单",
     cancelled: "已取消"
   };
   // 状态文案（历史 processing/未知 一律兜底显示「待处理」），用于徽标显示
   function orderStatusText(s) { return ORDER_STATUS_LABEL[s] || "待处理"; }
-  // 工具栏状态筛选 tab（三环节 + 全部）。
+  // 工具栏状态筛选 tab（各环节 + 全部）。
   var ORDER_STATUS_TABS = [
     { value: "pending", label: "待处理" },
     { value: "done", label: "已发货" },
+    { value: "closed", label: "已结单" },
     { value: "cancelled", label: "已取消" },
     { value: "all", label: "全部订单" }
   ];

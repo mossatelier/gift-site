@@ -2575,6 +2575,7 @@ body.admin-logged-in #adminLogoutButtonLogged {
 .admin-order-status-pending    { color: #d64b2a; background: rgba(214, 75, 42, 0.10); }
 .admin-order-status-processing { color: #b87a18; background: rgba(224, 172, 77, 0.18); }
 .admin-order-status-done       { color: #167a61; background: rgba(22, 122, 97, 0.12); }
+.admin-order-status-closed     { color: #6b4ea3; background: rgba(122, 92, 196, 0.12); }
 .admin-order-status-cancelled  { color: #72695c; background: rgba(114, 105, 92, 0.10); }
 
 .admin-order-date {

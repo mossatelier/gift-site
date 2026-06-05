@@ -5,6 +5,7 @@
     <view class="od-status-card">
       <text class="od-status-label status-{{order.status}}">{{statusLabel}}</text>
       <text class="od-status-desc" wx:if="{{order.status === 'done'}}">礼品已发货，请注意查收物流</text>
+      <text class="od-status-desc" wx:elif="{{order.status === 'closed'}}">订单已结单，感谢支持，欢迎再来～</text>
       <text class="od-status-desc" wx:elif="{{order.status === 'cancelled'}}">订单已取消</text>
       <text class="od-status-desc" wx:else>客服已收到申请，会主动联系你</text>
     </view>
