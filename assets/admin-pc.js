@@ -254,6 +254,11 @@
     if (pcLoginForm) {
       pcLoginForm.addEventListener("submit", handleLogin);
     }
+    // 记住上次登录邮箱，预填省得手输长邮箱
+    try {
+      var savedEmail = localStorage.getItem("gift-site-admin-email");
+      if (pcLoginEmail && savedEmail && !pcLoginEmail.value) pcLoginEmail.value = savedEmail;
+    } catch (e) { /* ignore */ }
     if (pcLogoutBtn) {
       pcLogoutBtn.addEventListener("click", handleLogout);
     }
@@ -347,6 +352,7 @@
       })
       .then(function (session) {
         Core.saveSession(session);
+        try { localStorage.setItem("gift-site-admin-email", email); } catch (e) { /* ignore */ }
         if (pcLoginPassword) pcLoginPassword.value = "";
         setLoginMsg("登录成功。", "success");
         enterApp(session);

@@ -1165,6 +1165,12 @@ async function restoreSession() {
   loadRecentProducts();
 }
 
+// 记住上次登录邮箱，预填省得手输长邮箱（密码交给浏览器密码管理器保存/自动填）
+try {
+  const _savedEmail = localStorage.getItem("gift-site-admin-email");
+  if (adminEmailInput && _savedEmail && !adminEmailInput.value) adminEmailInput.value = _savedEmail;
+} catch (e) { /* ignore */ }
+
 adminAuthForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
@@ -1190,6 +1196,7 @@ adminAuthForm?.addEventListener("submit", async (event) => {
     const nextSession = { ...session, user };
     await verifyAdminAccess(nextSession.access_token);
     saveSession(nextSession);
+    try { localStorage.setItem("gift-site-admin-email", email); } catch (e) { /* ignore */ }
     adminPasswordInput.value = "";
     setAuthMessage("登录成功，现在可以新增和编辑商品。", "success");
     updateAuthUi();
