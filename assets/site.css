@@ -3864,6 +3864,9 @@ body.admin-logged-in #adminLogoutButtonLogged {
 .wo-success-btn-primary { border: none; background: linear-gradient(135deg, var(--red) 0%, var(--red-deep) 100%); color: #fff; }
 
 /* 手机后台 · 订单状态分段 tab + 来源标签 */
+/* 订单页：刷新按钮做小 + 与下方分段拉开间距，避免粘在一起 */
+#adminOrdersPanel .admin-status-head { margin-bottom: 14px; }
+#adminOrdersRefreshButton { min-width: 0; min-height: 30px; padding: 0 12px; font-size: 13px; font-weight: 700; flex: 0 0 auto; }
 .admin-orders-segs { display: flex; gap: 8px; margin: 0 0 12px; overflow-x: auto; scrollbar-width: none; }
 .admin-orders-segs::-webkit-scrollbar { display: none; }
 .admin-orders-seg { flex: 0 0 auto; padding: 8px 16px; border-radius: 999px; border: 1px solid rgba(234,223,206,0.95); background: rgba(255,255,255,0.96); color: var(--muted); font-size: 14px; font-weight: 700; cursor: pointer; }
