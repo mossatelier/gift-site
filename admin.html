@@ -58,14 +58,16 @@
 
     <div id="adminWorkspace" hidden>
       <section class="admin-card admin-panel-nav">
+        <!-- 第一行：礼品管理 / 订单管理 / 数据看板 -->
         <button class="admin-panel-tab active" id="adminTabGoods" type="button"><span class="tab-ico">🎁</span>礼品管理</button>
-        <button class="admin-panel-tab" id="adminTabBanks" type="button"><span class="tab-ico">🏦</span>银行积分</button>
         <button class="admin-panel-tab" id="adminTabOrders" type="button"><span class="tab-ico">📦</span>订单管理</button>
-        <!-- 晒图审核暂时下线（晒图未在收集）；恢复：去掉 hidden 即可 -->
-        <button class="admin-panel-tab" id="adminTabReviews" type="button" hidden><span class="tab-ico">🖼️</span>晒图审核</button>
         <button class="admin-panel-tab" id="adminTabStats" type="button"><span class="tab-ico">📊</span>数据看板</button>
+        <!-- 第二行：银行积分 / 分类排序 / 首页海报 -->
+        <button class="admin-panel-tab" id="adminTabBanks" type="button"><span class="tab-ico">🏦</span>银行积分</button>
         <button class="admin-panel-tab" id="adminTabCatOrder" type="button"><span class="tab-ico">🔀</span>分类排序</button>
         <button class="admin-panel-tab" id="adminTabHaibao" type="button"><span class="tab-ico">🖼️</span>首页海报</button>
+        <!-- 晒图审核暂时下线（晒图未在收集）；恢复：去掉 hidden 即可。隐藏项不占格 -->
+        <button class="admin-panel-tab" id="adminTabReviews" type="button" hidden><span class="tab-ico">🖼️</span>晒图审核</button>
       </section>
 
       <!-- 礼品管理子切换：录入 / 编辑（仅礼品视图显示） -->
