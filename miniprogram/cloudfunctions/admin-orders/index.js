@@ -701,6 +701,14 @@ async function reviewStatus({ reviewId, status }, token) {
 
 // 网页端公开下单：无微信登录，写入云开发 orders（source='web'），商家在同一后台「订单管理」核对。
 // 不收款，仅领取登记；做基本校验 + 商品快照（按 supabaseId 校正标题/积分）。
+// 网页订单商品组合签名（supabaseId×数量，排序拼接）——用于防重复下单
+function webOrderSig(snaps) {
+  return (Array.isArray(snaps) ? snaps : [])
+    .map(s => String(s.supabaseId || s.productId || '') + 'x' + (Number(s.qty) || 1))
+    .sort()
+    .join('|');
+}
+
 async function webSubmitOrder({ items, address, remark }) {
   const list = Array.isArray(items) ? items : [];
   if (list.length === 0) throw new Error('心愿单为空');
@@ -740,6 +748,19 @@ async function webSubmitOrder({ items, address, remark }) {
     });
     totalCards += cards * qty;
   }
+
+  // 防重复：同一手机号 30s 内提交「完全相同的商品组合」→ 视为连点，返回原单（幂等）
+  try {
+    const dedupSince = new Date(Date.now() - 30 * 1000);
+    const recentRes = await db.collection('orders')
+      .where({ source: 'web', 'address.phone': phone, createdAt: _.gt(dedupSince) })
+      .orderBy('createdAt', 'desc')
+      .limit(5)
+      .get();
+    const sig = webOrderSig(itemSnapshots);
+    const dup = (recentRes.data || []).find(o => webOrderSig(o.items) === sig);
+    if (dup) return { success: true, orderId: dup._id, duplicated: true };
+  } catch (e) { /* 去重查询失败不阻断正常下单 */ }
 
   const now = new Date();
   const order = {

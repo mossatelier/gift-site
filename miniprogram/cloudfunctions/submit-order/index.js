@@ -17,6 +17,17 @@ const _ = db.command;
 const MAX_ITEMS = 50;
 const RATE_WINDOW_MS = 60 * 1000;
 const RATE_MAX = 3;
+// 防重复下单：同一 openid 在该窗口内提交「完全相同的商品组合」，判定为误触/连点，
+// 直接返回已存在的订单，不新建、不再推送（幂等）。
+const DEDUP_WINDOW_MS = 30 * 1000;
+
+// 订单商品组合签名（商品ID×数量，排序后拼接）——用于判定是否同一笔
+function orderSig(snaps) {
+  return (Array.isArray(snaps) ? snaps : [])
+    .map(s => String(s.productId || s._id || '') + 'x' + (Number(s.qty) || 1))
+    .sort()
+    .join('|');
+}
 
 // 「下单成功通知」订阅消息模板 ID（与小程序端 config.orderPlacedTmplId 同一个）
 const ORDER_PLACED_TMPL_ID = '4zU26DwALOyDtm8yRSNmO0vnriyKWW-usUtk2MjGjkg';
@@ -69,12 +80,15 @@ exports.main = async (event, context) => {
   if (items.length > MAX_ITEMS) return { success: false, error: '商品过多' };
   if (!addressId) return { success: false, error: '缺少收货地址' };
 
-  // 1. 限频
+  // 1. 取最近 60s 内本人的订单（同时用于：限频 + 防重复下单）
   const since = new Date(Date.now() - RATE_WINDOW_MS);
-  const recent = await db.collection('orders')
+  const recentRes = await db.collection('orders')
     .where({ openid: OPENID, createdAt: _.gt(since) })
-    .count();
-  if (recent.total >= RATE_MAX) {
+    .orderBy('createdAt', 'desc')
+    .limit(10)
+    .get();
+  const recentOrders = (recentRes && recentRes.data) || [];
+  if (recentOrders.length >= RATE_MAX) {
     return { success: false, error: '操作太频繁，请稍后再试' };
   }
 
@@ -135,6 +149,24 @@ exports.main = async (event, context) => {
     district: addressDoc.district || '',
     detail: addressDoc.detail || ''
   };
+
+  // 4.5 防重复：30s 内已有「完全相同商品组合」的订单 → 视为连点/误触，
+  //     返回原单（幂等），不新建、不再推送。
+  const sig = orderSig(itemSnapshots);
+  const dedupSince = Date.now() - DEDUP_WINDOW_MS;
+  const dup = recentOrders.find(o => {
+    const t = o && o.createdAt ? new Date(o.createdAt).getTime() : 0;
+    return t >= dedupSince && orderSig(o.items) === sig;
+  });
+  if (dup) {
+    return {
+      success: true,
+      orderId: dup._id,
+      itemCount: dup.itemCount || itemSnapshots.length,
+      totalCards: dup.totalCards || totalCards,
+      duplicated: true
+    };
+  }
 
   const now = new Date();
   const order = {

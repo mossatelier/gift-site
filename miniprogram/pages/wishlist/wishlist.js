@@ -153,6 +153,10 @@ Page({
       return;
     }
 
+    // 立刻上锁——必须在任何异步（订阅授权弹窗 / 确认弹窗）之前。
+    // 之前锁设在确认弹窗回调里，双击时两条流程都会先通过校验、各自弹窗 → 重复下单。
+    this.setData({ submitting: true });
+
     const items = this.data.items.map(it => ({ _id: it._id, qty: 1 }));
     const remark = this.data.remark.trim();
 
@@ -176,8 +180,7 @@ Page({
       confirmText: '提交',
       confirmColor: '#d64b2a',
       success: async (res) => {
-        if (!res.confirm) return;
-        this.setData({ submitting: true });
+        if (!res.confirm) { this.setData({ submitting: false }); return; }
         wx.showLoading({ title: '提交中…', mask: true });
         try {
           const cf = await wx.cloud.callFunction({
@@ -207,7 +210,8 @@ Page({
         } finally {
           this.setData({ submitting: false });
         }
-      }
+      },
+      fail: () => { this.setData({ submitting: false }); }
     });
   },
 
