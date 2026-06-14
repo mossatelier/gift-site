@@ -3987,22 +3987,24 @@
       + '<div class="pc-orders-carrier-chips"><span class="pc-orders-carrier-label">常用：</span>' + carrierChips + "</div>"
       + '<button class="pc-btn-primary pc-orders-tracking-save" type="button" data-orders-save-tracking="' + idEsc + '">保存单号</button>'
       + "</section>"
-      // 物流轨迹（快递100 推送写入；老单需重存单号触发订阅）
-      + ((Array.isArray(o.logisticsNodes) && o.logisticsNodes.length)
+      // 物流轨迹（快递100 推送自动写入；老单点「刷新物流」用实时查询拉取）
+      + (o.trackingNo
         ? '<section class="pc-orders-sec"><div class="pc-orders-sec-head"><strong>物流轨迹</strong>'
           + (o.signedAt ? '<span class="pc-orders-sec-hint">已签收</span>' : '')
-          + "</div><div class=\"pc-orders-timeline\">"
-          + o.logisticsNodes.map(function (n, i) {
-            return '<div class="pc-orders-tl-node' + (i === 0 ? " latest" : "") + '">'
-              + '<span class="pc-orders-tl-dot"></span>'
-              + '<div class="pc-orders-tl-body"><p class="pc-orders-tl-ctx">' + escapeHtml(n.context || "") + "</p>"
-              + '<p class="pc-orders-tl-time">' + escapeHtml(n.time || "") + "</p></div></div>";
-          }).join("")
-          + "</div></section>"
-        : (o.trackingNo
-          ? '<section class="pc-orders-sec"><div class="pc-orders-sec-head"><strong>物流轨迹</strong></div>'
-            + '<p class="pc-orders-sec-hint">暂无物流节点。新发货的单会自动追踪；老单请重新保存一次单号以触发订阅。</p></section>'
-          : ""))
+          + '<button class="pc-btn-ghost pc-orders-query-btn" type="button" data-orders-query="' + idEsc + '">刷新物流</button>'
+          + "</div>"
+          + ((Array.isArray(o.logisticsNodes) && o.logisticsNodes.length)
+            ? '<div class="pc-orders-timeline">'
+              + o.logisticsNodes.map(function (n, i) {
+                return '<div class="pc-orders-tl-node' + (i === 0 ? " latest" : "") + '">'
+                  + '<span class="pc-orders-tl-dot"></span>'
+                  + '<div class="pc-orders-tl-body"><p class="pc-orders-tl-ctx">' + escapeHtml(n.context || "") + "</p>"
+                  + '<p class="pc-orders-tl-time">' + escapeHtml(n.time || "") + "</p></div></div>";
+              }).join("")
+              + "</div>"
+            : '<p class="pc-orders-sec-hint">暂无物流节点。点「刷新物流」立即查询；新发货的单也会自动更新。</p>')
+          + "</section>"
+        : "")
       // 内部备注（客户不可见）
       + '<section class="pc-orders-sec">'
       + '<div class="pc-orders-sec-head"><strong>商家内部备注</strong><span class="pc-orders-sec-hint">仅你可见，客户看不到</span></div>'
@@ -4126,6 +4128,11 @@
       handleOrdersNoteSave(saveNote.getAttribute("data-orders-save-note"));
       return;
     }
+    var queryLog = event.target.closest("[data-orders-query]");
+    if (queryLog) {
+      handleOrdersQueryLogistics(queryLog.getAttribute("data-orders-query"));
+      return;
+    }
     var del = event.target.closest("[data-orders-delete]");
     if (del) {
       handleOrdersDelete(del.getAttribute("data-orders-delete"));
@@ -4205,6 +4212,35 @@
   }
 
   // 保存快递：update-tracking，就地写回内存。
+  // 刷新物流：实时查询当前完整轨迹（老单/手动刷新用）。
+  function handleOrdersQueryLogistics(id) {
+    if (!id) return;
+    var o = findOrder(id);
+    if (!o) return;
+    var btn = document.querySelector('[data-orders-query="' + ordersCssEscape(id) + '"]');
+    if (btn) { btn.disabled = true; btn.textContent = "查询中…"; }
+    setOrdersDrawerMsg("正在查询物流…", null);
+    Core.callAdminOrders("query-logistics", { orderId: id })
+      .then(function (updated) {
+        if (updated) {
+          o.logisticsNodes = updated.logisticsNodes || [];
+          o.logisticsState = updated.logisticsState || "";
+          o.status = updated.status || o.status;
+          o.signedAt = updated.signedAt || o.signedAt;
+          renderOrdersTable();
+          renderOrdersDrawerBody(o); // 重渲染抽屉内容以显示新轨迹
+        }
+        setOrdersDrawerMsg("物流已更新。", "success");
+        toast("✅ 物流已刷新", "success");
+        loadBadges();
+      })
+      .catch(function (err) {
+        if (btn) { btn.disabled = false; btn.textContent = "刷新物流"; }
+        setOrdersDrawerMsg((err && err.message) || "查询失败", "error");
+        toast((err && err.message) || "查询失败", "error");
+      });
+  }
+
   function handleOrdersTrackingSave(id) {
     if (!id) return;
     var o = findOrder(id);

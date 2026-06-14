@@ -12,6 +12,7 @@
 
 const cloud = require('wx-server-sdk');
 const https = require('https');
+const crypto = require('crypto');
 const { URL } = require('url');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
@@ -27,8 +28,10 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 //   KUAIDI100_KEY          授权 key
 //   KUAIDI100_CALLBACK_URL admin-orders 自身的 HTTP 触发器地址（快递100 物流更新回调到这里）
 const KD_KEY = process.env.KUAIDI100_KEY || '';
+const KD_CUSTOMER = process.env.KUAIDI100_CUSTOMER || '';   // 实时查询用（订阅推送不需要）
 const KD_CALLBACK = process.env.KUAIDI100_CALLBACK_URL || '';
 const KD_SUBSCRIBE_URL = 'https://poll.kuaidi100.com/poll';
+const KD_QUERY_URL = 'https://poll.kuaidi100.com/poll/query.do';
 
 // 订单状态机：待发货(pending) → 运输中(shipped) → 已签收(signed)（＋已取消 cancelled）
 // pending 即「待发货」(下单创建的初始态)；旧码兼容：processing/preparing→pending、done→shipped、closed→signed。
@@ -545,6 +548,32 @@ async function subscribeLogistics({ com, num, phone }) {
   }
 }
 
+// 从签收节点文案尽力提取签收人
+function extractSignedBy(ctx) {
+  if (!ctx) return '';
+  const m = ctx.match(/签收人[:：]?\s*([^\s，,。]+)/);
+  if (m) return m[1];
+  if (/驿站|代收|代签|快递柜|菜鸟|丰巢/.test(ctx)) return '代收';
+  if (/本人/.test(ctx)) return '本人签收';
+  return '';
+}
+
+// 把快递100 的 data 数组 + state 落成订单 patch（推送/实时查询共用）。
+function buildLogisticsPatch(order, dataArr, stateRaw) {
+  const nodes = Array.isArray(dataArr)
+    ? dataArr.map(d => ({ time: d.ftime || d.time || '', context: d.context || '', status: d.status || '' }))
+    : [];
+  const state = String(stateRaw || '');
+  const patch = { logisticsNodes: nodes, logisticsState: state, updatedAt: new Date() };
+  if (state === '3' && order.status !== 'cancelled' && order.status !== 'signed') {
+    patch.status = 'signed';
+    if (!order.signedAt) patch.signedAt = new Date();
+    const by = extractSignedBy(nodes[0] && nodes[0].context);
+    if (by) patch.signedBy = by;
+  }
+  return patch;
+}
+
 // 快递100 物流推送回调处理：按单号匹配订单，写物流节点；签收(state=3)自动置「已签收」。
 // 返回快递100 约定的应答体，否则会被反复重推。
 async function handleLogisticsPush(param) {
@@ -561,25 +590,7 @@ async function handleLogisticsPush(param) {
   // 找不到对应订单也回 200，避免快递100 不断重推
   if (!order) return { result: true, returnCode: '200', message: '无对应订单' };
 
-  const nodes = Array.isArray(lr.data)
-    ? lr.data.map(d => ({ time: d.ftime || d.time || '', context: d.context || '', status: d.status || '' }))
-    : [];
-  const state = String(lr.state || '');
-  const patch = { logisticsNodes: nodes, logisticsState: state, updatedAt: new Date() };
-
-  // state=3 已签收（已取消的订单不动）
-  if (state === '3' && order.status !== 'cancelled' && order.status !== 'signed') {
-    patch.status = 'signed';
-    if (!order.signedAt) patch.signedAt = new Date();
-    const latest = nodes[0];
-    if (latest && latest.context) {
-      const m = latest.context.match(/签收人[:：]?\s*([^\s，,。]+)/);
-      if (m) patch.signedBy = m[1];
-      else if (/驿站|代收|代签|快递柜|菜鸟|丰巢/.test(latest.context)) patch.signedBy = '代收';
-      else if (/本人/.test(latest.context)) patch.signedBy = '本人签收';
-    }
-  }
-
+  const patch = buildLogisticsPatch(order, lr.data, lr.state);
   try {
     await db.collection('orders').doc(order._id).update({ data: patch });
   } catch (e) {
@@ -587,6 +598,46 @@ async function handleLogisticsPush(param) {
     return { result: false, returnCode: '500', message: '写入失败' };
   }
   return { result: true, returnCode: '200', message: '成功' };
+}
+
+// 实时查询：主动拉一次当前完整轨迹（适合老单/手动刷新；订阅只推未来变化）。
+async function queryLogistics({ orderId }) {
+  if (!orderId) throw new Error('缺少 orderId');
+  if (!KD_KEY || !KD_CUSTOMER) throw new Error('未配置快递100 凭据（KUAIDI100_KEY / KUAIDI100_CUSTOMER）');
+  const r = await db.collection('orders').doc(orderId).get();
+  const o = r.data;
+  if (!o) throw new Error('订单不存在');
+  if (!o.trackingNo) throw new Error('该订单还没有快递单号');
+  if (!o.courierCode) throw new Error('未识别快递公司：请在「快递公司」框填写后重新保存单号，再查询');
+
+  const paramObj = { com: o.courierCode, num: o.trackingNo, resultv2: '1' };
+  const phone = (o.address && o.address.phone) || '';
+  if (phone) paramObj.phone = String(phone);
+  const param = JSON.stringify(paramObj);
+  const sign = crypto.createHash('md5').update(param + KD_KEY + KD_CUSTOMER).digest('hex').toUpperCase();
+  const form = 'customer=' + encodeURIComponent(KD_CUSTOMER) + '&sign=' + sign + '&param=' + encodeURIComponent(param);
+
+  let parsed = {};
+  try {
+    const res = await httpsReq(KD_QUERY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(form) },
+      body: form
+    });
+    console.log('[kd100] query', o.trackingNo, res.status, res.body);
+    try { parsed = JSON.parse(res.body); } catch (e) {}
+  } catch (err) {
+    throw new Error('查询请求失败：' + String(err).slice(0, 100));
+  }
+  // 成功返回含 data 数组；失败返回 {result:false, message, returnCode}
+  if (!Array.isArray(parsed.data) || parsed.data.length === 0) {
+    const msg = parsed.message || parsed.returnCode || '快递100 暂无轨迹';
+    throw new Error('查询无结果：' + String(msg).slice(0, 120));
+  }
+  const patch = buildLogisticsPatch(o, parsed.data, parsed.state);
+  await db.collection('orders').doc(orderId).update({ data: patch });
+  const r2 = await db.collection('orders').doc(orderId).get();
+  return r2.data;
 }
 
 // 更新快递信息：填了单号 = 发货 → 自动置「运输中」(shipped) + 推送（已取消的不动）
@@ -1188,6 +1239,9 @@ exports.main = async (event) => {
         break;
       case 'update-tracking':
         data = await updateTracking(body);
+        break;
+      case 'query-logistics':
+        data = await queryLogistics(body);
         break;
       case 'update-note':
         data = await updateNote(body);

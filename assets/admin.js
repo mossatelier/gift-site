@@ -1932,9 +1932,13 @@ function renderOrdersList() {
                 <span class="carrier-chip" data-carrier="极兔速递" data-cid="${escapeHtml(o._id)}">极兔</span>
               </div>
             </div>
-            ${(Array.isArray(o.logisticsNodes) && o.logisticsNodes.length) ? `
+            ${o.trackingNo ? `
             <div class="admin-order-section">
-              <strong>物流轨迹${o.signedAt ? " · 已签收" : ""}</strong>
+              <div class="admin-tl-head">
+                <strong>物流轨迹${o.signedAt ? " · 已签收" : ""}</strong>
+                <button class="admin-secondary-btn admin-tl-refresh" data-query-logistics="${escapeHtml(o._id)}" type="button">刷新物流</button>
+              </div>
+              ${(Array.isArray(o.logisticsNodes) && o.logisticsNodes.length) ? `
               <div class="admin-timeline">
                 ${o.logisticsNodes.map((n, i) => `
                   <div class="admin-tl-node${i === 0 ? " latest" : ""}">
@@ -1944,12 +1948,8 @@ function renderOrdersList() {
                       <p class="admin-tl-time">${escapeHtml(n.time || "")}</p>
                     </div>
                   </div>`).join("")}
-              </div>
-            </div>` : (o.trackingNo ? `
-            <div class="admin-order-section">
-              <strong>物流轨迹</strong>
-              <p class="admin-order-danger-hint">暂无物流节点。新发货的单会自动追踪；老单请重新保存一次单号以触发订阅。</p>
-            </div>` : "")}
+              </div>` : `<p class="admin-order-danger-hint">暂无物流节点。点「刷新物流」立即查询；新发货的单也会自动更新。</p>`}
+            </div>` : ""}
             <div class="admin-order-section">
               <strong>商家内部备注（仅你可见，客户看不到）</strong>
               <div class="admin-note-row">
@@ -2056,6 +2056,31 @@ async function handleOrderStatusChange(select) {
     setOrdersMessage(err.message, "error");
     // 失败时还原 select 显示
     loadOrders();
+  }
+}
+
+// 刷新物流：实时查询当前完整轨迹（老单/手动刷新用）
+async function handleQueryLogistics(orderId) {
+  if (!orderId) return;
+  setOrdersMessage("正在查询物流…");
+  const btn = adminOrdersList.querySelector(`[data-query-logistics="${orderId}"]`);
+  if (btn) { btn.disabled = true; btn.textContent = "查询中…"; }
+  try {
+    const updated = await callAdminOrders("query-logistics", { orderId });
+    const idx = state.orders.findIndex((o) => o._id === orderId);
+    if (idx >= 0 && updated) {
+      state.orders[idx].logisticsNodes = updated.logisticsNodes || [];
+      state.orders[idx].logisticsState = updated.logisticsState || "";
+      state.orders[idx].status = updated.status || state.orders[idx].status;
+      state.orders[idx].signedAt = updated.signedAt || state.orders[idx].signedAt;
+    }
+    renderOrdersList();
+    setOrdersMessage("物流已更新。", "success");
+    adminToast("✅ 物流已刷新", "success");
+  } catch (err) {
+    if (btn) { btn.disabled = false; btn.textContent = "刷新物流"; }
+    setOrdersMessage(err.message, "error");
+    adminToast((err.message || "查询失败"), "error");
   }
 }
 
@@ -2193,6 +2218,12 @@ adminOrdersList?.addEventListener("click", (event) => {
   if (saveNote) {
     event.stopPropagation();
     handleNoteSave(saveNote.dataset.saveNote);
+    return;
+  }
+  const queryLog = event.target.closest("[data-query-logistics]");
+  if (queryLog) {
+    event.stopPropagation();
+    handleQueryLogistics(queryLog.dataset.queryLogistics);
     return;
   }
   const delOrder = event.target.closest("[data-delete-order]");

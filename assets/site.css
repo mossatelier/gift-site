@@ -4255,3 +4255,7 @@ body.admin-logged-in #adminLogoutButtonLogged {
 .admin-tl-ctx { margin: 0; font-size: 13px; color: #3a3325; line-height: 1.4; }
 .admin-tl-node.latest .admin-tl-ctx { color: #167a61; font-weight: 600; }
 .admin-tl-time { margin: 0; font-size: 12px; color: #8a7c66; }
+
+/* 手机后台 · 物流轨迹标题行（含刷新按钮） */
+.admin-tl-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.admin-tl-refresh { flex: 0 0 auto; padding: 5px 12px; font-size: 13px; }
