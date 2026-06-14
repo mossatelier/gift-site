@@ -22,8 +22,19 @@ const _ = db.command;
 const SUPABASE_URL = 'https://ukoqffocqjokcroilyyv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrb3FmZm9jcWpva2Nyb2lseXl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzMxMDUsImV4cCI6MjA5MDkwOTEwNX0.jKFzbuDLbbDboUD8vJLAu0uTkkEzE2YnC2bHU5I8RH0';
 
-// 订单状态：待处理 / 已发货(done) / 已结单(closed,客户已收到) / 已取消（去掉旧的 processing）
-const ALLOWED_STATUS = ['pending', 'done', 'closed', 'cancelled'];
+// 订单状态机：待处理(pending) → 待发货(preparing) → 运输中(shipped) → 已签收(signed)（＋已取消 cancelled）
+// 旧码兼容：processing→pending、done→shipped(运输中)、closed→signed(已签收)；历史单不迁移，读时归一。
+const ALLOWED_STATUS = ['pending', 'preparing', 'shipped', 'signed', 'cancelled'];
+const STATUS_LEGACY = { processing: 'pending', done: 'shipped', closed: 'signed' };
+// 任意（含历史）状态码 → 新码
+function normStatus(s) { return STATUS_LEGACY[s] || s || 'pending'; }
+// 某新状态在库里对应的所有码（查询用，吸收历史单）
+function statusQueryCodes(s) {
+  if (s === 'pending') return ['pending', 'processing'];
+  if (s === 'shipped') return ['shipped', 'done'];
+  if (s === 'signed') return ['signed', 'closed'];
+  return [s];
+}
 
 // ---------- HTTP helper ----------
 
@@ -135,11 +146,10 @@ async function verifyAdmin(accessToken) {
 
 async function listOrders({ status, limit = 50, skip = 0, search = '' }) {
   const where = {};
-  // 待处理 视图同时吸收历史「处理中(processing)」单，避免旧单无处可寻
-  if (status === 'pending') {
-    where.status = _.in(['pending', 'processing']);
-  } else if (status && ALLOWED_STATUS.includes(status)) {
-    where.status = status;
+  // 按新状态筛选，自动吸收历史码（done/closed/processing）
+  if (status && (ALLOWED_STATUS.includes(status) || STATUS_LEGACY[status])) {
+    const codes = statusQueryCodes(normStatus(status));
+    where.status = codes.length > 1 ? _.in(codes) : codes[0];
   }
 
   // search 暂时只在 client 端过滤（数据量小，避免索引复杂）
@@ -177,8 +187,13 @@ async function getOrder({ orderId }) {
 
 async function updateOrderStatus({ orderId, status, adminNote }) {
   if (!orderId) throw new Error('缺少 orderId');
-  if (!ALLOWED_STATUS.includes(status)) throw new Error('非法状态');
-  const patch = { status, updatedAt: new Date() };
+  const next = normStatus(status);
+  if (!ALLOWED_STATUS.includes(next)) throw new Error('非法状态');
+  const curRes = await db.collection('orders').doc(orderId).get();
+  const cur = (curRes && curRes.data) || {};
+  const patch = { status: next, updatedAt: new Date() };
+  // 进入「已签收」且尚无签收时间 → 盖手动签收时间（快递接口自动签收会另填，不覆盖）
+  if (next === 'signed' && !cur.signedAt) patch.signedAt = new Date();
   if (typeof adminNote === 'string') patch.adminNote = adminNote.slice(0, 1000);
   await db.collection('orders').doc(orderId).update({ data: patch });
   const r = await db.collection('orders').doc(orderId).get();
@@ -278,10 +293,10 @@ async function getStats({ period = 'today' }) {
   const orders = ordersRes.data || [];
   const productsNew = since ? (productsNewRes.total || 0) : 0;
 
-  // 状态分布（历史 processing 归入 pending 待处理）
-  const byStatus = { pending: 0, done: 0, closed: 0, cancelled: 0 };
+  // 状态分布（历史码归一：processing→pending、done→shipped、closed→signed）
+  const byStatus = { pending: 0, preparing: 0, shipped: 0, signed: 0, cancelled: 0 };
   for (const o of orders) {
-    const k = o.status === 'processing' ? 'pending' : o.status;
+    const k = normStatus(o.status);
     if (byStatus[k] !== undefined) byStatus[k]++;
   }
 
@@ -431,8 +446,11 @@ async function updateOrderStatusBulk({ orderIds, status }) {
     throw new Error('缺少 orderIds');
   }
   if (orderIds.length > 200) throw new Error('单次最多 200 单');
-  if (!ALLOWED_STATUS.includes(status)) throw new Error('非法状态');
+  const next = normStatus(status);
+  if (!ALLOWED_STATUS.includes(next)) throw new Error('非法状态');
   const now = new Date();
+  const bulkData = { status: next, updatedAt: now };
+  if (next === 'signed') bulkData.signedAt = now; // 批量改已签收时盖签收时间
   // 并发 20 一批
   const BATCH = 20;
   let updated = 0;
@@ -441,7 +459,7 @@ async function updateOrderStatusBulk({ orderIds, status }) {
     const slice = orderIds.slice(i, i + BATCH);
     const results = await Promise.allSettled(slice.map(id =>
       db.collection('orders').doc(id).update({
-        data: { status, updatedAt: now }
+        data: bulkData
       })
     ));
     results.forEach(r => {
@@ -485,18 +503,20 @@ async function sendShipNotify(order, trackingNo, trackingCompany) {
   }
 }
 
-// 更新快递信息：填了单号 = 发货 → 自动置「已发货」(done) + 推送（已取消的不动）
-async function updateTracking({ orderId, trackingNo, trackingCompany }) {
+// 更新快递信息：填了单号 = 发货 → 自动置「运输中」(shipped) + 推送（已取消的不动）
+// courierCode = 快递公司标准编码（快递100，用于第二步订阅物流）；trackingCompany = 展示名
+async function updateTracking({ orderId, trackingNo, trackingCompany, courierCode }) {
   if (!orderId) throw new Error('缺少 orderId');
   const trimmedNo = String(trackingNo || '').trim().slice(0, 50);
   const patch = {
     trackingNo: trimmedNo,
     trackingCompany: String(trackingCompany || '').trim().slice(0, 30),
+    courierCode: String(courierCode || '').trim().slice(0, 30),
     updatedAt: new Date()
   };
   if (trimmedNo) {
     const cur = await db.collection('orders').doc(orderId).get();
-    if (cur.data && cur.data.status !== 'cancelled') patch.status = 'done';
+    if (cur.data && cur.data.status !== 'cancelled') patch.status = 'shipped';
   }
   await db.collection('orders').doc(orderId).update({ data: patch });
   const r = await db.collection('orders').doc(orderId).get();
@@ -504,7 +524,7 @@ async function updateTracking({ orderId, trackingNo, trackingCompany }) {
   if (patch.trackingNo) {
     await sendShipNotify(r.data, patch.trackingNo, patch.trackingCompany);
   }
-  return { ...r.data, _autoDone: patch.status === 'done' };
+  return { ...r.data, _autoDone: patch.status === 'shipped' };
 }
 
 // 分类显示顺序（存 app_config 集合，key=category_order）

@@ -21,14 +21,99 @@
 }
 
 .status-pending    { color: var(--red);    background: rgba(214, 75, 42, 0.10); }
-.status-processing { color: var(--gold);   background: rgba(224, 172, 77, 0.16); }
-.status-done       { color: var(--green);  background: rgba(22, 122, 97, 0.12); }
+.status-preparing  { color: var(--gold);   background: rgba(224, 172, 77, 0.16); }
+.status-shipped    { color: #2f6db0;       background: rgba(47, 109, 176, 0.12); }
+.status-signed     { color: var(--green);  background: rgba(22, 122, 97, 0.12); }
 .status-cancelled  { color: var(--muted);  background: rgba(114, 105, 92, 0.10); }
 
 .od-status-desc {
   font-size: 26rpx;
   color: var(--muted);
 }
+.od-status-signed {
+  font-size: 24rpx;
+  color: var(--green);
+  margin-top: 4rpx;
+}
+
+/* 进度步骤条 */
+.od-steps {
+  display: flex;
+  margin-top: 20rpx;
+  background: var(--paper);
+  border-radius: 24rpx;
+  padding: 28rpx 12rpx;
+  box-shadow: 0 10rpx 30rpx rgba(46, 35, 18, 0.06);
+}
+.od-step {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+}
+/* 连接线：画在每个 step 左侧，连到上一个 */
+.od-step::before {
+  content: '';
+  position: absolute;
+  top: 13rpx;
+  right: 50%;
+  width: 100%;
+  height: 4rpx;
+  background: #e8ddca;
+}
+.od-step:first-child::before { display: none; }
+.od-step.done::before { background: #8fbf6f; }
+.od-step-dot {
+  position: relative;
+  z-index: 1;
+  width: 26rpx;
+  height: 26rpx;
+  border-radius: 50%;
+  background: #e0d4bd;
+}
+.od-step.done .od-step-dot { background: #5aa15a; }
+.od-step.current .od-step-dot {
+  background: #167a61;
+  box-shadow: 0 0 0 6rpx rgba(22, 122, 97, 0.16);
+}
+.od-step-label {
+  font-size: 22rpx;
+  color: var(--muted);
+}
+.od-step.done .od-step-label,
+.od-step.current .od-step-label {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* 物流时间线 */
+.od-timeline {
+  margin-top: 16rpx;
+  display: flex;
+  flex-direction: column;
+}
+.od-tl-node {
+  position: relative;
+  padding: 0 0 24rpx 32rpx;
+  border-left: 2rpx solid #e8ddca;
+}
+.od-tl-node:last-child { border-left-color: transparent; padding-bottom: 0; }
+.od-tl-dot {
+  position: absolute;
+  left: -9rpx;
+  top: 4rpx;
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  background: #c9bca3;
+}
+.od-tl-node.latest .od-tl-dot { background: #167a61; }
+.od-tl-body { display: flex; flex-direction: column; gap: 4rpx; }
+.od-tl-context { font-size: 25rpx; color: var(--text); line-height: 1.4; }
+.od-tl-node.latest .od-tl-context { color: #167a61; font-weight: 600; }
+.od-tl-time { font-size: 22rpx; color: var(--muted); }
 
 .od-card {
   margin-top: 20rpx;

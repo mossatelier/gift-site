@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>加加好物图集 · 商品录入后台</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="assets/site.css?v=45">
+  <link rel="stylesheet" href="assets/site.css?v=46">
 </head>
 <body class="admin-page">
   <main class="admin-shell">
@@ -224,8 +224,9 @@
         </div>
         <div class="admin-orders-segs" id="adminOrdersSegs">
           <button class="admin-orders-seg active" type="button" data-orders-seg="pending">待处理<span class="admin-orders-seg-count" data-seg-count="pending"></span></button>
-          <button class="admin-orders-seg" type="button" data-orders-seg="done">已发货<span class="admin-orders-seg-count" data-seg-count="done"></span></button>
-          <button class="admin-orders-seg" type="button" data-orders-seg="closed">已结单<span class="admin-orders-seg-count" data-seg-count="closed"></span></button>
+          <button class="admin-orders-seg" type="button" data-orders-seg="preparing">待发货<span class="admin-orders-seg-count" data-seg-count="preparing"></span></button>
+          <button class="admin-orders-seg" type="button" data-orders-seg="shipped">运输中<span class="admin-orders-seg-count" data-seg-count="shipped"></span></button>
+          <button class="admin-orders-seg" type="button" data-orders-seg="signed">已签收<span class="admin-orders-seg-count" data-seg-count="signed"></span></button>
           <button class="admin-orders-seg" type="button" data-orders-seg="cancelled">已取消<span class="admin-orders-seg-count" data-seg-count="cancelled"></span></button>
           <button class="admin-orders-seg" type="button" data-orders-seg="all">全部订单<span class="admin-orders-seg-count" data-seg-count="all"></span></button>
         </div>
@@ -242,8 +243,9 @@
           <select id="adminOrdersBulkStatus">
             <option value="">改为…</option>
             <option value="pending">待处理</option>
-            <option value="done">已发货</option>
-            <option value="closed">已结单</option>
+            <option value="preparing">待发货</option>
+            <option value="shipped">运输中</option>
+            <option value="signed">已签收</option>
             <option value="cancelled">已取消</option>
           </select>
           <button class="admin-secondary-btn" id="adminOrdersBulkApply" type="button">批量更新</button>
@@ -384,6 +386,6 @@
   </main>
 
   <script src="assets/config.js?v=13"></script>
-  <script src="assets/admin.js?v=35"></script>
+  <script src="assets/admin.js?v=36"></script>
 </body>
 </html>

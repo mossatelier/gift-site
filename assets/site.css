@@ -2615,6 +2615,9 @@ body.admin-logged-in #adminLogoutButtonLogged {
 }
 
 .admin-order-status-pending    { color: #d64b2a; background: rgba(214, 75, 42, 0.10); }
+.admin-order-status-preparing  { color: #b87a18; background: rgba(224, 172, 77, 0.18); }
+.admin-order-status-shipped    { color: #2f6db0; background: rgba(47, 109, 176, 0.12); }
+.admin-order-status-signed     { color: #167a61; background: rgba(22, 122, 97, 0.12); }
 .admin-order-status-processing { color: #b87a18; background: rgba(224, 172, 77, 0.18); }
 .admin-order-status-done       { color: #167a61; background: rgba(22, 122, 97, 0.12); }
 .admin-order-status-closed     { color: #6b4ea3; background: rgba(122, 92, 196, 0.12); }

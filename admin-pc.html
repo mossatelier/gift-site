@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>加加好物图集 · Admin Console（电脑版）</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="assets/site.css?v=45">
-  <link rel="stylesheet" href="assets/admin-pc.css?v=18">
+  <link rel="stylesheet" href="assets/site.css?v=46">
+  <link rel="stylesheet" href="assets/admin-pc.css?v=19">
 </head>
 <body class="pc-admin">
 
@@ -98,14 +98,19 @@
               <span class="pc-nav-text">待处理</span>
               <span class="pc-nav-badge pc-nav-badge-pending" id="pcBadgeOrders" hidden>0</span>
             </a>
-            <a class="pc-nav-item" data-panel="orders" data-orders-status="done" href="#orders">
+            <a class="pc-nav-item" data-panel="orders" data-orders-status="preparing" href="#orders">
+              <span class="pc-nav-ico">📦</span>
+              <span class="pc-nav-text">待发货</span>
+              <span class="pc-nav-badge pc-nav-badge-preparing" id="pcBadgePreparing" hidden>0</span>
+            </a>
+            <a class="pc-nav-item" data-panel="orders" data-orders-status="shipped" href="#orders">
               <span class="pc-nav-ico">🚚</span>
-              <span class="pc-nav-text">已发货</span>
+              <span class="pc-nav-text">运输中</span>
               <span class="pc-nav-badge pc-nav-badge-done" id="pcBadgeDone" hidden>0</span>
             </a>
-            <a class="pc-nav-item" data-panel="orders" data-orders-status="closed" href="#orders">
+            <a class="pc-nav-item" data-panel="orders" data-orders-status="signed" href="#orders">
               <span class="pc-nav-ico">✅</span>
-              <span class="pc-nav-text">已结单</span>
+              <span class="pc-nav-text">已签收</span>
               <span class="pc-nav-badge pc-nav-badge-closed" id="pcBadgeClosed" hidden>0</span>
             </a>
             <a class="pc-nav-item" data-panel="orders" data-orders-status="cancelled" href="#orders">
@@ -276,6 +281,6 @@
 
   <script src="assets/config.js?v=13"></script>
   <script src="assets/admin-core.js?v=5"></script>
-  <script src="assets/admin-pc.js?v=23"></script>
+  <script src="assets/admin-pc.js?v=24"></script>
 </body>
 </html>

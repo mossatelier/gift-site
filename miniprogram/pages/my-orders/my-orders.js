@@ -1,10 +1,14 @@
 const auth = require('../../utils/auth.js');
 const { listMyOrders } = require('../../utils/db.js');
 
+// 旧码兼容：processing→pending、done→shipped、closed→signed
+const STATUS_LEGACY = { processing: 'pending', done: 'shipped', closed: 'signed' };
+function normStatus(s) { return STATUS_LEGACY[s] || s || 'pending'; }
 const STATUS_LABEL = {
   pending: '待处理',
-  done: '已发货',
-  closed: '已结单',
+  preparing: '待发货',
+  shipped: '运输中',
+  signed: '已签收',
   cancelled: '已取消'
 };
 
@@ -31,8 +35,8 @@ Page({
       const raw = await listMyOrders(user.openid, { limit: 50 });
       const orders = raw.map(o => ({
         _id: o._id,
-        status: o.status || 'pending',
-        statusLabel: STATUS_LABEL[o.status] || '待处理',
+        status: normStatus(o.status),
+        statusLabel: STATUS_LABEL[normStatus(o.status)] || '待处理',
         itemCount: o.itemCount || (o.items && o.items.length) || 0,
         totalCards: o.totalCards || 0,
         firstImage: (o.items && o.items[0] && o.items[0].imageUrl) || '',

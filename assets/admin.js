@@ -1691,12 +1691,16 @@ adminCancelEditButton?.addEventListener("click", () => {
 
 const ORDER_STATUS_LABEL = {
   pending: "待处理",
-  done: "已发货",
-  closed: "已结单",
+  preparing: "待发货",
+  shipped: "运输中",
+  signed: "已签收",
   cancelled: "已取消"
 };
-// 状态文案（历史 processing/未知 一律兜底「待处理」）
-function orderStatusText(s) { return ORDER_STATUS_LABEL[s] || "待处理"; }
+// 旧码归一：processing→pending、done→shipped、closed→signed
+const ORDER_STATUS_LEGACY = { processing: "pending", done: "shipped", closed: "signed" };
+function normOrderStatus(s) { return ORDER_STATUS_LEGACY[s] || s || "pending"; }
+// 状态文案（历史码/未知归一后兜底「待处理」）
+function orderStatusText(s) { return ORDER_STATUS_LABEL[normOrderStatus(s)] || "待处理"; }
 
 function setOrdersMessage(text, tone = "idle") {
   if (!adminOrdersMessage) return;
@@ -1756,7 +1760,7 @@ async function callAdminOrders(action, payload = {}) {
 function loadOrderSegCounts() {
   const segs = document.getElementById("adminOrdersSegs");
   if (!segs || !activeSession()) return;
-  ["pending", "done", "closed", "cancelled", "all"].forEach((st) => {
+  ["pending", "preparing", "shipped", "signed", "cancelled", "all"].forEach((st) => {
     callAdminOrders("list", { status: st, limit: 1 })
       .then((data) => {
         const el = segs.querySelector(`[data-seg-count="${st}"]`);
@@ -1857,7 +1861,7 @@ function renderOrdersList() {
     const statusSelect = `
       <select class="admin-order-status-select" data-order-id="${escapeHtml(o._id)}">
         ${Object.keys(ORDER_STATUS_LABEL).map(s =>
-          `<option value="${s}"${s === o.status ? " selected" : ""}>${escapeHtml(ORDER_STATUS_LABEL[s])}</option>`
+          `<option value="${s}"${s === normOrderStatus(o.status) ? " selected" : ""}>${escapeHtml(ORDER_STATUS_LABEL[s])}</option>`
         ).join("")}
       </select>
     `;
@@ -1871,7 +1875,7 @@ function renderOrdersList() {
             <span class="admin-order-summary">${escapeHtml((items[0] && items[0].title) || "礼品")}${items.length > 1 ? "等" : ""} · ${escapeHtml(items.length)}件</span>
           </div>
           <div class="admin-order-head-right">
-            <span class="admin-order-status admin-order-status-${escapeHtml(o.status)}">${escapeHtml(orderStatusText(o.status))}</span>
+            <span class="admin-order-status admin-order-status-${escapeHtml(normOrderStatus(o.status))}">${escapeHtml(orderStatusText(o.status))}</span>
             <span class="admin-order-date">${escapeHtml(formatOrderDate(o.createdAt))}</span>
           </div>
         </div>
@@ -2028,15 +2032,15 @@ async function handleTrackingSave(orderId) {
   setOrdersMessage("正在保存单号…");
   try {
     await callAdminOrders("update-tracking", { orderId, trackingNo, trackingCompany });
-    // 就地写回；填单号 = 发货 → 云端已自动置「已发货」，前端同步状态并重渲染徽标
+    // 就地写回；填单号 = 发货 → 云端已自动置「运输中」，前端同步状态并重渲染徽标
     const idx = state.orders.findIndex((o) => o._id === orderId);
     if (idx >= 0) {
       state.orders[idx].trackingNo = trackingNo;
       state.orders[idx].trackingCompany = trackingCompany;
-      if (state.orders[idx].status !== "cancelled") state.orders[idx].status = "done";
+      if (state.orders[idx].status !== "cancelled") state.orders[idx].status = "shipped";
     }
     renderOrdersList();
-    setOrdersMessage("单号已保存，已自动标记「已发货」并推送用户。", "success");
+    setOrdersMessage("单号已保存，已自动标记「运输中」并推送用户。", "success");
   } catch (err) {
     setOrdersMessage(err.message, "error");
   }
@@ -2410,8 +2414,9 @@ function renderStats() {
         <div class="admin-stats-label">订单状态分布</div>
         <div class="admin-stats-status-grid">
           <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-pending">待处理</span><span>${escapeHtml(byStatus.pending || 0)}</span></div>
-          <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-done">已发货</span><span>${escapeHtml(byStatus.done || 0)}</span></div>
-          <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-closed">已结单</span><span>${escapeHtml(byStatus.closed || 0)}</span></div>
+          <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-preparing">待发货</span><span>${escapeHtml(byStatus.preparing || 0)}</span></div>
+          <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-shipped">运输中</span><span>${escapeHtml(byStatus.shipped || 0)}</span></div>
+          <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-signed">已签收</span><span>${escapeHtml(byStatus.signed || 0)}</span></div>
           <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-cancelled">已取消</span><span>${escapeHtml(byStatus.cancelled || 0)}</span></div>
         </div>
       </div>

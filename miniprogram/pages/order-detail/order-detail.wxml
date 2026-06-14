@@ -3,21 +3,41 @@
 
   <block wx:elif="{{order}}">
     <view class="od-status-card">
-      <text class="od-status-label status-{{order.status}}">{{statusLabel}}</text>
-      <text class="od-status-desc" wx:if="{{order.status === 'done'}}">礼品已发货，请注意查收物流</text>
-      <text class="od-status-desc" wx:elif="{{order.status === 'closed'}}">订单已结单，感谢支持，欢迎再来～</text>
-      <text class="od-status-desc" wx:elif="{{order.status === 'cancelled'}}">订单已取消</text>
-      <text class="od-status-desc" wx:else>客服已收到申请，会主动联系你</text>
+      <text class="od-status-label status-{{statusCode}}">{{statusLabel}}</text>
+      <text class="od-status-desc">{{statusDesc}}</text>
+      <text class="od-status-signed" wx:if="{{statusCode === 'signed' && signedText}}">签收时间：{{signedText}}{{signedBy ? '（' + signedBy + '）' : ''}}</text>
     </view>
 
-    <view class="od-card od-track-card" wx:if="{{order.trackingNo}}">
+    <!-- 进度步骤条（已取消不展示） -->
+    <view class="od-steps" wx:if="{{!isCancelled}}">
+      <view class="od-step {{item.done ? 'done' : ''}} {{item.current ? 'current' : ''}}" wx:for="{{steps}}" wx:key="label">
+        <view class="od-step-dot"></view>
+        <text class="od-step-label">{{item.label}}</text>
+      </view>
+    </view>
+
+    <!-- 物流信息：有节点显时间线；否则有单号显单号+复制 -->
+    <view class="od-card od-track-card" wx:if="{{nodes.length || order.trackingNo}}">
       <text class="od-card-title">物流信息</text>
-      <view class="od-track-line">
+      <view class="od-track-line" wx:if="{{order.trackingNo}}">
         <text class="od-track-company">{{order.trackingCompany || '快递'}}</text>
         <text class="od-track-no">{{order.trackingNo}}</text>
       </view>
-      <button class="od-track-copy" bindtap="copyTracking">复制单号去查物流</button>
-      <text class="od-track-tip">复制后可在微信「我-服务」或快递100 / 菜鸟等查询轨迹</text>
+
+      <view class="od-timeline" wx:if="{{nodes.length}}">
+        <view class="od-tl-node {{index === 0 ? 'latest' : ''}}" wx:for="{{nodes}}" wx:key="time">
+          <view class="od-tl-dot"></view>
+          <view class="od-tl-body">
+            <text class="od-tl-context">{{item.context}}</text>
+            <text class="od-tl-time">{{item.time}}</text>
+          </view>
+        </view>
+      </view>
+
+      <block wx:if="{{order.trackingNo}}">
+        <button class="od-track-copy" bindtap="copyTracking">复制单号去查物流</button>
+        <text class="od-track-tip" wx:if="{{!nodes.length}}">复制后可在微信「我-服务」或快递100 / 菜鸟等查询轨迹</text>
+      </block>
     </view>
 
     <view class="od-card">
