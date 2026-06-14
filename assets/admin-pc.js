@@ -4185,6 +4185,7 @@
     var trackingCompany = companyInput ? companyInput.value.trim() : "";
     if (!trackingNo) {
       setOrdersDrawerMsg("请填写快递单号。", "error");
+      toast("请先填写快递单号", "error");
       return;
     }
     setOrdersDrawerMsg("正在保存单号…", null);
@@ -4204,9 +4205,11 @@
           loadBadges();
         }
         setOrdersDrawerMsg("单号已保存，已自动标记「运输中」并推送用户。", "success");
+        toast("✅ 单号已保存，已发货并推送用户", "success");
       })
       .catch(function (err) {
         setOrdersDrawerMsg((err && err.message) || "保存失败", "error");
+        toast("保存失败：" + ((err && err.message) || ""), "error");
       });
   }
 
