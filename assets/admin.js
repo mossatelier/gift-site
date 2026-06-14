@@ -65,6 +65,8 @@ const adminOrdersBulkStatus = document.getElementById("adminOrdersBulkStatus");
 const adminOrdersBulkApply = document.getElementById("adminOrdersBulkApply");
 const adminOrdersBulkDelete = document.getElementById("adminOrdersBulkDelete");
 const adminOrdersBulkClear = document.getElementById("adminOrdersBulkClear");
+const adminTabReferral = document.getElementById("adminTabReferral");
+const adminReferralPanel = document.getElementById("adminReferralPanel");
 const adminTabStats = document.getElementById("adminTabStats");
 const adminStatsPanel = document.getElementById("adminStatsPanel");
 const adminStatsPeriod = document.getElementById("adminStatsPeriod");
@@ -465,6 +467,7 @@ function updatePanelUi() {
     edit: adminEditPanel,
     banks: adminBanksPanel,
     orders: adminOrdersPanel,
+    referral: adminReferralPanel,
     stats: adminStatsPanel,
     reviews: adminReviewsPanel,
     catorder: adminCatOrderPanel,
@@ -480,6 +483,7 @@ function updatePanelUi() {
     goods: inGoods,
     banks: state.activePanel === "banks",
     orders: state.activePanel === "orders",
+    referral: state.activePanel === "referral",
     stats: state.activePanel === "stats",
     reviews: state.activePanel === "reviews",
     catorder: state.activePanel === "catorder",
@@ -489,6 +493,7 @@ function updatePanelUi() {
     goods: adminTabGoods,
     banks: adminTabBanks,
     orders: adminTabOrders,
+    referral: adminTabReferral,
     stats: adminTabStats,
     reviews: adminTabReviews,
     catorder: adminTabCatOrder,
@@ -1355,6 +1360,168 @@ adminTabBanks?.addEventListener("click", () => {
   updatePanelUi();
   loadBanksEarn();
 });
+
+// ============ 推荐管理 CRM（手机后台） ============
+adminTabReferral?.addEventListener("click", () => {
+  state.activePanel = "referral";
+  updatePanelUi();
+  loadReferralAdmin();
+});
+
+const REF_ADMIN_TABS = ["", "待审核", "已加微信", "办卡中", "开户成功", "无效"];
+const REF_ADMIN_STATUS_OPTS = ["待审核", "已加微信", "办卡中", "开户成功", "无效"];
+const refAdminState = { status: "", keyword: "", rows: [], bound: false };
+
+function refEsc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+function refFmtDate(d) {
+  if (!d) return "";
+  const x = new Date(d);
+  if (isNaN(x.getTime())) return "";
+  const p = (n) => (n < 10 ? "0" + n : "" + n);
+  return `${x.getFullYear()}-${p(x.getMonth() + 1)}-${p(x.getDate())}`;
+}
+
+function renderRefAdminTabs() {
+  const el = document.getElementById("adminRefTabs");
+  if (!el) return;
+  el.innerHTML = REF_ADMIN_TABS.map((s) => {
+    const label = s === "" ? "全部" : s;
+    return `<button class="admin-ref-tab${refAdminState.status === s ? " active" : ""}" data-ref-tab="${refEsc(s)}" type="button">${refEsc(label)}</button>`;
+  }).join("");
+}
+
+function refStatusOptions(cur) {
+  return REF_ADMIN_STATUS_OPTS.map((s) => `<option value="${refEsc(s)}"${s === cur ? " selected" : ""}>${refEsc(s)}</option>`).join("");
+}
+
+function renderRefAdminList() {
+  const el = document.getElementById("adminRefList");
+  if (!el) return;
+  if (!refAdminState.rows.length) {
+    el.innerHTML = '<p class="admin-ref-empty">暂无推荐记录</p>';
+    return;
+  }
+  el.innerHTML = refAdminState.rows.map((r) => `
+    <div class="admin-ref-card">
+      <div class="admin-ref-card-top">
+        <span class="admin-ref-friend">${refEsc(r.refereeNick || "客户")}</span>
+        <span class="admin-ref-phone">${refEsc(r.refereePhone || "")}</span>
+      </div>
+      <div class="admin-ref-card-mid">推荐人：<b>${refEsc(r.referrerCode || "-")}</b> ${refEsc(r.referrerNick || "")}</div>
+      <div class="admin-ref-card-bot">
+        <select class="admin-ref-status-sel" data-ref-id="${refEsc(r._id)}" data-ref-prev="${refEsc(r.status)}">${refStatusOptions(r.status)}</select>
+        <span class="admin-ref-reward">${r.rewardPoints > 0 ? "+" + r.rewardPoints + "分" : ""}</span>
+        <span class="admin-ref-date">${refEsc(refFmtDate(r.createdAt))}</span>
+      </div>
+    </div>`).join("");
+}
+
+async function loadReferralAdmin() {
+  bindRefAdmin();
+  renderRefAdminTabs();
+  const listEl = document.getElementById("adminRefList");
+  if (listEl) listEl.innerHTML = '<p class="admin-ref-empty">加载中…</p>';
+  try {
+    const rows = await callAdminOrders("referral-list", { status: refAdminState.status, keyword: refAdminState.keyword });
+    refAdminState.rows = rows || [];
+    renderRefAdminList();
+  } catch (e) {
+    if (listEl) listEl.innerHTML = `<p class="admin-ref-empty">加载失败：${refEsc(e.message)}</p>`;
+  }
+  loadRefAdminRanking();
+}
+
+async function loadRefAdminRanking() {
+  const el = document.getElementById("adminRefRanking");
+  if (!el) return;
+  try {
+    const rows = await callAdminOrders("referral-ranking", {});
+    if (!rows || !rows.length) { el.innerHTML = '<p class="admin-ref-empty">暂无数据</p>'; return; }
+    el.innerHTML = rows.map((r, i) => `
+      <div class="admin-ref-rank-row">
+        <span class="admin-ref-rank-no">${i + 1}</span>
+        <span class="admin-ref-rank-name">${refEsc(r.nick || "微信用户")} <em>${refEsc(r.code || "")}</em></span>
+        <span class="admin-ref-rank-stat">有效 ${r.opened || 0} / 累计 ${r.total || 0} · ${r.rewardPoints || 0}分</span>
+      </div>`).join("");
+  } catch (e) {
+    el.innerHTML = '<p class="admin-ref-empty">排行加载失败</p>';
+  }
+}
+
+async function doRefAdminAdd() {
+  const code = (document.getElementById("adminRefAddCode").value || "").trim();
+  const phone = (document.getElementById("adminRefAddPhone").value || "").trim();
+  const nick = (document.getElementById("adminRefAddNick").value || "").trim();
+  const msg = document.getElementById("adminRefAddMsg");
+  if (!/^\d{6}$/.test(code)) { msg.textContent = "推荐码需6位数字"; msg.className = "admin-ref-add-msg error"; return; }
+  if (!/^1\d{10}$/.test(phone)) { msg.textContent = "手机号格式不正确"; msg.className = "admin-ref-add-msg error"; return; }
+  msg.textContent = "提交中…"; msg.className = "admin-ref-add-msg";
+  try {
+    await callAdminOrders("referral-add", { referrerCode: code, phone, nick });
+    msg.textContent = "已录入 ✓"; msg.className = "admin-ref-add-msg success";
+    document.getElementById("adminRefAddPhone").value = "";
+    document.getElementById("adminRefAddNick").value = "";
+    loadReferralAdmin();
+  } catch (e) {
+    msg.textContent = e.message; msg.className = "admin-ref-add-msg error";
+  }
+}
+
+async function changeRefAdminStatus(sel) {
+  const id = sel.getAttribute("data-ref-id");
+  const prev = sel.getAttribute("data-ref-prev");
+  const next = sel.value;
+  if (next === prev) return;
+  const payload = { id, status: next };
+  if (next === "开户成功") {
+    const input = window.prompt("发放奖励积分给推荐人：", "1");
+    if (input === null) { sel.value = prev; return; }
+    const pts = parseInt(input, 10);
+    if (isNaN(pts) || pts < 0) { window.alert("积分不合法"); sel.value = prev; return; }
+    payload.rewardPoints = pts;
+  } else if (prev === "开户成功") {
+    if (!window.confirm("从「开户成功」改为「" + next + "」会回收已发奖励积分，确定？")) { sel.value = prev; return; }
+  }
+  try {
+    await callAdminOrders("referral-set-status", payload);
+    loadReferralAdmin();
+  } catch (e) {
+    window.alert(e.message); sel.value = prev;
+  }
+}
+
+function bindRefAdmin() {
+  if (refAdminState.bound) return;
+  refAdminState.bound = true;
+  const tabs = document.getElementById("adminRefTabs");
+  if (tabs) tabs.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-ref-tab]");
+    if (!b) return;
+    refAdminState.status = b.getAttribute("data-ref-tab");
+    renderRefAdminTabs();
+    loadReferralAdmin();
+  });
+  const list = document.getElementById("adminRefList");
+  if (list) list.addEventListener("change", (e) => {
+    const sel = e.target.closest(".admin-ref-status-sel");
+    if (sel) changeRefAdminStatus(sel);
+  });
+  const addBtn = document.getElementById("adminRefAddBtn");
+  if (addBtn) addBtn.addEventListener("click", doRefAdminAdd);
+  const refreshBtn = document.getElementById("adminRefRefreshBtn");
+  if (refreshBtn) refreshBtn.addEventListener("click", loadReferralAdmin);
+  const searchBtn = document.getElementById("adminRefSearchBtn");
+  if (searchBtn) searchBtn.addEventListener("click", () => {
+    refAdminState.keyword = (document.getElementById("adminRefSearch").value || "").trim();
+    loadReferralAdmin();
+  });
+  const searchInp = document.getElementById("adminRefSearch");
+  if (searchInp) searchInp.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { refAdminState.keyword = (searchInp.value || "").trim(); loadReferralAdmin(); }
+  });
+}
 
 adminBanksRefreshButton?.addEventListener("click", () => {
   loadBanksEarn();

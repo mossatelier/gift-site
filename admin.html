@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>加加好物图集 · 商品录入后台</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="assets/site.css?v=29">
+  <link rel="stylesheet" href="assets/site.css?v=32">
 </head>
 <body class="admin-page">
   <main class="admin-shell">
@@ -59,13 +59,15 @@
 
     <div id="adminWorkspace" hidden>
       <section class="admin-card admin-panel-nav">
-        <!-- 第一行：礼品管理 / 订单管理 / 数据看板 -->
+        <!-- 第一行：礼品管理 / 订单管理 / 推荐管理 -->
         <button class="admin-panel-tab active" id="adminTabGoods" type="button"><span class="tab-ico">🎁</span>礼品管理</button>
         <button class="admin-panel-tab" id="adminTabOrders" type="button"><span class="tab-ico">📦</span>订单管理</button>
+        <button class="admin-panel-tab" id="adminTabReferral" type="button"><span class="tab-ico">🤝</span>推荐管理</button>
+        <!-- 第二行：数据看板 / 银行积分 / 分类排序 -->
         <button class="admin-panel-tab" id="adminTabStats" type="button"><span class="tab-ico">📊</span>数据看板</button>
-        <!-- 第二行：银行积分 / 分类排序 / 首页海报 -->
         <button class="admin-panel-tab" id="adminTabBanks" type="button"><span class="tab-ico">🏦</span>银行积分</button>
         <button class="admin-panel-tab" id="adminTabCatOrder" type="button"><span class="tab-ico">🔀</span>分类排序</button>
+        <!-- 第三行：首页海报 -->
         <button class="admin-panel-tab" id="adminTabHaibao" type="button"><span class="tab-ico">🖼️</span>首页海报</button>
         <!-- 晒图审核暂时下线（晒图未在收集）；恢复：去掉 hidden 即可。隐藏项不占格 -->
         <button class="admin-panel-tab" id="adminTabReviews" type="button" hidden><span class="tab-ico">🖼️</span>晒图审核</button>
@@ -253,6 +255,35 @@
         <p class="admin-inline-message" id="adminOrdersMessage"></p>
       </section>
 
+      <section class="admin-card" id="adminReferralPanel" hidden>
+        <div class="admin-status-head">
+          <h2 class="admin-section-title">推荐管理</h2>
+          <button class="admin-secondary-btn" id="adminRefRefreshBtn" type="button">刷新</button>
+        </div>
+
+        <div class="admin-ref-add">
+          <input id="adminRefAddCode" class="admin-ref-input" placeholder="推荐码(6位)" maxlength="6" inputmode="numeric">
+          <input id="adminRefAddPhone" class="admin-ref-input" placeholder="新客户手机号" inputmode="numeric">
+          <input id="adminRefAddNick" class="admin-ref-input" placeholder="昵称(可选)">
+          <button class="admin-ref-add-btn" id="adminRefAddBtn" type="button">＋ 录入推荐</button>
+          <p class="admin-ref-add-msg" id="adminRefAddMsg"></p>
+        </div>
+
+        <div class="admin-ref-tabs" id="adminRefTabs"></div>
+
+        <div class="admin-ref-search">
+          <input id="adminRefSearch" class="admin-ref-input" placeholder="搜索 手机号 / 昵称 / 推荐码">
+          <button class="admin-secondary-btn" id="adminRefSearchBtn" type="button">搜索</button>
+        </div>
+
+        <div class="admin-ref-list" id="adminRefList"></div>
+
+        <div class="admin-ref-ranking">
+          <h3 class="admin-ref-sub">推荐排行榜</h3>
+          <div id="adminRefRanking"></div>
+        </div>
+      </section>
+
       <section class="admin-card" id="adminReviewsPanel" hidden>
         <div class="admin-status-head">
           <h2 class="admin-section-title">晒图审核</h2>
@@ -342,6 +373,6 @@
   </main>
 
   <script src="assets/config.js?v=13"></script>
-  <script src="assets/admin.js?v=33"></script>
+  <script src="assets/admin.js?v=34"></script>
 </body>
 </html>
