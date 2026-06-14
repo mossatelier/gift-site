@@ -829,8 +829,11 @@ async function referralList(body) {
   const keyword = String(body.keyword || '').trim();
   const where = {};
   if (status && REF_STATUS.includes(status)) where.status = status;
-  const res = await db.collection(REFERRALS).where(where).orderBy('createdAt', 'desc').limit(200).get();
-  let rows = res.data || [];
+  let rows = [];
+  try {
+    const res = await db.collection(REFERRALS).where(where).orderBy('createdAt', 'desc').limit(200).get();
+    rows = res.data || [];
+  } catch (e) { rows = []; } // referrals 集合未建/为空容错
   if (keyword) {
     const k = keyword.toLowerCase();
     rows = rows.filter(r =>
@@ -928,8 +931,11 @@ async function referralSetStatus(body) {
 }
 
 async function referralRanking() {
-  const res = await db.collection(REFERRALS).limit(1000).get();
-  const rows = res.data || [];
+  let rows = [];
+  try {
+    const res = await db.collection(REFERRALS).limit(1000).get();
+    rows = res.data || [];
+  } catch (e) { rows = []; } // referrals 集合未建/为空容错
   const map = {};
   rows.forEach(r => {
     const k = r.referrerOpenid || '';

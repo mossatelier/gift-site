@@ -59,13 +59,19 @@ function maskPhone(p) {
 
 async function getMyReferral(openid) {
   const me = await ensureMyUser(openid);
-  // 明细（我推荐的好友）
-  const res = await db.collection(REFERRALS)
-    .where({ referrerOpenid: openid })
-    .orderBy('createdAt', 'desc')
-    .limit(100)
-    .get();
-  const rows = res.data || [];
+  // 明细（我推荐的好友）；referrals 集合还没建/为空时容错为空，避免整页报错
+  let rows = [];
+  try {
+    const res = await db.collection(REFERRALS)
+      .where({ referrerOpenid: openid })
+      .orderBy('createdAt', 'desc')
+      .limit(100)
+      .get();
+    rows = res.data || [];
+  } catch (e) {
+    console.warn('[referral] referrals read failed (collection 可能未建)', e);
+    rows = [];
+  }
   const opened = rows.filter(r => r.status === STATUS_OPENED).length;
   const list = rows.map(r => ({
     refereeNick: r.refereeNick || '好友',
