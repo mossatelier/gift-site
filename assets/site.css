@@ -4115,40 +4115,54 @@ body.admin-logged-in #adminLogoutButtonLogged {
 .admin-ref-rank-name em { color: #8a7c66; font-style: normal; font-size: 12px; }
 .admin-ref-rank-stat { font-size: 12px; color: #5d5140; }
 
-/* ===== 图文须知页（文字版，H5） ===== */
-.guide-hero {
-  background: linear-gradient(135deg, #ff8a3d 0%, #e8531f 100%);
-  border-radius: 16px; padding: 22px 18px; margin: 0 12px 16px;
-  box-shadow: 0 8px 18px rgba(232,83,31,0.22);
+/* ===== 图文须知页（文字版·海报风，H5） ===== */
+.guide-page-shell {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #ffc078 0%, #ff9a4d 42%, #f57c2e 100%);
+  padding-bottom: 36px;
 }
-.guide-hero-title { font-size: 23px; font-weight: 800; color: #fff; margin: 0; }
-.guide-hero-sub { margin: 8px 0 0; font-size: 13px; color: rgba(255,255,255,0.94); line-height: 1.5; }
+.guide-page-shell .top-bar { background: transparent; box-shadow: none; }
+.guide-page-shell .top-bar .brand,
+.guide-page-shell .top-bar .top-action { color: #fff; }
+.guide-hero { text-align: center; padding: 14px 16px 22px; }
+.guide-hero-title {
+  display: inline-block; margin: 0;
+  font-size: 30px; font-weight: 800; color: #fff; letter-spacing: 2px;
+  text-shadow: 0 3px 0 rgba(193,68,20,0.5), 0 8px 14px rgba(120,40,10,0.25);
+}
+.guide-hero-sub {
+  display: inline-block; margin: 12px 0 0; font-size: 13px; color: #fff; line-height: 1.5;
+  background: rgba(255,255,255,0.2); padding: 7px 16px; border-radius: 999px;
+}
 .guide-block {
-  background: #fff; border-radius: 14px; padding: 16px; margin: 0 12px 12px;
-  border: 1px solid rgba(234,223,206,0.9); box-shadow: 0 6px 16px rgba(46,35,18,0.05);
+  background: #fffdf6; border-radius: 18px; padding: 18px 18px 16px; margin: 0 12px 14px;
+  box-shadow: 0 12px 24px rgba(150,64,18,0.18);
 }
-.guide-block-head { margin-bottom: 8px; }
+.guide-block-head { margin-bottom: 10px; }
 .guide-tag {
-  display: inline-block; background: linear-gradient(135deg,#ff8a3d,#e8531f);
-  color: #fff; font-weight: 800; font-size: 14px; padding: 4px 12px; border-radius: 7px;
+  display: inline-block; background: linear-gradient(135deg,#ff8a3d,#ee5a22);
+  color: #fff; font-weight: 800; font-size: 15px; padding: 5px 14px; border-radius: 9px;
+  box-shadow: 0 4px 10px rgba(232,83,31,0.3);
 }
-.guide-tag-warn { background: linear-gradient(135deg,#e8531f,#c0392b); }
-.guide-block-text { font-size: 14.5px; color: #5d5140; line-height: 1.75; margin: 0; }
-.guide-step { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 12px; }
+.guide-tag-warn { background: linear-gradient(135deg,#ef4e3a,#c0392b); }
+.guide-block-text { font-size: 15px; color: #5a4632; line-height: 1.85; margin: 0; }
+.guide-block-text-warn { color: #d64b2a; font-weight: 600; }
+.guide-step { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px; }
 .guide-step:last-child { margin-bottom: 0; }
 .guide-step-no {
-  flex: 0 0 auto; width: 24px; height: 24px; line-height: 24px; text-align: center;
-  border-radius: 7px; background: #e8531f; color: #fff; font-weight: 800; font-size: 13px;
+  flex: 0 0 auto; width: 28px; height: 28px; line-height: 28px; text-align: center;
+  border-radius: 9px; background: linear-gradient(135deg,#ff8a3d,#ee5a22); color: #fff;
+  font-weight: 800; font-size: 15px; box-shadow: 0 4px 10px rgba(232,83,31,0.3);
 }
-.guide-step-text { flex: 1; font-size: 14.5px; color: #2e2318; line-height: 1.6; }
-.guide-table-wrap { margin: 0 12px; background: #fff; border-radius: 14px; overflow: hidden; border: 1px solid rgba(234,223,206,0.9); }
+.guide-step-text { flex: 1; font-size: 15px; color: #4a3a28; line-height: 1.65; padding-top: 3px; }
+.guide-table-wrap { margin: 0 12px; background: #fffdf6; border-radius: 18px; overflow: hidden; box-shadow: 0 12px 24px rgba(150,64,18,0.18); }
 .guide-table { width: 100%; border-collapse: collapse; }
-.guide-table th, .guide-table td { padding: 10px 8px; font-size: 12.5px; border-bottom: 1px solid rgba(234,223,206,0.7); text-align: left; vertical-align: middle; }
+.guide-table th, .guide-table td { padding: 12px 8px; font-size: 13px; border-bottom: 1px solid #f1e3ce; text-align: left; vertical-align: middle; line-height: 1.5; }
 .guide-table tbody tr:last-child td { border-bottom: none; }
-.guide-table thead th { background: #fff3e8; color: #8a5a2a; font-weight: 800; text-align: center; }
-.guide-table td:first-child { font-weight: 700; color: #2e2318; white-space: nowrap; }
-.guide-table td:last-child, .guide-table th:last-child { text-align: center; color: #e8531f; font-weight: 700; white-space: nowrap; }
+.guide-table thead th { background: linear-gradient(135deg,#ffd9a8,#ffc585); color: #8a4a18; font-weight: 800; text-align: center; }
+.guide-table td:first-child { font-weight: 800; color: #3a2a18; white-space: nowrap; }
+.guide-table td:last-child, .guide-table th:last-child { text-align: center; color: #ee5a22; font-weight: 800; white-space: nowrap; }
 .guide-note {
-  margin: 14px 12px 0; background: #fff7ea; border: 1px solid rgba(224,172,77,0.5);
-  border-radius: 12px; padding: 14px; font-size: 13px; color: #8a5a2a; line-height: 1.6;
+  margin: 16px 12px 0; background: rgba(255,255,255,0.92); border: 1px dashed rgba(193,68,20,0.45);
+  border-radius: 14px; padding: 14px; font-size: 13px; color: #b5471b; line-height: 1.65;
 }

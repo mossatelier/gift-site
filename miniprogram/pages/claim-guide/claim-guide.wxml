@@ -23,7 +23,7 @@
 
   <view class="guide-block">
     <view class="guide-block-head"><text class="guide-tag guide-tag-warn">注销须知 ⚠️</text></view>
-    <text class="guide-block-text">礼品领取后，不允许提前注销信用卡。请按规定持卡期满后再办理注销，否则需按礼品市价的三倍进行赔偿，并将被业内拉黑通报，可能影响个人征信。</text>
+    <text class="guide-block-text guide-block-text-warn">礼品领取后，不允许提前注销信用卡。请按规定持卡期满后再办理注销，否则需按礼品市价的三倍进行赔偿，并将被业内拉黑通报，可能影响个人征信。</text>
   </view>
 
   <view class="bottom-spacer"></view>
