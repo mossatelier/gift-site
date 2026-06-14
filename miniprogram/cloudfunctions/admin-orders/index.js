@@ -709,7 +709,36 @@ function webOrderSig(snaps) {
     .join('|');
 }
 
-async function webSubmitOrder({ items, address, remark }) {
+// 网页下单带了推荐码 → 自动建一条「待审核」推荐记录（同推荐人+同手机号只建一次）
+async function maybeCreateWebReferral(referrerCode, phone, nick) {
+  const code = String(referrerCode || '').trim();
+  if (!/^\d{6}$/.test(code) || !/^1\d{10}$/.test(String(phone || ''))) return;
+  try {
+    const ur = await db.collection('users').where({ referralCode: code }).limit(1).get();
+    const referrer = ur.data[0];
+    if (!referrer) return;
+    const dup = await db.collection('referrals').where({ referrerOpenid: referrer.openid, refereePhone: phone }).count();
+    if (dup.total > 0) return;
+    const now = new Date();
+    await db.collection('referrals').add({ data: {
+      referrerOpenid: referrer.openid,
+      referrerCode: code,
+      refereeOpenid: '',
+      refereeNick: nick || '网页客户',
+      refereePhone: phone,
+      status: '待审核',
+      rewardPoints: 0,
+      createdAt: now,
+      openedAt: null,
+      rewardedAt: null,
+      source: 'web'
+    }});
+  } catch (e) {
+    console.warn('[admin-orders] maybeCreateWebReferral', e);
+  }
+}
+
+async function webSubmitOrder({ items, address, remark, referrerCode }) {
   const list = Array.isArray(items) ? items : [];
   if (list.length === 0) throw new Error('心愿单为空');
   if (list.length > 50) throw new Error('商品过多');
@@ -783,6 +812,8 @@ async function webSubmitOrder({ items, address, remark }) {
     updatedAt: now
   };
   const add = await db.collection('orders').add({ data: order });
+  // 推荐归属：网页下单带了推荐码则建推荐记录（不阻断下单主流程）
+  await maybeCreateWebReferral(referrerCode, phone, recipient);
   return { success: true, orderId: add._id };
 }
 

@@ -104,6 +104,18 @@ const state = {
   cards: urlParams.get("cards") || ""
 };
 
+// 推荐归属：?ref=6位推荐码 落地即记到本机，下单时带给后台自动建推荐记录
+const REF_KEY = "gift-site-ref";
+(function captureRef() {
+  try {
+    const r = urlParams.get("ref");
+    if (r && /^\d{6}$/.test(r)) localStorage.setItem(REF_KEY, r);
+  } catch (e) { /* ignore */ }
+})();
+function getRefCode() {
+  try { return localStorage.getItem(REF_KEY) || ""; } catch (e) { return ""; }
+}
+
 function isSupabaseConfigured() {
   return Boolean(config.supabaseUrl && config.supabaseAnonKey && config.productsTable);
 }
@@ -813,7 +825,8 @@ function submitWebOrder() {
     action: "web-submit-order",
     items: items.map((p) => ({ id: p.id, supabaseId: p.id, title: p.title, cardsNeeded: p.cardsNeeded, price: p.price, imageUrl: p.imageUrl, qty: 1 })),
     address,
-    remark
+    remark,
+    referrerCode: getRefCode()
   };
 
   const btn = webOrderForm.querySelector(".web-order-submit");
