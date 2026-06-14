@@ -37,6 +37,16 @@
     </view>
   </view>
 
+  <!-- 邀友推荐办卡（核心入口） -->
+  <view class="me-referral-entry" bindtap="goReferral">
+    <text class="me-referral-emoji">🎁</text>
+    <view class="me-referral-text">
+      <text class="me-referral-title">邀友推荐办卡</text>
+      <text class="me-referral-sub">邀好友办卡，得奖励积分</text>
+    </view>
+    <text class="me-referral-arrow">›</text>
+  </view>
+
   <!-- 功能入口 -->
   <view class="me-menu">
     <view class="me-menu-item" bindtap="goOrders">

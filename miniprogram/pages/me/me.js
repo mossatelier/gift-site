@@ -48,6 +48,11 @@ Page({
     wx.switchTab({ url: '/pages/wishlist/wishlist' });
   },
 
+  goReferral() {
+    if (!auth.ensureLogin('/pages/referral/referral')) return;
+    wx.navigateTo({ url: '/pages/referral/referral' });
+  },
+
   goService() {
     wx.previewImage({
       urls: ['/images/wechat-qr.jpg'],

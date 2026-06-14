@@ -1,0 +1,61 @@
+<view class="page-shell referral-page">
+  <block wx:if="{{loading}}">
+    <view class="loading-state">加载中…</view>
+  </block>
+
+  <block wx:else>
+    <!-- 推荐码卡 -->
+    <view class="ref-code-card">
+      <text class="ref-code-label">我的专属推荐码</text>
+      <text class="ref-code-value">{{code}}</text>
+      <view class="ref-code-actions">
+        <view class="ref-btn ref-btn-ghost" bindtap="copyCode">复制推荐码</view>
+        <button class="ref-btn ref-btn-primary" open-type="share">分享给好友</button>
+      </view>
+    </view>
+
+    <!-- 数据 -->
+    <view class="ref-stats">
+      <view class="ref-stat">
+        <text class="ref-stat-num">{{stats.total}}</text>
+        <text class="ref-stat-label">累计推荐</text>
+      </view>
+      <view class="ref-stat">
+        <text class="ref-stat-num">{{stats.opened}}</text>
+        <text class="ref-stat-label">有效办卡</text>
+      </view>
+      <view class="ref-stat">
+        <text class="ref-stat-num ref-stat-num-gold">{{stats.rewardPoints}}</text>
+        <text class="ref-stat-label">已奖励积分</text>
+      </view>
+    </view>
+
+    <!-- 规则 -->
+    <view class="ref-section">
+      <text class="ref-section-title">推荐规则</text>
+      <view class="ref-rule" wx:for="{{rules}}" wx:key="*this">
+        <text class="ref-rule-idx">{{index + 1}}</text>
+        <text class="ref-rule-text">{{item}}</text>
+      </view>
+    </view>
+
+    <!-- 明细 -->
+    <view class="ref-section">
+      <text class="ref-section-title">推荐明细</text>
+      <view class="ref-empty" wx:if="{{list.length === 0}}">还没有推荐记录，把推荐码分享给好友吧～</view>
+      <view class="ref-item" wx:for="{{list}}" wx:key="createdText">
+        <view class="ref-item-main">
+          <text class="ref-item-nick">{{item.refereeNick}}</text>
+          <text class="ref-item-phone" wx:if="{{item.refereePhone}}">{{item.refereePhone}}</text>
+        </view>
+        <view class="ref-item-right">
+          <text class="ref-item-status {{item.isOk ? 'ref-status-ok' : ''}}">{{item.status}}</text>
+          <text class="ref-item-reward" wx:if="{{item.rewardPoints > 0}}">+{{item.rewardPoints}} 分</text>
+          <text class="ref-item-date">{{item.createdText}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="bottom-spacer"></view>
+  </block>
+</view>
