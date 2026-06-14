@@ -98,9 +98,24 @@ Page({
     wishlist.toggle(this.productId);
     const nowOn = wishlist.has(this.productId);
     this.setData({ wishlisted: nowOn });
-    wx.showToast({
-      title: nowOn ? '已加入心愿单' : '已移除',
-      icon: 'success'
+    if (!nowOn) {
+      wx.showToast({ title: '已移除', icon: 'success' });
+      return;
+    }
+    // 加入心愿单后给出明确的下一步：否则客户卡在详情页（底部 tab 被盖住），
+    // 找不到去哪提交地址，导致收藏后流失。
+    const count = (wishlist.getList() || []).length;
+    wx.showModal({
+      title: '已加入心愿单',
+      content: `心愿单已有 ${count} 件礼品，去填写收货地址、提交申请吗？`,
+      confirmText: '去提交',
+      cancelText: '继续逛逛',
+      confirmColor: '#d64b2a',
+      success: (res) => {
+        if (res.confirm) {
+          wx.switchTab({ url: '/pages/wishlist/wishlist' });
+        }
+      }
     });
   },
 
