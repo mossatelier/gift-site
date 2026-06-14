@@ -3965,6 +3965,7 @@ body.admin-logged-in #adminLogoutButtonLogged {
   scrollbar-width: none;
 }
 .cards-filter::-webkit-scrollbar { display: none; }
+.cards-filter[hidden] { display: none; }
 .cards-chip {
   flex: 0 0 auto;
   font-size: 13px;

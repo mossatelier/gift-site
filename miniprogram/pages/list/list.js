@@ -124,6 +124,9 @@ Page({
       app.globalData.listCategoryIntent = null;
     }
 
+    // 推荐有礼无积分概念，落地即清掉可能带进来的积分筛选
+    if (display === 'referral') initial.cards = '';
+
     initial.currentCategory = display;
     initial.currentSub = sub;
     initial.subItems = this._subItemsOf(display);
@@ -152,6 +155,7 @@ Page({
       patch.currentSub = r.sub;
       patch.subItems = this._subItemsOf(r.display);
       patch.moreLabel = this._moreLabelOf(r.display);
+      if (r.display === 'referral') patch.cards = '';
       app.globalData.listCategoryIntent = null;
       changed = true;
     }
@@ -274,13 +278,16 @@ Page({
       this.setData({ showMore: false });
       return;
     }
-    this.setData({
+    const patch = {
       currentCategory: value,
       subItems: this._subItemsOf(value),
       currentSub: '',
       moreLabel: this._moreLabelOf(value),
       showMore: false
-    }, () => this.reload());
+    };
+    // 推荐有礼按「推荐人数」换，无积分概念 → 切过去时重置积分筛选
+    if (value === 'referral') patch.cards = '';
+    this.setData(patch, () => this.reload());
   },
 
   // 选二级

@@ -192,6 +192,13 @@ function cardsMatch(item) {
 function renderCardsFilter() {
   const el = document.getElementById("cardsFilter");
   if (!el) return;
+  // 推荐有礼按推荐人数换，无积分概念 → 整条隐藏
+  if (state.category === "referral") {
+    el.hidden = true;
+    el.innerHTML = "";
+    return;
+  }
+  el.hidden = false;
   const chips = CARDS_BUCKETS.map((b) =>
     `<button class="cards-chip ${state.cards === b.key ? "active" : ""}" type="button" data-cards-filter="${escapeHtml(b.key)}">${b.label}</button>`
   ).join("");
@@ -1120,6 +1127,8 @@ function bindEvents() {
     state.category = categoryBtn.dataset.chip || "all";
     state.sub = "";
     state.showMore = false;
+    // 推荐有礼按「推荐人数」换，无积分概念 → 切过去时重置积分筛选
+    if (state.category === "referral") state.cards = "";
 
     if (categoryFilter) {
       categoryFilter.value = state.category;
@@ -1274,6 +1283,8 @@ if (catRail) {
   const resolved = resolveDisplay(state.category);
   state.category = resolved.display;
   state.sub = resolved.sub;
+  // 推荐有礼无积分概念，落地即清掉可能从 URL 带进来的积分筛选
+  if (state.category === "referral") state.cards = "";
 }
 
 if (categoryFilter && categoryLabelMap.has(state.category)) {

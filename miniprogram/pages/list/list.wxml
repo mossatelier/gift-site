@@ -14,8 +14,8 @@
     <view class="search-button" bindtap="onSearch">搜索</view>
   </view>
 
-  <!-- 积分筛选行（区间分档，固定在搜索下方、品类上方） -->
-  <scroll-view class="cards-filter-bar" scroll-x enable-flex>
+  <!-- 积分筛选行（区间分档，固定在搜索下方、品类上方）；推荐有礼按推荐人数换，无积分概念，故隐藏 -->
+  <scroll-view class="cards-filter-bar" scroll-x enable-flex wx:if="{{currentCategory !== 'referral'}}">
     <view
       class="cards-chip {{cards === item.key ? 'active' : ''}}"
       wx:for="{{cardsBuckets}}"
