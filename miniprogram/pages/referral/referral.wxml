@@ -12,6 +12,7 @@
         <view class="ref-btn ref-btn-ghost" bindtap="copyCode">复制推荐码</view>
         <button class="ref-btn ref-btn-primary" open-type="share">分享给好友</button>
       </view>
+      <view class="ref-poster-link" bindtap="makePoster">🖼 生成推荐海报</view>
     </view>
 
     <!-- 数据 -->
@@ -58,4 +59,18 @@
 
     <view class="bottom-spacer"></view>
   </block>
+
+  <!-- 离屏画布（画海报用，不显示） -->
+  <canvas type="2d" id="posterCanvas" class="poster-canvas"></canvas>
+
+  <!-- 海报预览弹层 -->
+  <view class="poster-mask" wx:if="{{showPoster}}" bindtap="closePoster">
+    <view class="poster-box" catchtap="noop">
+      <image class="poster-img" src="{{posterImg}}" mode="widthFix" show-menu-by-longpress />
+      <view class="poster-actions">
+        <view class="poster-btn poster-btn-ghost" bindtap="closePoster">关闭</view>
+        <view class="poster-btn poster-btn-primary" bindtap="savePoster">保存到相册</view>
+      </view>
+    </view>
+  </view>
 </view>

@@ -129,6 +129,26 @@ async function bindReferrer(openid, code) {
   return { success: true };
 }
 
+// 生成带参小程序码（scene = 6位推荐码），返回 base64 供小程序画到海报上。
+// 未发布时 release 版可能报错——前端据 success=false 走"无码海报"降级。
+async function getQr(openid) {
+  const me = await ensureMyUser(openid);
+  try {
+    const res = await cloud.openapi.wxacode.getUnlimited({
+      scene: 'ref=' + me.referralCode,
+      page: 'pages/index/index',
+      checkPath: false,
+      envVersion: 'release',
+      width: 280
+    });
+    const base64 = 'data:image/png;base64,' + res.buffer.toString('base64');
+    return { success: true, code: me.referralCode, qr: base64 };
+  } catch (err) {
+    console.warn('[referral] getQr', err);
+    return { success: false, code: me.referralCode, error: '小程序码生成失败（需小程序发布后可用）' };
+  }
+}
+
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
   if (!OPENID) return { success: false, error: '未登录' };
@@ -136,6 +156,7 @@ exports.main = async (event) => {
   try {
     if (action === 'get-my-referral') return await getMyReferral(OPENID);
     if (action === 'bind-referrer') return await bindReferrer(OPENID, event.code);
+    if (action === 'get-qr') return await getQr(OPENID);
     return { success: false, error: '未知操作' };
   } catch (err) {
     console.error('[referral]', action, err);
