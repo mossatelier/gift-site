@@ -786,6 +786,135 @@ async function webSubmitOrder({ items, address, remark }) {
   return { success: true, orderId: add._id };
 }
 
+// ---------- 推荐系统 CRM（管理员）----------
+const REFERRALS = 'referrals';
+const USERS = 'users';
+const LEDGER = 'points_ledger';
+const REF_STATUS = ['待审核', '已加微信', '办卡中', '开户成功', '无效'];
+const REF_OPENED = '开户成功';
+
+async function referralList(body) {
+  const status = body.status;
+  const keyword = String(body.keyword || '').trim();
+  const where = {};
+  if (status && REF_STATUS.includes(status)) where.status = status;
+  const res = await db.collection(REFERRALS).where(where).orderBy('createdAt', 'desc').limit(200).get();
+  let rows = res.data || [];
+  if (keyword) {
+    const k = keyword.toLowerCase();
+    rows = rows.filter(r =>
+      String(r.refereePhone || '').includes(keyword) ||
+      String(r.refereeNick || '').toLowerCase().includes(k) ||
+      String(r.referrerCode || '').includes(keyword)
+    );
+  }
+  const openids = Array.from(new Set(rows.map(r => r.referrerOpenid).filter(Boolean)));
+  const nickMap = {};
+  if (openids.length) {
+    const ur = await db.collection(USERS).where({ openid: _.in(openids) }).limit(200).get();
+    ur.data.forEach(u => { nickMap[u.openid] = { nick: u.nickName, code: u.referralCode }; });
+  }
+  return rows.map(r => ({
+    _id: r._id,
+    referrerCode: r.referrerCode || (nickMap[r.referrerOpenid] && nickMap[r.referrerOpenid].code) || '',
+    referrerNick: (nickMap[r.referrerOpenid] && nickMap[r.referrerOpenid].nick) || '',
+    refereeNick: r.refereeNick || '',
+    refereePhone: r.refereePhone || '',
+    status: r.status || '待审核',
+    rewardPoints: r.rewardPoints || 0,
+    createdAt: r.createdAt,
+    openedAt: r.openedAt || null,
+    rewardedAt: r.rewardedAt || null
+  }));
+}
+
+async function referralAdd(body) {
+  const phone = String(body.phone || '').trim();
+  const nick = String(body.nick || '').trim();
+  const code = String(body.referrerCode || '').trim();
+  if (!/^1\d{10}$/.test(phone)) throw new Error('手机号格式不正确');
+  if (!code) throw new Error('请填写推荐码');
+  const ur = await db.collection(USERS).where({ referralCode: code }).limit(1).get();
+  const referrer = ur.data[0];
+  if (!referrer) throw new Error('推荐码不存在');
+  const dup = await db.collection(REFERRALS).where({ referrerOpenid: referrer.openid, refereePhone: phone }).count();
+  if (dup.total > 0) throw new Error('该手机号已在此推荐人名下');
+  const now = new Date();
+  const add = await db.collection(REFERRALS).add({ data: {
+    referrerOpenid: referrer.openid,
+    referrerCode: code,
+    refereeOpenid: '',
+    refereeNick: nick || '客户',
+    refereePhone: phone,
+    status: '已加微信',
+    rewardPoints: 0,
+    createdAt: now,
+    openedAt: null,
+    rewardedAt: null,
+    source: 'admin'
+  }});
+  return { _id: add._id };
+}
+
+async function referralSetStatus(body) {
+  const id = body.id;
+  const status = body.status;
+  if (!id) throw new Error('缺少 id');
+  if (!REF_STATUS.includes(status)) throw new Error('状态不合法');
+  const cur = await db.collection(REFERRALS).doc(id).get();
+  const rec = cur.data;
+  if (!rec) throw new Error('记录不存在');
+  const now = new Date();
+  const patch = { status, updatedAt: now };
+
+  // 开户成功 → 发奖励积分（幂等：rewardedAt 已有则不重复发）
+  if (status === REF_OPENED && !rec.rewardedAt) {
+    const reward = Math.max(0, Number(body.rewardPoints != null ? body.rewardPoints : 1) || 0);
+    patch.openedAt = rec.openedAt || now;
+    patch.rewardPoints = reward;
+    patch.rewardedAt = now;
+    if (reward > 0 && rec.referrerOpenid) {
+      await db.collection(USERS).where({ openid: rec.referrerOpenid })
+        .update({ data: { rewardPoints: _.inc(reward), updatedAt: now } });
+      await db.collection(LEDGER).add({ data: {
+        openid: rec.referrerOpenid, delta: reward, reason: '推荐开户奖励', refId: id, createdAt: now
+      }});
+    }
+  }
+  // 从开户成功改回其它状态 → 回收已发积分，保持账目一致
+  if (status !== REF_OPENED && rec.rewardedAt && rec.rewardPoints > 0 && rec.referrerOpenid) {
+    await db.collection(USERS).where({ openid: rec.referrerOpenid })
+      .update({ data: { rewardPoints: _.inc(-rec.rewardPoints), updatedAt: now } });
+    await db.collection(LEDGER).add({ data: {
+      openid: rec.referrerOpenid, delta: -rec.rewardPoints, reason: '推荐开户撤销', refId: id, createdAt: now
+    }});
+    patch.rewardPoints = 0;
+    patch.rewardedAt = null;
+    patch.openedAt = null;
+  }
+  await db.collection(REFERRALS).doc(id).update({ data: patch });
+  return { _id: id, status };
+}
+
+async function referralRanking() {
+  const res = await db.collection(REFERRALS).limit(1000).get();
+  const rows = res.data || [];
+  const map = {};
+  rows.forEach(r => {
+    const k = r.referrerOpenid || '';
+    if (!k) return;
+    if (!map[k]) map[k] = { openid: k, code: r.referrerCode || '', nick: '', total: 0, opened: 0, rewardPoints: 0 };
+    map[k].total += 1;
+    if (r.status === REF_OPENED) { map[k].opened += 1; map[k].rewardPoints += (r.rewardPoints || 0); }
+  });
+  const openids = Object.keys(map);
+  if (openids.length) {
+    const ur = await db.collection(USERS).where({ openid: _.in(openids) }).limit(1000).get();
+    ur.data.forEach(u => { if (map[u.openid]) { map[u.openid].nick = u.nickName || ''; if (!map[u.openid].code) map[u.openid].code = u.referralCode || ''; } });
+  }
+  return Object.values(map).sort((a, b) => (b.opened - a.opened) || (b.total - a.total));
+}
+
 // ---------- Entry ----------
 
 function buildResponse(statusCode, payload) {
@@ -885,6 +1014,18 @@ exports.main = async (event) => {
         break;
       case 'review-status':
         data = await reviewStatus(body, token);
+        break;
+      case 'referral-list':
+        data = await referralList(body);
+        break;
+      case 'referral-add':
+        data = await referralAdd(body);
+        break;
+      case 'referral-set-status':
+        data = await referralSetStatus(body);
+        break;
+      case 'referral-ranking':
+        data = await referralRanking(body);
         break;
       default:
         return buildResponse(400, { ok: false, error: '未知 action' });
