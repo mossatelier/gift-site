@@ -4262,3 +4262,6 @@ body.admin-logged-in #adminLogoutButtonLogged {
 
 /* 手机后台 · 订单标题行按钮组 */
 .admin-orders-head-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* 手机后台 · 物流查询手机号输入（顺丰用，独占一行） */
+.admin-tracking-phone { flex: 1 1 100%; min-width: 0; }

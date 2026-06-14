@@ -1921,6 +1921,7 @@ function renderOrdersList() {
               <div class="admin-tracking-row">
                 <input class="admin-tracking-company" type="text" placeholder="快递公司(可选)" value="${escapeHtml(o.trackingCompany || "")}" data-tracking-company="${escapeHtml(o._id)}">
                 <input class="admin-tracking-no" type="text" placeholder="快递单号" value="${escapeHtml(o.trackingNo || "")}" data-tracking-no="${escapeHtml(o._id)}">
+                <input class="admin-tracking-phone" type="text" placeholder="顺丰必填：收件人或寄件人手机号" value="${escapeHtml(o.trackingPhone || (o.address && o.address.phone) || "")}" data-tracking-phone="${escapeHtml(o._id)}">
                 <button class="admin-secondary-btn admin-tracking-save" data-save-tracking="${escapeHtml(o._id)}" type="button">保存单号</button>
               </div>
               <div class="admin-carrier-quick">
@@ -2066,8 +2067,10 @@ async function handleQueryLogistics(orderId) {
   setOrdersMessage("正在查询物流…");
   const btn = adminOrdersList.querySelector(`[data-query-logistics="${orderId}"]`);
   if (btn) { btn.disabled = true; btn.textContent = "查询中…"; }
+  const phoneInput = adminOrdersList.querySelector(`[data-tracking-phone="${orderId}"]`);
+  const phone = phoneInput ? phoneInput.value.trim() : "";
   try {
-    const updated = await callAdminOrders("query-logistics", { orderId });
+    const updated = await callAdminOrders("query-logistics", { orderId, phone });
     const idx = state.orders.findIndex((o) => o._id === orderId);
     let becameSigned = false;
     if (idx >= 0 && updated) {
@@ -2132,15 +2135,18 @@ async function handleTrackingSave(orderId) {
     adminToast("请先填写快递单号", "error");
     return;
   }
+  const phoneInput = adminOrdersList.querySelector(`[data-tracking-phone="${orderId}"]`);
+  const phone = phoneInput ? phoneInput.value.trim() : "";
   const courierCode = carrierCodeOf(trackingCompany);
   setOrdersMessage(courierCode ? "正在保存单号…" : "正在保存单号（未识别快递公司，将不自动追踪物流）…");
   try {
-    await callAdminOrders("update-tracking", { orderId, trackingNo, trackingCompany, courierCode });
+    await callAdminOrders("update-tracking", { orderId, trackingNo, trackingCompany, courierCode, phone });
     // 就地写回；填单号 = 发货 → 云端已自动置「运输中」，前端同步状态并重渲染徽标
     const idx = state.orders.findIndex((o) => o._id === orderId);
     if (idx >= 0) {
       state.orders[idx].trackingNo = trackingNo;
       state.orders[idx].trackingCompany = trackingCompany;
+      state.orders[idx].trackingPhone = phone;
       if (state.orders[idx].status !== "cancelled") state.orders[idx].status = "shipped";
     }
     renderOrdersList();

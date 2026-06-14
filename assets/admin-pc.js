@@ -3989,6 +3989,8 @@
       + '<input class="pc-orders-input pc-orders-tracking-no" type="text" placeholder="快递单号" value="'
       + escapeHtml(o.trackingNo || "") + '" data-orders-tracking-no="' + idEsc + '">'
       + "</div>"
+      + '<input class="pc-orders-input pc-orders-tracking-phone" type="text" placeholder="顺丰必填：收件人或寄件人手机号" value="'
+      + escapeHtml(o.trackingPhone || (o.address && o.address.phone) || "") + '" data-orders-tracking-phone="' + idEsc + '">'
       + '<div class="pc-orders-carrier-chips"><span class="pc-orders-carrier-label">常用：</span>' + carrierChips + "</div>"
       + '<button class="pc-btn-primary pc-orders-tracking-save" type="button" data-orders-save-tracking="' + idEsc + '">保存单号</button>'
       + "</section>"
@@ -4224,8 +4226,10 @@
     if (!o) return;
     var btn = document.querySelector('[data-orders-query="' + ordersCssEscape(id) + '"]');
     if (btn) { btn.disabled = true; btn.textContent = "查询中…"; }
+    var phoneInput = document.querySelector('[data-orders-tracking-phone="' + ordersCssEscape(id) + '"]');
+    var phone = phoneInput ? phoneInput.value.trim() : "";
     setOrdersDrawerMsg("正在查询物流…", null);
-    Core.callAdminOrders("query-logistics", { orderId: id })
+    Core.callAdminOrders("query-logistics", { orderId: id, phone: phone })
       .then(function (updated) {
         var becameSigned = updated && updated.status === "signed" && o.status !== "signed";
         if (updated) {
@@ -4306,12 +4310,15 @@
       return;
     }
     var courierCode = carrierCodeOf(trackingCompany);
+    var phoneInput = document.querySelector('[data-orders-tracking-phone="' + ordersCssEscape(id) + '"]');
+    var phone = phoneInput ? phoneInput.value.trim() : "";
     setOrdersDrawerMsg(courierCode ? "正在保存单号…" : "正在保存单号（未识别快递公司，将不自动追踪物流）…", null);
 
-    Core.callAdminOrders("update-tracking", { orderId: id, trackingNo: trackingNo, trackingCompany: trackingCompany, courierCode: courierCode })
+    Core.callAdminOrders("update-tracking", { orderId: id, trackingNo: trackingNo, trackingCompany: trackingCompany, courierCode: courierCode, phone: phone })
       .then(function (res) {
         o.trackingNo = trackingNo;
         o.trackingCompany = trackingCompany;
+        o.trackingPhone = phone;
         // 填单号 = 发货 → 云端已自动置「运输中」，前端同步状态 + 重渲染
         if (o.status !== "cancelled") {
           o.status = "shipped";

@@ -601,7 +601,8 @@ async function handleLogisticsPush(param) {
 }
 
 // 实时查询：主动拉一次当前完整轨迹（适合老单/手动刷新；订阅只推未来变化）。
-async function queryLogistics({ orderId }) {
+// phone：顺丰等必填收/寄件人手机号；传了用传入的，否则回退订单收件人手机。
+async function queryLogistics({ orderId, phone }) {
   if (!orderId) throw new Error('缺少 orderId');
   if (!KD_KEY || !KD_CUSTOMER) throw new Error('未配置快递100 凭据（KUAIDI100_KEY / KUAIDI100_CUSTOMER）');
   const r = await db.collection('orders').doc(orderId).get();
@@ -611,8 +612,14 @@ async function queryLogistics({ orderId }) {
   if (!o.courierCode) throw new Error('未识别快递公司：请在「快递公司」框填写后重新保存单号，再查询');
 
   const paramObj = { com: o.courierCode, num: o.trackingNo, resultv2: '1' };
-  const phone = (o.address && o.address.phone) || '';
-  if (phone) paramObj.phone = String(phone);
+  const usePhone = (phone != null && String(phone).trim())
+    ? String(phone).trim()
+    : (o.trackingPhone || (o.address && o.address.phone) || '');
+  if (usePhone) paramObj.phone = usePhone;
+  // 顺丰必须有手机号，否则快递100 直接报「验证码错误」
+  if (o.courierCode === 'shunfeng' && !usePhone) {
+    throw new Error('顺丰必须填手机号：请在快递单号下方「顺丰手机号」框填收件人或寄件人手机，再查询');
+  }
   const param = JSON.stringify(paramObj);
   const sign = crypto.createHash('md5').update(param + KD_KEY + KD_CUSTOMER).digest('hex').toUpperCase();
   const form = 'customer=' + encodeURIComponent(KD_CUSTOMER) + '&sign=' + sign + '&param=' + encodeURIComponent(param);
@@ -642,15 +649,17 @@ async function queryLogistics({ orderId }) {
 
 // 更新快递信息：填了单号 = 发货 → 自动置「运输中」(shipped) + 推送（已取消的不动）
 // courierCode = 快递公司标准编码（快递100，用于订阅物流）；trackingCompany = 展示名
-async function updateTracking({ orderId, trackingNo, trackingCompany, courierCode }) {
+async function updateTracking({ orderId, trackingNo, trackingCompany, courierCode, phone }) {
   if (!orderId) throw new Error('缺少 orderId');
   const trimmedNo = String(trackingNo || '').trim().slice(0, 50);
+  const trimmedPhone = String(phone || '').trim().slice(0, 20);
   const patch = {
     trackingNo: trimmedNo,
     trackingCompany: String(trackingCompany || '').trim().slice(0, 30),
     courierCode: String(courierCode || '').trim().slice(0, 30),
     updatedAt: new Date()
   };
+  if (trimmedPhone) patch.trackingPhone = trimmedPhone; // 顺丰等查询/订阅用的手机号
   if (trimmedNo) {
     const cur = await db.collection('orders').doc(orderId).get();
     if (cur.data && cur.data.status !== 'cancelled') patch.status = 'shipped';
@@ -663,8 +672,8 @@ async function updateTracking({ orderId, trackingNo, trackingCompany, courierCod
   }
   // 发货 + 有快递公司编码 → 向快递100 订阅物流推送（best-effort，失败不影响发货）
   if (patch.status === 'shipped' && patch.courierCode && patch.trackingNo) {
-    const phone = (r.data && r.data.address && r.data.address.phone) || '';
-    await subscribeLogistics({ com: patch.courierCode, num: patch.trackingNo, phone });
+    const subPhone = trimmedPhone || (r.data && r.data.address && r.data.address.phone) || '';
+    await subscribeLogistics({ com: patch.courierCode, num: patch.trackingNo, phone: subPhone });
   }
   return { ...r.data, _autoDone: patch.status === 'shipped' };
 }
