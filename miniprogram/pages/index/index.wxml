@@ -78,8 +78,10 @@
 
   <!-- 积分快捷跳转栏（图标区下方、热门兑换上方）：每个按钮上行积分档、下行对应银行 -->
   <view class="points-quick">
-    <text class="points-quick-title">按积分快速兑换</text>
-    <text class="points-quick-sub">点击档位筛选对应银行礼品</text>
+    <view class="points-quick-head">
+      <text class="points-quick-title">按积分快速兑换</text>
+      <text class="points-quick-sub">点击档位筛选对应银行礼品</text>
+    </view>
     <view class="points-quick-row">
       <view
         class="points-quick-btn"

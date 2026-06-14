@@ -397,18 +397,21 @@
   border: 1rpx solid var(--line);
   box-shadow: var(--shadow);
 }
+.points-quick-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 14rpx;
+  margin-bottom: 16rpx;
+}
 .points-quick-title {
-  display: block;
   font-size: 27rpx;
   font-weight: 800;
   color: #6b441a;
-  margin-bottom: 4rpx;
 }
 .points-quick-sub {
-  display: block;
   font-size: 21rpx;
   color: #b08a63;
-  margin-bottom: 18rpx;
 }
 .points-quick-row {
   display: flex;
@@ -417,17 +420,17 @@
 .points-quick-btn {
   flex: 1;
   min-width: 0;
-  min-height: 88rpx;
+  min-height: 72rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4rpx;
+  gap: 2rpx;
   color: #6b441a;
   background: linear-gradient(180deg, #fff6e6 0%, #ffe7c4 100%);
   border: 2rpx solid #f1c98a;
-  border-radius: 20rpx;
-  padding: 12rpx 4rpx;
+  border-radius: 18rpx;
+  padding: 10rpx 4rpx;
   box-shadow: 0 4rpx 12rpx rgba(232, 140, 40, 0.12);
 }
 .points-quick-btn .pq-points {
