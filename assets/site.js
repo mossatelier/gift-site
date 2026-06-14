@@ -583,6 +583,16 @@ function copyWishlistText(btn) {
   }
 }
 
+// 通用复制（成功/失败都尽力而为；失败时静默，用户仍可手动选）
+function copyPlainText(text, done) {
+  const cb = done || (() => {});
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(cb).catch(() => fallbackCopyText(text, cb));
+  } else {
+    fallbackCopyText(text, cb);
+  }
+}
+
 function fallbackCopyText(text, done) {
   try {
     const ta = document.createElement("textarea");
@@ -680,7 +690,7 @@ function showOrderSuccessModal() {
     '<div class="wo-success-card" role="dialog" aria-modal="true">' +
       '<div class="wo-success-icon">✓</div>' +
       '<h3 class="wo-success-title">提交成功</h3>' +
-      '<p class="wo-success-text">我们已收到你的领取申请，<br>客服会尽快主动联系你核对并安排办理。</p>' +
+      '<p class="wo-success-text">订单信息已复制到剪贴板，<br>请粘贴发送给客服微信核验，核验后发货。</p>' +
       '<div class="wo-success-actions">' +
         '<a class="wo-success-btn wo-success-btn-primary" href="#contact" data-wo-close>联系客服</a>' +
         '<button class="wo-success-btn" type="button" data-wo-close>好的</button>' +
@@ -785,6 +795,15 @@ function submitWebOrder() {
       if (!json || !json.ok) {
         throw new Error((json && json.error) || "提交失败");
       }
+      // 既写系统又复制给客服：把订单信息复制到剪贴板，引导用户发客服核验
+      const orderText =
+        "【兑换申请·加加好物图集】\n" +
+        items.map((p, i) => `${i + 1}. ${p.title}`).join("\n") + "\n" +
+        `备注：${remark}\n` +
+        `收件人：${address.recipient} ${address.phone}\n` +
+        `地址：${address.province}${address.city}${address.district || ""}${address.detail}\n` +
+        "（已提交系统，麻烦客服核验后发货~）";
+      copyPlainText(orderText);
       saveWishlist([]);
       webOrderForm.reset();
       renderAll();
@@ -906,7 +925,12 @@ function renderProductDetail() {
       <a class="pd-points-link" href="earn.html">💡 积分怎么来？查看「获取积分」对照表 ›</a>
       ${descText}
       ${kefuCard}
-      <a class="product-detail-cta product-detail-cta-ghost" href="wishlist.html">查看我的心愿单 ›</a>
+      <div class="product-detail-cta-row">
+        <button class="pd-cta-btn pd-cta-btn-kefu" type="button" data-qr-popup="${escapeHtml(qr)}">添加客服微信</button>
+        <button class="pd-cta-btn pd-cta-btn-submit" type="button" data-collect-submit="${escapeHtml(item.id)}">收藏并提交地址</button>
+      </div>
+      <p class="pd-cta-note">提交地址后，请微信同步客服，核验订单后发货</p>
+      <a class="product-detail-cta-link" href="wishlist.html">查看我的心愿单 ›</a>
     </div>
   `;
 
@@ -1117,6 +1141,16 @@ function bindEvents() {
       event.stopPropagation();
       toggleWishlist(heart.dataset.wishlistToggle);
       renderAll();
+      return;
+    }
+
+    // 详情页"收藏并提交地址"：先确保已收藏，再去心愿单填地址提交（H5 下单表单在那里）
+    const collectSubmit = event.target.closest("[data-collect-submit]");
+    if (collectSubmit) {
+      event.preventDefault();
+      const cid = collectSubmit.dataset.collectSubmit;
+      if (!isWishlisted(cid)) toggleWishlist(cid);
+      window.location.href = "wishlist.html#webOrderForm";
       return;
     }
 

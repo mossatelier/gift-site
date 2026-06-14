@@ -2048,6 +2048,48 @@ body.admin-logged-in #adminLogoutButtonLogged {
   border: 1px solid rgba(214, 75, 42, 0.2);
 }
 
+/* 详情页并排操作按钮：左加客服 / 右收藏并提交地址 */
+.product-detail-cta-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+}
+.pd-cta-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+}
+.pd-cta-btn-kefu {
+  background: linear-gradient(135deg, var(--red) 0%, var(--red-deep) 100%);
+  color: #fff;
+  border: none;
+  box-shadow: 0 12px 22px rgba(214, 75, 42, 0.28);
+}
+.pd-cta-btn-submit {
+  background: #fff;
+  color: var(--red);
+  border: 2px solid var(--red);
+}
+.pd-cta-note {
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: #8a7c66;
+  text-align: center;
+}
+.product-detail-cta-link {
+  display: block;
+  margin-top: 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--red-deep);
+}
+
 /* 详情：分类 chip / 二级 chip */
 .product-detail-tags {
   display: flex;
