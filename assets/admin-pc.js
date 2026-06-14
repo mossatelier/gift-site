@@ -4228,8 +4228,10 @@
     if (btn) { btn.disabled = true; btn.textContent = "查询中…"; }
     var phoneInput = document.querySelector('[data-orders-tracking-phone="' + ordersCssEscape(id) + '"]');
     var phone = phoneInput ? phoneInput.value.trim() : "";
+    var companyInput = document.querySelector('[data-orders-tracking-company="' + ordersCssEscape(id) + '"]');
+    var trackingCompany = companyInput ? companyInput.value.trim() : "";
     setOrdersDrawerMsg("正在查询物流…", null);
-    Core.callAdminOrders("query-logistics", { orderId: id, phone: phone })
+    Core.callAdminOrders("query-logistics", { orderId: id, phone: phone, courierCode: carrierCodeOf(trackingCompany), trackingCompany: trackingCompany })
       .then(function (updated) {
         var becameSigned = updated && updated.status === "signed" && o.status !== "signed";
         if (updated) {

@@ -2069,8 +2069,10 @@ async function handleQueryLogistics(orderId) {
   if (btn) { btn.disabled = true; btn.textContent = "查询中…"; }
   const phoneInput = adminOrdersList.querySelector(`[data-tracking-phone="${orderId}"]`);
   const phone = phoneInput ? phoneInput.value.trim() : "";
+  const companyInput = adminOrdersList.querySelector(`[data-tracking-company="${orderId}"]`);
+  const trackingCompany = companyInput ? companyInput.value.trim() : "";
   try {
-    const updated = await callAdminOrders("query-logistics", { orderId, phone });
+    const updated = await callAdminOrders("query-logistics", { orderId, phone, courierCode: carrierCodeOf(trackingCompany), trackingCompany });
     const idx = state.orders.findIndex((o) => o._id === orderId);
     let becameSigned = false;
     if (idx >= 0 && updated) {

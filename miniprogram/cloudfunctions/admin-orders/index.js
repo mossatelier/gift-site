@@ -32,6 +32,21 @@ const KD_CUSTOMER = process.env.KUAIDI100_CUSTOMER || '';   // 实时查询用�
 const KD_CALLBACK = process.env.KUAIDI100_CALLBACK_URL || '';
 const KD_SUBSCRIBE_URL = 'https://poll.kuaidi100.com/poll';
 const KD_QUERY_URL = 'https://poll.kuaidi100.com/poll/query.do';
+// 公司展示名 → 快递100 编码（老单 courierCode 为空时按公司名兜底换算，免去重存单号）
+const COMPANY_CODE_BY_NAME = {
+  '顺丰速运': 'shunfeng', '顺丰': 'shunfeng',
+  '圆通速递': 'yuantong', '圆通': 'yuantong',
+  '中通快递': 'zhongtong', '中通': 'zhongtong',
+  '申通快递': 'shentong', '申通': 'shentong',
+  '韵达速递': 'yunda', '韵达': 'yunda',
+  '京东物流': 'jd', '京东': 'jd',
+  '极兔速递': 'jtexpress', '极兔': 'jtexpress',
+  '百世快递': 'huitongkuaidi', '百世': 'huitongkuaidi',
+  '德邦快递': 'debangkuaidi', '德邦': 'debangkuaidi',
+  'EMS / 邮政': 'ems', 'EMS': 'ems', '邮政快递包裹': 'youzhengguonei', '邮政': 'youzhengguonei',
+  '国通快递': 'guotongkuaidi', '天天快递': 'tiantian'
+};
+function codeByName(name) { return COMPANY_CODE_BY_NAME[String(name || '').trim()] || ''; }
 
 // 订单状态机：待发货(pending) → 运输中(shipped) → 已签收(signed)（＋已取消 cancelled）
 // pending 即「待发货」(下单创建的初始态)；旧码兼容：processing/preparing→pending、done→shipped、closed→signed。
@@ -602,23 +617,33 @@ async function handleLogisticsPush(param) {
 
 // 实时查询：主动拉一次当前完整轨迹（适合老单/手动刷新；订阅只推未来变化）。
 // phone：顺丰等必填收/寄件人手机号；传了用传入的，否则回退订单收件人手机。
-async function queryLogistics({ orderId, phone }) {
+async function queryLogistics({ orderId, phone, courierCode, trackingCompany }) {
   if (!orderId) throw new Error('缺少 orderId');
   if (!KD_KEY || !KD_CUSTOMER) throw new Error('未配置快递100 凭据（KUAIDI100_KEY / KUAIDI100_CUSTOMER）');
   const r = await db.collection('orders').doc(orderId).get();
   const o = r.data;
   if (!o) throw new Error('订单不存在');
   if (!o.trackingNo) throw new Error('该订单还没有快递单号');
-  if (!o.courierCode) throw new Error('未识别快递公司：请在「快递公司」框填写后重新保存单号，再查询');
 
-  const paramObj = { com: o.courierCode, num: o.trackingNo, resultv2: '1' };
+  // 编码优先级：前端传入 > 订单已存 > 按公司名兜底换算（老单 courierCode 空时也能查）
+  const com = String(courierCode || '').trim()
+    || o.courierCode
+    || codeByName(trackingCompany)
+    || codeByName(o.trackingCompany);
+  if (!com) throw new Error('未识别快递公司：请在「快递公司」框填写规范公司名（如「申通快递」）再查询');
+  // 顺手把算出的编码回写，避免下次再算
+  if (com !== o.courierCode) {
+    try { await db.collection('orders').doc(orderId).update({ data: { courierCode: com } }); } catch (e) {}
+  }
+
+  const paramObj = { com: com, num: o.trackingNo, resultv2: '1' };
   const usePhone = (phone != null && String(phone).trim())
     ? String(phone).trim()
     : (o.trackingPhone || (o.address && o.address.phone) || '');
   if (usePhone) paramObj.phone = usePhone;
   // 顺丰必须有手机号，否则快递100 直接报「验证码错误」
-  if (o.courierCode === 'shunfeng' && !usePhone) {
-    throw new Error('顺丰必须填手机号：请在快递单号下方「顺丰手机号」框填收件人或寄件人手机，再查询');
+  if (com === 'shunfeng' && !usePhone) {
+    throw new Error('顺丰必须填手机号：请在快递单号下方手机号框填收件人或寄件人手机，再查询');
   }
   const param = JSON.stringify(paramObj);
   const sign = crypto.createHash('md5').update(param + KD_KEY + KD_CUSTOMER).digest('hex').toUpperCase();
