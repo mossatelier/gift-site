@@ -1,15 +1,63 @@
 <view class="page-shell guide-page">
-  <view class="section">
-    <view class="section-banner">
-      <text class="banner-title-text">银行新户</text>
+  <view class="guide-hero">
+    <text class="guide-hero-title">银行新户定义说明</text>
+    <text class="guide-hero-sub">不确定是否是新用户？可拨打各行 24 小时客服热线查询。</text>
+  </view>
+
+  <view class="guide-table">
+    <view class="guide-tr guide-tr-head">
+      <text class="guide-th guide-c-bank">银行</text>
+      <text class="guide-th guide-c-def">新户定义</text>
+      <text class="guide-th guide-c-tel">客服</text>
     </view>
-    <view class="image-guide-card">
-      <image
-        class="image-guide-img"
-        src="/images/guide-bank-new-user.jpg"
-        mode="widthFix"
-        bindtap="previewImage"
-      ></image>
+    <view class="guide-tr">
+      <text class="guide-td guide-c-bank">中信银行</text>
+      <text class="guide-td guide-c-def">从未持有，或注销超过半年，且 180 天内无初审通过记录</text>
+      <text class="guide-td guide-c-tel">95558</text>
+    </view>
+    <view class="guide-tr">
+      <text class="guide-td guide-c-bank">招商银行</text>
+      <text class="guide-td guide-c-def">从未持有，或销卡销户超过半年以上</text>
+      <text class="guide-td guide-c-tel">95555</text>
+    </view>
+    <view class="guide-tr">
+      <text class="guide-td guide-c-bank">交通银行</text>
+      <text class="guide-td guide-c-def">从未持有，或销卡销户超过半年以上</text>
+      <text class="guide-td guide-c-tel">95559</text>
+    </view>
+    <view class="guide-tr">
+      <text class="guide-td guide-c-bank">广发银行</text>
+      <text class="guide-td guide-c-def">从未持有，或销卡销户超过一年以上</text>
+      <text class="guide-td guide-c-tel">95508</text>
+    </view>
+    <view class="guide-tr">
+      <text class="guide-td guide-c-bank">浦发银行</text>
+      <text class="guide-td guide-c-def">从未持有，或销卡销户超过一年以上</text>
+      <text class="guide-td guide-c-tel">95528</text>
+    </view>
+    <view class="guide-tr">
+      <text class="guide-td guide-c-bank">平安银行</text>
+      <text class="guide-td guide-c-def">从未持有，或销卡销户超过一年以上</text>
+      <text class="guide-td guide-c-tel">95511</text>
+    </view>
+    <view class="guide-tr">
+      <text class="guide-td guide-c-bank">光大银行</text>
+      <text class="guide-td guide-c-def">从未持有，或销卡销户超过 2 年以上</text>
+      <text class="guide-td guide-c-tel">95595</text>
+    </view>
+    <view class="guide-tr">
+      <text class="guide-td guide-c-bank">华夏银行</text>
+      <text class="guide-td guide-c-def">从未持有过本行信用卡的用户</text>
+      <text class="guide-td guide-c-tel">95577</text>
+    </view>
+    <view class="guide-tr">
+      <text class="guide-td guide-c-bank">民生银行</text>
+      <text class="guide-td guide-c-def">从未持有过本行信用卡的用户</text>
+      <text class="guide-td guide-c-tel">95568</text>
     </view>
   </view>
+
+  <view class="guide-note">⚠️ 注意：如果以前申请通过、但没有激活、也没有打电话注销，则不算新户。</view>
+
+  <view class="bottom-spacer"></view>
 </view>

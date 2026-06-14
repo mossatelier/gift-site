@@ -1,15 +1,30 @@
 <view class="page-shell guide-page">
-  <view class="section">
-    <view class="section-banner">
-      <text class="banner-title-text">领取须知</text>
-    </view>
-    <view class="image-guide-card">
-      <image
-        class="image-guide-img"
-        src="/images/guide-claim.jpg"
-        mode="widthFix"
-        bindtap="previewImage"
-      ></image>
-    </view>
+  <view class="guide-hero"><text class="guide-hero-title">领取礼品须知</text></view>
+
+  <view class="guide-block">
+    <view class="guide-block-head"><text class="guide-tag">关于礼品 💗</text></view>
+    <text class="guide-block-text">选好礼品后默认不退不改；下单后 99% 的礼品将在 48 小时内发出，特殊情况会及时沟通。礼品非艺术品，轻微磕碰、小瑕疵不在售后范围内；如有质量问题，请在签收后 24 小时内反馈，感谢您的配合。</text>
   </view>
+
+  <view class="guide-block">
+    <view class="guide-block-head"><text class="guide-tag">再次重申 ❗</text></view>
+    <text class="guide-block-text">所有礼品若无质量问题，不支持退换，也不支持七天无理由退换货，介意者请勿参与。</text>
+  </view>
+
+  <view class="guide-block">
+    <view class="guide-block-head"><text class="guide-tag">关于发货 📢</text></view>
+    <text class="guide-block-text">大部分礼品由品牌方直发，均为全新正品，假一赔十。品牌发货后，快递单号会同步给你，可自行关注礼品物流状态。</text>
+  </view>
+
+  <view class="guide-block">
+    <view class="guide-block-head"><text class="guide-tag">下单注意 📝</text></view>
+    <text class="guide-block-text">下单时请确认好款式、颜色，并核对收货地址是否正确。收件地址请勿使用特殊标点符号，避免地址不详、省市区不一致等情况，否则容易导致快递无法寄出或被退回，影响您正常收货。</text>
+  </view>
+
+  <view class="guide-block">
+    <view class="guide-block-head"><text class="guide-tag guide-tag-warn">注销须知 ⚠️</text></view>
+    <text class="guide-block-text">礼品领取后，不允许提前注销信用卡。请按规定持卡期满后再办理注销，否则需按礼品市价的三倍进行赔偿，并将被业内拉黑通报，可能影响个人征信。</text>
+  </view>
+
+  <view class="bottom-spacer"></view>
 </view>

@@ -1,15 +1,30 @@
 <view class="page-shell guide-page">
-  <view class="section">
-    <view class="section-banner">
-      <text class="banner-title-text">办卡流程</text>
+  <view class="guide-hero"><text class="guide-hero-title">办卡流程</text></view>
+
+  <view class="guide-block">
+    <view class="guide-step">
+      <text class="guide-step-no">1</text>
+      <text class="guide-step-text">扫邀请码 / 联系客服，填写办卡资料。</text>
     </view>
-    <view class="image-guide-card">
-      <image
-        class="image-guide-img"
-        src="/images/guide-card-flow.jpg"
-        mode="widthFix"
-        bindtap="previewImage"
-      ></image>
+    <view class="guide-step">
+      <text class="guide-step-no">2</text>
+      <text class="guide-step-text">审批通过后，在规定时间内去银行完成激活、首刷。</text>
+    </view>
+    <view class="guide-step">
+      <text class="guide-step-no">3</text>
+      <text class="guide-step-text">首刷一分钱达标后，2-3 个工作日内邮寄礼品。</text>
+    </view>
+    <view class="guide-step">
+      <text class="guide-step-no">4</text>
+      <text class="guide-step-text">需新户参与，满 6 个月后方可注销。</text>
+    </view>
+    <view class="guide-step">
+      <text class="guide-step-no">5</text>
+      <text class="guide-step-text">所有卡片第一年免年费，刷 6-12 笔（不限金额）即可免次年年费。</text>
     </view>
   </view>
+
+  <view class="guide-note">温馨提示：具体激活时限、首刷要求以各银行规定为准，如有疑问请联系客服。</view>
+
+  <view class="bottom-spacer"></view>
 </view>
