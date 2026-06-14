@@ -1,0 +1,9 @@
+{
+  "name": "referral",
+  "version": "1.0.0",
+  "description": "Referral system: generate code, my-referral stats, bind referrer",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}
