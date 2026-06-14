@@ -417,29 +417,29 @@
 .points-quick-btn {
   flex: 1;
   min-width: 0;
-  min-height: 104rpx;
+  min-height: 116rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6rpx;
+  gap: 8rpx;
   color: #6b441a;
-  background: linear-gradient(135deg, #ffe7c0 0%, #ffd28f 100%);
-  border: 2rpx solid #f0ad5e;
-  border-radius: 999rpx;
-  padding: 14rpx 4rpx;
-  box-shadow: 0 6rpx 16rpx rgba(232, 140, 40, 0.22);
+  background: linear-gradient(180deg, #fff6e6 0%, #ffe7c4 100%);
+  border: 2rpx solid #f1c98a;
+  border-radius: 24rpx;
+  padding: 16rpx 4rpx;
+  box-shadow: 0 4rpx 12rpx rgba(232, 140, 40, 0.12);
 }
 .points-quick-btn .pq-points {
-  font-size: 26rpx;
+  font-size: 28rpx;
   font-weight: 800;
-  line-height: 1.1;
+  line-height: 1.05;
 }
 .points-quick-btn .pq-bank {
-  font-size: 18rpx;
+  font-size: 19rpx;
   font-weight: 600;
-  color: #8a5a25;
-  line-height: 1.1;
+  color: #9a6a32;
+  line-height: 1.05;
   white-space: nowrap;
 }
 .points-quick-btn:active {
