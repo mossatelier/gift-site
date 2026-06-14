@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>加加好物图集 · 商品录入后台</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="assets/site.css?v=40">
+  <link rel="stylesheet" href="assets/site.css?v=41">
 </head>
 <body class="admin-page">
   <main class="admin-shell">
@@ -69,6 +69,7 @@
         <button class="admin-panel-tab" id="adminTabCatOrder" type="button"><span class="tab-ico">🔀</span>分类排序</button>
         <!-- 第三行：首页海报 -->
         <button class="admin-panel-tab" id="adminTabHaibao" type="button"><span class="tab-ico">🖼️</span>首页海报</button>
+        <button class="admin-panel-tab" id="adminTabCardBank" type="button"><span class="tab-ico">💳</span>积分档银行</button>
         <!-- 晒图审核暂时下线（晒图未在收集）；恢复：去掉 hidden 即可。隐藏项不占格 -->
         <button class="admin-panel-tab" id="adminTabReviews" type="button" hidden><span class="tab-ico">🖼️</span>晒图审核</button>
       </section>
@@ -341,6 +342,16 @@
         <p class="admin-inline-message" id="adminHaibaoMessage"></p>
       </section>
 
+      <section class="admin-card" id="adminCardBankPanel" hidden>
+        <div class="admin-status-head">
+          <h2 class="admin-section-title">积分档银行</h2>
+          <button class="admin-submit" id="adminCardBankSave" type="button">保存</button>
+        </div>
+        <p class="admin-status-text">首页「按积分快速兑换」每个档位下方显示的银行名。留空则该档不显示银行。保存后小程序下拉刷新 / H5 刷新生效。</p>
+        <div class="admin-cardbank-list" id="adminCardBankList"><p class="admin-status-text">加载中…</p></div>
+        <p class="admin-inline-message" id="adminCardBankMessage"></p>
+      </section>
+
       <section class="admin-card" id="adminStatsPanel" hidden>
         <div class="admin-status-head">
           <h2 class="admin-section-title">数据看板</h2>
@@ -373,6 +384,6 @@
   </main>
 
   <script src="assets/config.js?v=13"></script>
-  <script src="assets/admin.js?v=34"></script>
+  <script src="assets/admin.js?v=35"></script>
 </body>
 </html>

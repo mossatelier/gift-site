@@ -556,6 +556,41 @@ async function saveHomeBanners({ banners }) {
   return { banners: clean };
 }
 
+// 首页「按积分快速兑换」每个档位显示的银行名（存 app_config，key=cards_bank_labels）
+// 档位 key 与全部礼品页积分筛选一致；value 为展示用银行名（可空）。
+const CARDS_BANK_KEYS = ['6', '7', '8', '9-10', '11+'];
+const CARDS_BANK_DEFAULT = { '6': '交通银行', '7': '浦发银行', '8': '平安/中信银行', '9-10': '', '11+': '全' };
+
+function normalizeBankLabels(input) {
+  const src = (input && typeof input === 'object') ? input : {};
+  const out = {};
+  CARDS_BANK_KEYS.forEach((k) => {
+    const v = src[k];
+    out[k] = (v == null ? '' : String(v)).trim().slice(0, 30);
+  });
+  return out;
+}
+
+async function getCardsBankLabels() {
+  const r = await db.collection('app_config').where({ key: 'cards_bank_labels' }).limit(1).get();
+  const saved = r.data[0] && r.data[0].labels;
+  // 未配置过 → 给默认；配置过 → 以保存值为准（含被清空的项）
+  const labels = saved ? normalizeBankLabels(saved) : Object.assign({}, CARDS_BANK_DEFAULT);
+  return { labels };
+}
+
+async function saveCardsBankLabels({ labels }) {
+  const clean = normalizeBankLabels(labels);
+  const now = new Date();
+  const existing = await db.collection('app_config').where({ key: 'cards_bank_labels' }).limit(1).get();
+  if (existing.data[0]) {
+    await db.collection('app_config').doc(existing.data[0]._id).update({ data: { labels: clean, updatedAt: now } });
+  } else {
+    await db.collection('app_config').add({ data: { key: 'cards_bank_labels', labels: clean, createdAt: now, updatedAt: now } });
+  }
+  return { labels: clean };
+}
+
 // 商家内部备注（客户端不可见）
 async function updateNote({ orderId, adminNote }) {
   if (!orderId) throw new Error('缺少 orderId');
@@ -1042,6 +1077,12 @@ exports.main = async (event) => {
         break;
       case 'save-home-banners':
         data = await saveHomeBanners(body);
+        break;
+      case 'get-cards-bank-labels':
+        data = await getCardsBankLabels(body);
+        break;
+      case 'save-cards-bank-labels':
+        data = await saveCardsBankLabels(body);
         break;
       case 'stats':
         data = await getStats(body);

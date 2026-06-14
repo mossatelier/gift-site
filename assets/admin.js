@@ -91,6 +91,11 @@ const adminInputOrderSave = document.getElementById("adminInputOrderSave");
 const adminTabHaibao = document.getElementById("adminTabHaibao");
 const adminHaibaoPanel = document.getElementById("adminHaibaoPanel");
 const adminHaibaoList = document.getElementById("adminHaibaoList");
+const adminTabCardBank = document.getElementById("adminTabCardBank");
+const adminCardBankPanel = document.getElementById("adminCardBankPanel");
+const adminCardBankList = document.getElementById("adminCardBankList");
+const adminCardBankSave = document.getElementById("adminCardBankSave");
+const adminCardBankMessage = document.getElementById("adminCardBankMessage");
 const adminHaibaoMessage = document.getElementById("adminHaibaoMessage");
 const adminHaibaoSave = document.getElementById("adminHaibaoSave");
 const adminHaibaoAdd = document.getElementById("adminHaibaoAdd");
@@ -471,7 +476,8 @@ function updatePanelUi() {
     stats: adminStatsPanel,
     reviews: adminReviewsPanel,
     catorder: adminCatOrderPanel,
-    haibao: adminHaibaoPanel
+    haibao: adminHaibaoPanel,
+    cardbank: adminCardBankPanel
   };
   Object.keys(panels).forEach((key) => {
     if (panels[key]) panels[key].hidden = state.activePanel !== key;
@@ -487,7 +493,8 @@ function updatePanelUi() {
     stats: state.activePanel === "stats",
     reviews: state.activePanel === "reviews",
     catorder: state.activePanel === "catorder",
-    haibao: state.activePanel === "haibao"
+    haibao: state.activePanel === "haibao",
+    cardbank: state.activePanel === "cardbank"
   };
   const tabEls = {
     goods: adminTabGoods,
@@ -497,7 +504,8 @@ function updatePanelUi() {
     stats: adminTabStats,
     reviews: adminTabReviews,
     catorder: adminTabCatOrder,
-    haibao: adminTabHaibao
+    haibao: adminTabHaibao,
+    cardbank: adminTabCardBank
   };
   Object.keys(tabEls).forEach((k) => {
     if (tabEls[k]) tabEls[k].classList.toggle("active", tabActive[k]);
@@ -2932,6 +2940,77 @@ adminTabHaibao?.addEventListener("click", () => {
   state.activePanel = "haibao";
   updatePanelUi();
   loadHaibao();
+});
+
+// ===== 积分档银行（cards_bank_labels；云开发 app_config + Supabase app_config 双写） =====
+const CARDBANK_BUCKETS_M = [
+  { key: "6", label: "6分" },
+  { key: "7", label: "7分" },
+  { key: "8", label: "8分" },
+  { key: "9-10", label: "9-10分" },
+  { key: "11+", label: "11分以上" }
+];
+const CARDBANK_DEFAULT_M = { "6": "交通银行", "7": "浦发银行", "8": "平安/中信银行", "9-10": "", "11+": "全" };
+
+function setCardBankMessage(text, tone) {
+  if (!adminCardBankMessage) return;
+  adminCardBankMessage.textContent = text || "";
+  if (tone) adminCardBankMessage.dataset.tone = tone; else delete adminCardBankMessage.dataset.tone;
+}
+
+function renderCardBankM(labels) {
+  if (!adminCardBankList) return;
+  adminCardBankList.innerHTML = CARDBANK_BUCKETS_M.map((b) => {
+    const v = (labels && labels[b.key] != null) ? labels[b.key] : "";
+    return '<div class="admin-cardbank-row">'
+      + '<span class="admin-cardbank-points">' + escapeHtml(b.label) + "</span>"
+      + '<input class="admin-cardbank-input" type="text" maxlength="30" placeholder="银行名（留空则不显示）" value="' + escapeHtml(v) + '" data-cardbank-key="' + escapeHtml(b.key) + '">'
+      + "</div>";
+  }).join("");
+}
+
+async function loadCardBank() {
+  if (!adminCardBankList) return;
+  if (!activeSession()) { adminCardBankList.innerHTML = '<p class="admin-status-text">请先登录管理员账号。</p>'; return; }
+  adminCardBankList.innerHTML = '<p class="admin-status-text">加载中…</p>';
+  setCardBankMessage("");
+  try {
+    const data = await callAdminOrders("get-cards-bank-labels", {});
+    const labels = (data && data.labels && typeof data.labels === "object") ? data.labels : CARDBANK_DEFAULT_M;
+    renderCardBankM(labels);
+  } catch (err) {
+    adminCardBankList.innerHTML = '<p class="admin-status-text">加载失败：' + escapeHtml(err.message || "") + "</p>";
+  }
+}
+
+adminCardBankSave?.addEventListener("click", async () => {
+  if (!activeSession()) { setCardBankMessage("请先登录管理员账号。", "error"); return; }
+  const inputs = adminCardBankList ? adminCardBankList.querySelectorAll("[data-cardbank-key]") : [];
+  const labels = {};
+  inputs.forEach((inp) => { labels[inp.getAttribute("data-cardbank-key")] = (inp.value || "").trim().slice(0, 30); });
+  setCardBankMessage("保存中…");
+  try {
+    await callAdminOrders("save-cards-bank-labels", { labels });
+    // 同时写 Supabase，供 H5 网页端读取（失败不影响小程序）。
+    try {
+      await authedFetch(
+        `${config.supabaseUrl}/rest/v1/app_config`,
+        { method: "POST", body: JSON.stringify({ key: "cards_bank_labels", value: labels, updated_at: new Date().toISOString() }) },
+        { "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }
+      );
+      setCardBankMessage("已保存，小程序下拉刷新 / H5 刷新生效。", "success");
+    } catch (e2) {
+      setCardBankMessage("小程序已更新；网页端同步失败：" + (e2.message || ""), "error");
+    }
+  } catch (err) {
+    setCardBankMessage(err.message, "error");
+  }
+});
+
+adminTabCardBank?.addEventListener("click", () => {
+  state.activePanel = "cardbank";
+  updatePanelUi();
+  loadCardBank();
 });
 
 fillCategoryOptions();

@@ -142,6 +142,17 @@ async function getHomeBanners() {
   }
 }
 
+// 取首页「按积分快速兑换」各档位的银行名，失败/未配置返回 {}（首页回退默认）
+async function getCardsBankLabels() {
+  try {
+    const res = await db().collection('app_config').where({ key: 'cards_bank_labels' }).limit(1).get();
+    const doc = res.data[0];
+    return (doc && doc.labels && typeof doc.labels === 'object') ? doc.labels : {};
+  } catch (err) {
+    return {};
+  }
+}
+
 // 取银行积分对照（按 points 降序）
 async function listBanks() {
   const res = await db()
@@ -340,6 +351,7 @@ module.exports = {
   listBanks,
   getCategoryOrder,
   getHomeBanners,
+  getCardsBankLabels,
   // addresses
   listMyAddresses,
   getDefaultAddress,

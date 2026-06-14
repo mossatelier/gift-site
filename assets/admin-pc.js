@@ -2024,6 +2024,114 @@
 
   PANEL_LOADERS.haibao = function () { loadHaibao(false); };
 
+  // ============ 积分档银行（cards_bank_labels；云开发 app_config + Supabase app_config 双写） ============
+  var CARDBANK_BUCKETS = [
+    { key: "6", label: "6分" },
+    { key: "7", label: "7分" },
+    { key: "8", label: "8分" },
+    { key: "9-10", label: "9-10分" },
+    { key: "11+", label: "11分以上" }
+  ];
+  var CARDBANK_DEFAULT = { "6": "交通银行", "7": "浦发银行", "8": "平安/中信银行", "9-10": "", "11+": "全" };
+  state.cardbankLoaded = false;
+  state.cardbankSaving = false;
+
+  function setCardBankMsg(text, tone) {
+    var el = document.getElementById("pcCardBankMsg");
+    if (!el) return;
+    el.textContent = text || "";
+    if (tone) el.dataset.tone = tone; else delete el.dataset.tone;
+  }
+
+  function ensureCardBanksShell() {
+    var host = document.getElementById("pcCardBanksPanelBody");
+    if (!host) return null;
+    if (host.getAttribute("data-cardbank-ready") === "1") return host;
+    host.classList.remove("pc-panel-placeholder");
+    host.setAttribute("data-cardbank-ready", "1");
+    host.innerHTML =
+      '<div class="pc-haibao-head">'
+      + '<h3 class="pc-haibao-title">积分档对应银行</h3>'
+      + '<span class="pc-haibao-hint">首页「按积分快速兑换」每个档位下方显示的银行名。留空则该档不显示银行。保存后小程序下拉刷新 / H5 刷新生效。</span>'
+      + "</div>"
+      + '<div class="pc-cardbank-list" id="pcCardBankList"></div>'
+      + '<div class="pc-haibao-foot"><button class="pc-btn-primary" id="pcCardBankSaveBtn" type="button">保存到云端</button></div>'
+      + '<p class="pc-inline-msg" id="pcCardBankMsg"></p>';
+    var saveBtn = document.getElementById("pcCardBankSaveBtn");
+    if (saveBtn) saveBtn.addEventListener("click", saveCardBanks);
+    return host;
+  }
+
+  function renderCardBanks(labels) {
+    var listEl = document.getElementById("pcCardBankList");
+    if (!listEl) return;
+    listEl.innerHTML = CARDBANK_BUCKETS.map(function (b) {
+      var v = (labels && labels[b.key] != null) ? labels[b.key] : "";
+      return '<div class="pc-cardbank-row">'
+        + '<span class="pc-cardbank-points">' + escapeHtml(b.label) + "</span>"
+        + '<input class="pc-create-input pc-cardbank-input" type="text" maxlength="30" placeholder="银行名（留空则不显示）" value="' + escapeHtml(v) + '" data-cardbank-key="' + escapeHtml(b.key) + '">'
+        + "</div>";
+    }).join("");
+  }
+
+  function loadCardBanks(force) {
+    var host = ensureCardBanksShell();
+    if (!host) return;
+    var listEl = document.getElementById("pcCardBankList");
+    if (!Core.activeSession()) {
+      if (listEl) listEl.innerHTML = '<p class="pc-empty-text">请先登录管理员账号。</p>';
+      return;
+    }
+    if (state.cardbankLoaded && !force) return;
+    if (listEl) listEl.innerHTML = '<p class="pc-empty-text">加载中…</p>';
+    setCardBankMsg("", null);
+    Core.callAdminOrders("get-cards-bank-labels", {})
+      .then(function (data) {
+        var labels = (data && data.labels && typeof data.labels === "object") ? data.labels : CARDBANK_DEFAULT;
+        state.cardbankLoaded = true;
+        renderCardBanks(labels);
+      })
+      .catch(function (err) {
+        renderLoadError(listEl, (err && err.message) || "加载失败", function () { loadCardBanks(true); });
+      });
+  }
+
+  function saveCardBanks() {
+    if (state.cardbankSaving) return;
+    if (!Core.activeSession()) { setCardBankMsg("请先登录管理员账号。", "error"); return; }
+    var inputs = document.querySelectorAll("[data-cardbank-key]");
+    var labels = {};
+    for (var i = 0; i < inputs.length; i += 1) {
+      var inp = inputs[i];
+      labels[inp.getAttribute("data-cardbank-key")] = (inp.value || "").trim().slice(0, 30);
+    }
+    var btn = document.getElementById("pcCardBankSaveBtn");
+    state.cardbankSaving = true;
+    if (btn) { btn.disabled = true; btn.textContent = "保存中…"; }
+    setCardBankMsg("保存中…", null);
+    Core.callAdminOrders("save-cards-bank-labels", { labels: labels })
+      .then(function () {
+        // 同时写 Supabase，供 H5 网页端读取（写失败不影响小程序，仅提示）。
+        return Core.saveAppConfig("cards_bank_labels", labels).catch(function (err) {
+          toast("小程序已更新；网页端同步失败：" + ((err && err.message) || ""), "error");
+        });
+      })
+      .then(function () {
+        state.cardbankSaving = false;
+        if (btn) { btn.disabled = false; btn.textContent = "保存到云端"; }
+        setCardBankMsg("已保存，小程序下拉刷新 / H5 刷新即可看到。", "success");
+        toast("积分档银行已保存（小程序 + 网页端）", "success");
+      })
+      .catch(function (err) {
+        state.cardbankSaving = false;
+        if (btn) { btn.disabled = false; btn.textContent = "保存到云端"; }
+        setCardBankMsg((err && err.message) || "保存失败", "error");
+        toast((err && err.message) || "保存失败", "error");
+      });
+  }
+
+  PANEL_LOADERS.cardbanks = function () { loadCardBanks(false); };
+
   // ============ 晒图审核（reviews） ============
   //
   // 渲染进 #pcReviewsPanelBody（html 占位容器）。读取走

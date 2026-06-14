@@ -1,6 +1,9 @@
-const { listHotProducts, listNewProducts, getHomeBanners } = require('../../utils/db.js');
+const { listHotProducts, listNewProducts, getHomeBanners, getCardsBankLabels } = require('../../utils/db.js');
 const wishlist = require('../../utils/wishlist.js');
 const floatBtn = require('../../utils/floatBtn.js');
+
+// 各档位默认银行名（后台未配置时回退，保证不空白）
+const CARDS_BANK_DEFAULT = { '6': '交通银行', '7': '浦发银行', '8': '平安/中信银行', '9-10': '', '11+': '全' };
 
 Page({
   ...floatBtn,
@@ -15,13 +18,13 @@ Page({
     showQr: false,
     floatStyle: '',
     showBackTop: false,
-    // 积分快捷跳转（与全部礼品页的区间分档一致，取前 4 档）
+    // 积分快捷跳转（与全部礼品页的区间分档一致）；bank 由后台配置覆盖，默认见 CARDS_BANK_DEFAULT
     cardsQuick: [
-      { key: '6',    label: '6分' },
-      { key: '7',    label: '7分' },
-      { key: '8',    label: '8分' },
-      { key: '9-10', label: '9–10分' },
-      { key: '11+',  label: '11分+' }
+      { key: '6',    label: '6分',     bank: CARDS_BANK_DEFAULT['6'] },
+      { key: '7',    label: '7分',     bank: CARDS_BANK_DEFAULT['7'] },
+      { key: '8',    label: '8分',     bank: CARDS_BANK_DEFAULT['8'] },
+      { key: '9-10', label: '9-10分',  bank: CARDS_BANK_DEFAULT['9-10'] },
+      { key: '11+',  label: '11分以上', bank: CARDS_BANK_DEFAULT['11+'] }
     ]
   },
 
@@ -48,12 +51,19 @@ Page({
       const results = await Promise.all([
         listHotProducts(6),
         listNewProducts(6),
-        getHomeBanners().catch(() => [])
+        getHomeBanners().catch(() => []),
+        getCardsBankLabels().catch(() => ({}))
       ]);
+      const labels = results[3] || {};
+      const cardsQuick = this.data.cardsQuick.map((it) => ({
+        ...it,
+        bank: labels[it.key] != null ? labels[it.key] : CARDS_BANK_DEFAULT[it.key]
+      }));
       this.setData({
         hotList: results[0],
         newList: results[1],
         banners: results[2] || [],
+        cardsQuick,
         loading: false
       });
     } catch (err) {

@@ -1354,6 +1354,31 @@ async function fetchHomeBanners() {
   }
 }
 
+// 首页「按积分快速兑换」各档位银行名（后台 Supabase app_config 配置）。
+// HTML 内已写默认值，配置存在时整体覆盖（含被清空的项），读不到则保留默认，绝不空白。
+async function fetchCardsBankLabels() {
+  const row = document.getElementById("pointsQuickRow");
+  if (!row || !isSupabaseConfigured()) return;
+  try {
+    const url = `${config.supabaseUrl}/rest/v1/app_config?key=eq.cards_bank_labels&select=value&limit=1`;
+    const res = await fetch(url, {
+      headers: { apikey: config.supabaseAnonKey, Authorization: `Bearer ${config.supabaseAnonKey}` }
+    });
+    if (!res.ok) return;
+    const rows = await res.json();
+    const labels = (rows && rows[0] && rows[0].value && typeof rows[0].value === "object") ? rows[0].value : null;
+    if (!labels) return; // 后台未配置 → 保留 HTML 默认
+    row.querySelectorAll("[data-pq-bank]").forEach((el) => {
+      const key = el.getAttribute("data-pq-bank");
+      if (Object.prototype.hasOwnProperty.call(labels, key)) {
+        el.textContent = labels[key] == null ? "" : String(labels[key]);
+      }
+    });
+  } catch (err) {
+    // 读取失败保留 HTML 默认
+  }
+}
+
 async function loadEarnBanks() {
   if (!earnBankList) {
     return;
@@ -1500,6 +1525,7 @@ startAutoplay();
 loadProducts();
 loadEarnBanks();
 fetchHomeBanners();
+fetchCardsBankLabels();
 renderReviewsWall();
 renderHomeReviewStrip();
 injectFloatWidgets();

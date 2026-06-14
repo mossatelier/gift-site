@@ -3996,32 +3996,56 @@ body.admin-logged-in #adminLogoutButtonLogged {
   box-shadow: var(--shadow);
 }
 .points-quick-title {
-  margin: 0 0 12px;
+  margin: 0 0 2px;
   font-size: 15px;
   font-weight: 800;
   color: #6b441a;
 }
+.points-quick-sub {
+  margin: 0 0 12px;
+  font-size: 11.5px;
+  color: #b08a63;
+}
 .points-quick-row {
   display: flex;
-  gap: 9px;
+  gap: 8px;
 }
 .points-quick-btn {
   flex: 1;
-  text-align: center;
-  font-size: 15px;
-  font-weight: 700;
+  min-width: 0;
+  min-height: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
   color: #6b441a;
   background: linear-gradient(135deg, #ffe7c0 0%, #ffd28f 100%);
   border: 1px solid #f0ad5e;
   border-radius: 999px;
-  padding: 12px 0;
+  padding: 8px 2px;
   text-decoration: none;
   box-shadow: 0 5px 12px rgba(232, 140, 40, 0.22);
 }
+.points-quick-btn .pq-points {
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.points-quick-btn .pq-bank {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #8a5a25;
+  line-height: 1.1;
+  white-space: nowrap;
+}
 .points-quick-btn:active {
   background: linear-gradient(135deg, #ff8a3d 0%, #e8531f 100%);
-  color: #fff;
   border-color: transparent;
+}
+.points-quick-btn:active .pq-points,
+.points-quick-btn:active .pq-bank {
+  color: #fff;
 }
 
 /* ============ 手机后台 · 推荐管理 CRM ============ */
@@ -4175,3 +4199,10 @@ body.admin-logged-in #adminLogoutButtonLogged {
   margin: 16px 12px 0; background: rgba(255,255,255,0.92); border: 1px dashed rgba(193,68,20,0.45);
   border-radius: 14px; padding: 14px; font-size: 13px; color: #b5471b; line-height: 1.65;
 }
+
+/* 手机后台 · 积分档银行 */
+.admin-cardbank-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.admin-cardbank-row { display: flex; align-items: center; gap: 12px; }
+.admin-cardbank-points { flex: 0 0 72px; font-weight: 800; color: #6b441a; }
+.admin-cardbank-input { flex: 1; min-width: 0; padding: 10px 12px; font-size: 15px; border: 1px solid rgba(234,223,206,0.95); border-radius: 12px; background: #fff; color: var(--text); }
+.admin-cardbank-input:focus { outline: none; border-color: #f0ad5e; }

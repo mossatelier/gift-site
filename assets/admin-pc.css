@@ -3133,3 +3133,9 @@ body.pc-admin {
 .pc-ref-rank-name { flex: 1; font-weight: 700; color: #2e2318; }
 .pc-ref-rank-name em { color: #8a7c66; font-style: normal; font-weight: 600; font-size: 12px; }
 .pc-ref-rank-stat { font-size: 13px; color: #5d5140; }
+
+/* 配置 · 积分档银行 */
+.pc-cardbank-list { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.pc-cardbank-row { display: flex; align-items: center; gap: 12px; }
+.pc-cardbank-points { flex: 0 0 84px; font-weight: 800; color: #6b441a; }
+.pc-cardbank-input { flex: 1; }
