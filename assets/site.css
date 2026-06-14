@@ -3987,7 +3987,12 @@ body.admin-logged-in #adminLogoutButtonLogged {
 
 /* 首页积分快捷栏（浅米色底深棕字） */
 .points-quick {
-  margin: 20px 16px 14px;
+  margin: 14px 12px 0;
+  padding: 16px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(234, 223, 206, 0.9);
+  box-shadow: var(--shadow);
 }
 .points-quick-title {
   margin: 0 0 12px;
