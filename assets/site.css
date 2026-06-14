@@ -4216,3 +4216,31 @@ body.admin-logged-in #adminLogoutButtonLogged {
 .admin-cardbank-points { flex: 0 0 72px; font-weight: 800; color: #6b441a; }
 .admin-cardbank-input { flex: 1; min-width: 0; padding: 10px 12px; font-size: 15px; border: 1px solid rgba(234,223,206,0.95); border-radius: 12px; background: #fff; color: var(--text); }
 .admin-cardbank-input:focus { outline: none; border-color: #f0ad5e; }
+
+/* 手机后台 · 居中浮层提示 toast（关键操作醒目反馈） */
+.admin-toast {
+  position: fixed;
+  left: 50%;
+  top: 40%;
+  transform: translate(-50%, -50%) scale(0.94);
+  max-width: 80vw;
+  padding: 16px 24px;
+  border-radius: 14px;
+  background: rgba(30, 28, 24, 0.92);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  z-index: 99999;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.28);
+  transition: opacity .2s ease, transform .2s ease;
+}
+.admin-toast.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+.admin-toast[data-tone="success"] { background: rgba(22, 122, 97, 0.95); }
+.admin-toast[data-tone="error"]   { background: rgba(193, 52, 32, 0.95); }

@@ -1708,6 +1708,26 @@ function setOrdersMessage(text, tone = "idle") {
   adminOrdersMessage.dataset.tone = tone;
 }
 
+// 居中浮层提示，自动消失。用于关键操作（存单号 / 改状态 / 批量）的醒目反馈，
+// 替代「只有底部小字、容易没看见」的体验。
+let _adminToastTimer = null;
+function adminToast(text, tone = "success") {
+  let el = document.getElementById("adminToast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "adminToast";
+    el.className = "admin-toast";
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+  el.dataset.tone = tone;
+  // 强制重绘以便重复触发动画
+  void el.offsetWidth;
+  el.classList.add("show");
+  clearTimeout(_adminToastTimer);
+  _adminToastTimer = setTimeout(() => el.classList.remove("show"), 2200);
+}
+
 async function callAdminOrders(action, payload = {}) {
   if (!config.adminOrdersUrl) {
     throw new Error("尚未配置 adminOrdersUrl，请在 assets/config.js 填入云函数 HTTP 触发器地址");
@@ -1968,6 +1988,7 @@ async function handleBulkUpdate() {
     state.selectedOrderIds.clear();
     if (adminOrdersBulkStatus) adminOrdersBulkStatus.value = "";
     setOrdersMessage(`成功 ${res.updated} 单，失败 ${res.failed || 0} 单。`, "success");
+    adminToast(`✅ 批量更新成功 ${res.updated} 单`, "success");
     loadOrders();
   } catch (err) {
     setOrdersMessage(err.message, "error");
@@ -1987,6 +2008,7 @@ async function handleBulkDelete() {
     const res = await callAdminOrders("delete-orders-bulk", { orderIds: ids });
     state.selectedOrderIds.clear();
     setOrdersMessage(`已删除 ${res.deleted} 单，失败 ${res.failed || 0} 单。`, "success");
+    adminToast(`🗑️ 已删除 ${res.deleted} 单`, "success");
     loadOrders();
   } catch (err) {
     setOrdersMessage(err.message, "error");
@@ -2001,6 +2023,7 @@ async function handleOrderStatusChange(select) {
   try {
     await callAdminOrders("update-status", { orderId, status });
     setOrdersMessage("已更新。", "success");
+    adminToast("✅ 状态已更新为「" + (ORDER_STATUS_LABEL[normOrderStatus(status)] || status) + "」", "success");
     // 过滤态下改状态会让该单移出当前筛选 → 直接重拉，复用分页/空页回退逻辑，
     // 避免本地 splice + ordersTotal-- 造成的页码错位、当前页卡空
     if (state.ordersStatus !== "all" && state.ordersStatus !== status) {
@@ -2027,6 +2050,7 @@ async function handleTrackingSave(orderId) {
   const trackingCompany = companyInput ? companyInput.value.trim() : "";
   if (!trackingNo) {
     setOrdersMessage("请填写快递单号。", "error");
+    adminToast("请先填写快递单号", "error");
     return;
   }
   setOrdersMessage("正在保存单号…");
@@ -2041,8 +2065,10 @@ async function handleTrackingSave(orderId) {
     }
     renderOrdersList();
     setOrdersMessage("单号已保存，已自动标记「运输中」并推送用户。", "success");
+    adminToast("✅ 单号已保存，已发货并推送用户", "success");
   } catch (err) {
     setOrdersMessage(err.message, "error");
+    adminToast("保存失败：" + (err.message || ""), "error");
   }
 }
 
@@ -2056,8 +2082,10 @@ async function handleNoteSave(orderId) {
     const idx = state.orders.findIndex((o) => o._id === orderId);
     if (idx >= 0) state.orders[idx].adminNote = adminNote;
     setOrdersMessage("备注已保存（仅你可见）。", "success");
+    adminToast("✅ 备注已保存", "success");
   } catch (err) {
     setOrdersMessage(err.message, "error");
+    adminToast("保存失败：" + (err.message || ""), "error");
   }
 }
 
