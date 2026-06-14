@@ -4158,6 +4158,161 @@
   // 注册面板加载器：首次进入拉取（ordersLoaded 标记防重复），切回不重复请求但提供刷新按钮。
   PANEL_LOADERS.orders = function () { loadOrders(false); };
 
+  // ============ 推荐管理 CRM ============
+  (function () {
+    var REF_TABS = ["", "待审核", "已加微信", "办卡中", "开户成功", "无效"];
+    var REF_STATUS_OPTS = ["待审核", "已加微信", "办卡中", "开户成功", "无效"];
+    var refState = { status: "", keyword: "", rows: [], bound: false };
+
+    function $(id) { return document.getElementById(id); }
+    function esc(s) {
+      return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+        return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c];
+      });
+    }
+    function fmtDate(d) {
+      if (!d) return "";
+      var x = new Date(d);
+      if (isNaN(x.getTime())) return "";
+      var p = function (n) { return n < 10 ? "0" + n : "" + n; };
+      return x.getFullYear() + "-" + p(x.getMonth() + 1) + "-" + p(x.getDate());
+    }
+
+    function renderRefTabs() {
+      var el = $("pcRefTabs"); if (!el) return;
+      el.innerHTML = REF_TABS.map(function (s) {
+        var label = s === "" ? "全部" : s;
+        return '<button class="pc-ref-tab' + (refState.status === s ? " active" : "") +
+          '" data-ref-tab="' + esc(s) + '" type="button">' + esc(label) + "</button>";
+      }).join("");
+    }
+
+    function statusOptions(cur) {
+      return REF_STATUS_OPTS.map(function (s) {
+        return '<option value="' + esc(s) + '"' + (s === cur ? " selected" : "") + ">" + esc(s) + "</option>";
+      }).join("");
+    }
+
+    function renderRefList() {
+      var el = $("pcRefList"); if (!el) return;
+      if (!refState.rows.length) { el.innerHTML = '<p class="pc-ref-empty">暂无推荐记录</p>'; return; }
+      el.innerHTML = refState.rows.map(function (r) {
+        return '<div class="pc-ref-row">' +
+          '<div class="pc-ref-cell pc-ref-ref"><span class="pc-ref-code">' + esc(r.referrerCode || "-") +
+            '</span><span class="pc-ref-nick">' + esc(r.referrerNick || "") + "</span></div>" +
+          '<div class="pc-ref-cell pc-ref-friend"><span class="pc-ref-fnick">' + esc(r.refereeNick || "-") +
+            '</span><span class="pc-ref-phone">' + esc(r.refereePhone || "") + "</span></div>" +
+          '<div class="pc-ref-cell"><select class="pc-ref-status-sel" data-ref-id="' + esc(r._id) +
+            '" data-ref-prev="' + esc(r.status) + '">' + statusOptions(r.status) + "</select></div>" +
+          '<div class="pc-ref-cell pc-ref-reward">' + (r.rewardPoints > 0 ? "+" + r.rewardPoints + "分" : "—") + "</div>" +
+          '<div class="pc-ref-cell pc-ref-date">' + esc(fmtDate(r.createdAt)) + "</div>" +
+        "</div>";
+      }).join("");
+    }
+
+    function loadReferral() {
+      bindRef();
+      renderRefTabs();
+      var listEl = $("pcRefList"); if (listEl) listEl.innerHTML = '<p class="pc-ref-empty">加载中…</p>';
+      Core.callAdminOrders("referral-list", { status: refState.status, keyword: refState.keyword })
+        .then(function (rows) { refState.rows = rows || []; renderRefList(); })
+        .catch(function (e) { if (listEl) listEl.innerHTML = '<p class="pc-ref-empty">加载失败：' + esc(e.message) + "</p>"; });
+      loadRanking();
+    }
+
+    function loadRanking() {
+      var el = $("pcRefRanking"); if (!el) return;
+      Core.callAdminOrders("referral-ranking", {})
+        .then(function (rows) {
+          if (!rows || !rows.length) { el.innerHTML = '<p class="pc-ref-empty">暂无数据</p>'; return; }
+          el.innerHTML = rows.map(function (r, i) {
+            return '<div class="pc-ref-rank-row"><span class="pc-ref-rank-no">' + (i + 1) + "</span>" +
+              '<span class="pc-ref-rank-name">' + esc(r.nick || "微信用户") + " <em>" + esc(r.code || "") + "</em></span>" +
+              '<span class="pc-ref-rank-stat">有效 ' + (r.opened || 0) + " / 累计 " + (r.total || 0) + " · " + (r.rewardPoints || 0) + "分</span></div>";
+          }).join("");
+        })
+        .catch(function () { el.innerHTML = '<p class="pc-ref-empty">排行加载失败</p>'; });
+    }
+
+    function doAdd() {
+      var code = ($("pcRefAddCode").value || "").trim();
+      var phone = ($("pcRefAddPhone").value || "").trim();
+      var nick = ($("pcRefAddNick").value || "").trim();
+      var msg = $("pcRefAddMsg");
+      if (!/^\d{6}$/.test(code)) { msg.textContent = "推荐码需6位数字"; msg.className = "pc-ref-add-msg error"; return; }
+      if (!/^1\d{10}$/.test(phone)) { msg.textContent = "手机号格式不正确"; msg.className = "pc-ref-add-msg error"; return; }
+      msg.textContent = "提交中…"; msg.className = "pc-ref-add-msg";
+      Core.callAdminOrders("referral-add", { referrerCode: code, phone: phone, nick: nick })
+        .then(function () {
+          msg.textContent = "已录入 ✓"; msg.className = "pc-ref-add-msg success";
+          $("pcRefAddPhone").value = ""; $("pcRefAddNick").value = "";
+          loadReferral();
+        })
+        .catch(function (e) { msg.textContent = e.message; msg.className = "pc-ref-add-msg error"; });
+    }
+
+    function changeStatus(sel) {
+      var id = sel.getAttribute("data-ref-id");
+      var prev = sel.getAttribute("data-ref-prev");
+      var next = sel.value;
+      if (next === prev) return;
+      var payload = { id: id, status: next };
+      if (next === "开户成功") {
+        var input = window.prompt("发放奖励积分给推荐人：", "1");
+        if (input === null) { sel.value = prev; return; }
+        var pts = parseInt(input, 10);
+        if (isNaN(pts) || pts < 0) { window.alert("积分不合法"); sel.value = prev; return; }
+        payload.rewardPoints = pts;
+      } else if (prev === "开户成功") {
+        if (!window.confirm("从「开户成功」改为「" + next + "」会回收已发奖励积分，确定？")) { sel.value = prev; return; }
+      }
+      Core.callAdminOrders("referral-set-status", payload)
+        .then(function () { loadReferral(); })
+        .catch(function (e) { window.alert(e.message); sel.value = prev; });
+    }
+
+    function exportCsv() {
+      var rows = refState.rows || [];
+      if (!rows.length) { window.alert("当前无数据可导出"); return; }
+      var head = ["推荐码", "推荐人", "好友昵称", "手机号", "状态", "奖励积分", "录入时间", "开户时间"];
+      var lines = [head.join(",")];
+      rows.forEach(function (r) {
+        lines.push([r.referrerCode, r.referrerNick, r.refereeNick, r.refereePhone, r.status, r.rewardPoints || 0, fmtDate(r.createdAt), fmtDate(r.openedAt)]
+          .map(function (v) { return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"'; }).join(","));
+      });
+      var blob = new Blob(["﻿" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = "推荐明细.csv"; a.click();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    }
+
+    function bindRef() {
+      if (refState.bound) return;
+      refState.bound = true;
+      var tabs = $("pcRefTabs");
+      if (tabs) tabs.addEventListener("click", function (e) {
+        var b = e.target.closest("[data-ref-tab]"); if (!b) return;
+        refState.status = b.getAttribute("data-ref-tab"); renderRefTabs(); loadReferral();
+      });
+      var list = $("pcRefList");
+      if (list) list.addEventListener("change", function (e) {
+        var sel = e.target.closest(".pc-ref-status-sel"); if (sel) changeStatus(sel);
+      });
+      var addBtn = $("pcRefAddBtn"); if (addBtn) addBtn.addEventListener("click", doAdd);
+      var searchBtn = $("pcRefSearchBtn"); if (searchBtn) searchBtn.addEventListener("click", function () {
+        refState.keyword = ($("pcRefSearch").value || "").trim(); loadReferral();
+      });
+      var searchInp = $("pcRefSearch"); if (searchInp) searchInp.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { refState.keyword = (searchInp.value || "").trim(); loadReferral(); }
+      });
+      var refreshBtn = $("pcRefRefreshBtn"); if (refreshBtn) refreshBtn.addEventListener("click", loadReferral);
+      var exportBtn = $("pcRefExportBtn"); if (exportBtn) exportBtn.addEventListener("click", exportCsv);
+    }
+
+    PANEL_LOADERS.referral = loadReferral;
+  })();
+
   // ============ 启动 ============
 
   if (document.readyState === "loading") {

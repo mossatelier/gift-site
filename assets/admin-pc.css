@@ -3017,3 +3017,119 @@ body.pc-admin {
 /* 登录：显示密码开关 */
 .pc-show-pw { display: flex; align-items: center; gap: 6px; margin: -4px 0 4px; font-size: 13px; color: var(--muted); cursor: pointer; }
 .pc-show-pw input[type="checkbox"] { width: auto; margin: 0; }
+
+/* ============ 推荐管理 CRM ============ */
+.pc-ref-add {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  background: #fff;
+  border: 1px solid var(--pc-line, #e8e2d6);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.pc-ref-input {
+  height: 38px;
+  border: 1px solid var(--pc-line, #e0d8c8);
+  border-radius: 9px;
+  padding: 0 12px;
+  font-size: 14px;
+  background: #fdfcf9;
+}
+#pcRefAddCode { width: 130px; }
+#pcRefAddPhone { width: 160px; }
+#pcRefAddNick { width: 130px; }
+#pcRefSearch { flex: 1; min-width: 220px; }
+.pc-ref-add-btn {
+  height: 38px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff8a3d 0%, #e8531f 100%);
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+}
+.pc-ref-add-msg { font-size: 13px; color: #8a7c66; }
+.pc-ref-add-msg.error { color: #d64b2a; }
+.pc-ref-add-msg.success { color: #1f9488; }
+
+.pc-ref-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.pc-ref-tab {
+  border: 1px solid var(--pc-line, #e0d8c8);
+  background: #fff;
+  color: #5d5140;
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.pc-ref-tab.active {
+  background: linear-gradient(135deg, #f5973f 0%, #e8531f 100%);
+  color: #fff;
+  border-color: transparent;
+}
+
+.pc-ref-search { display: flex; gap: 10px; margin-bottom: 14px; }
+
+.pc-ref-list-head, .pc-ref-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1.6fr 1.3fr 0.8fr 1fr;
+  gap: 12px;
+  align-items: center;
+}
+.pc-ref-list-head {
+  padding: 8px 14px;
+  font-size: 12px;
+  color: #8a7c66;
+  font-weight: 700;
+}
+.pc-ref-row {
+  background: #fff;
+  border: 1px solid var(--pc-line, #ece6da);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+.pc-ref-cell { display: flex; flex-direction: column; gap: 3px; font-size: 14px; }
+.pc-ref-code { font-weight: 800; color: #e8531f; }
+.pc-ref-nick, .pc-ref-phone { font-size: 12px; color: #8a7c66; }
+.pc-ref-fnick { font-weight: 700; color: #2e2318; }
+.pc-ref-reward { font-weight: 800; color: #e8531f; }
+.pc-ref-date { font-size: 12px; color: #8a7c66; }
+.pc-ref-status-sel {
+  height: 34px;
+  border: 1px solid var(--pc-line, #e0d8c8);
+  border-radius: 8px;
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  background: #fdfcf9;
+  cursor: pointer;
+}
+.pc-ref-empty { text-align: center; color: #8a7c66; padding: 24px 0; font-size: 14px; }
+
+.pc-ref-ranking-wrap { margin-top: 26px; }
+.pc-ref-sub { font-size: 16px; font-weight: 800; margin: 0 0 12px; color: #2e2318; }
+.pc-ref-rank-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  border: 1px solid var(--pc-line, #ece6da);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+}
+.pc-ref-rank-no {
+  width: 26px; height: 26px; line-height: 26px; text-align: center;
+  border-radius: 50%; background: rgba(232,83,31,0.12); color: #e8531f;
+  font-weight: 800; font-size: 13px; flex: 0 0 auto;
+}
+.pc-ref-rank-name { flex: 1; font-weight: 700; color: #2e2318; }
+.pc-ref-rank-name em { color: #8a7c66; font-style: normal; font-weight: 600; font-size: 12px; }
+.pc-ref-rank-stat { font-size: 13px; color: #5d5140; }

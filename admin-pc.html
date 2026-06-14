@@ -6,7 +6,7 @@
   <title>加加好物图集 · Admin Console（电脑版）</title>
   <meta name="robots" content="noindex,nofollow">
   <link rel="stylesheet" href="assets/site.css?v=29">
-  <link rel="stylesheet" href="assets/admin-pc.css?v=16">
+  <link rel="stylesheet" href="assets/admin-pc.css?v=17">
 </head>
 <body class="pc-admin">
 
@@ -127,6 +127,14 @@
           </div>
 
           <div class="pc-nav-group">
+            <p class="pc-nav-group-title">推荐</p>
+            <a class="pc-nav-item" data-panel="referral" href="#referral">
+              <span class="pc-nav-ico">🎁</span>
+              <span class="pc-nav-text">推荐管理</span>
+            </a>
+          </div>
+
+          <div class="pc-nav-group">
             <p class="pc-nav-group-title">配置</p>
             <a class="pc-nav-item" data-panel="banks" href="#banks">
               <span class="pc-nav-ico">🏦</span>
@@ -208,6 +216,44 @@
           <div class="pc-panel-placeholder" id="pcReviewsPanelBody">晒图审核面板（后续阶段填充）</div>
         </section>
 
+        <section class="pc-panel" data-panel="referral" hidden>
+          <div class="pc-panel-head">
+            <div class="pc-panel-head-titles">
+              <h1 class="pc-panel-title">推荐管理</h1>
+              <p class="pc-panel-subtitle">录入推荐 · 标记开户 · 开户成功自动发放奖励积分</p>
+            </div>
+            <div class="pc-panel-head-actions">
+              <button class="pc-btn-ghost" id="pcRefRefreshBtn" type="button">↻ 刷新</button>
+              <button class="pc-btn-ghost" id="pcRefExportBtn" type="button">⤓ 导出CSV</button>
+            </div>
+          </div>
+
+          <div class="pc-ref-add">
+            <input id="pcRefAddCode" class="pc-ref-input" placeholder="推荐码(6位)" maxlength="6">
+            <input id="pcRefAddPhone" class="pc-ref-input" placeholder="新客户手机号">
+            <input id="pcRefAddNick" class="pc-ref-input" placeholder="昵称(可选)">
+            <button class="pc-ref-add-btn" id="pcRefAddBtn" type="button">＋ 录入推荐</button>
+            <span class="pc-ref-add-msg" id="pcRefAddMsg"></span>
+          </div>
+
+          <div class="pc-ref-tabs" id="pcRefTabs"></div>
+
+          <div class="pc-ref-search">
+            <input id="pcRefSearch" class="pc-ref-input" placeholder="搜索 手机号 / 昵称 / 推荐码">
+            <button class="pc-btn-ghost" id="pcRefSearchBtn" type="button">搜索</button>
+          </div>
+
+          <div class="pc-ref-list-head">
+            <span>推荐人</span><span>好友</span><span>状态</span><span>奖励</span><span>录入时间</span>
+          </div>
+          <div class="pc-ref-list" id="pcRefList"></div>
+
+          <div class="pc-ref-ranking-wrap">
+            <h2 class="pc-ref-sub">推荐排行榜</h2>
+            <div id="pcRefRanking"></div>
+          </div>
+        </section>
+
         <section class="pc-panel" data-panel="banks" hidden>
           <div class="pc-panel-placeholder" id="pcBanksPanelBody">银行积分面板（后续阶段填充）</div>
         </section>
@@ -222,6 +268,6 @@
 
   <script src="assets/config.js?v=13"></script>
   <script src="assets/admin-core.js?v=5"></script>
-  <script src="assets/admin-pc.js?v=21"></script>
+  <script src="assets/admin-pc.js?v=22"></script>
 </body>
 </html>
