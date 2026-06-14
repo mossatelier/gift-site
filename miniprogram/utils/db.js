@@ -315,7 +315,9 @@ async function upsertMyAddress(openid, patch) {
 const ORDER_CLIENT_FIELDS = {
   _id: true, openid: true, status: true, items: true, address: true,
   remark: true, totalCards: true, itemCount: true,
-  createdAt: true, updatedAt: true, trackingNo: true, trackingCompany: true
+  createdAt: true, updatedAt: true, trackingNo: true, trackingCompany: true,
+  // 物流轨迹/签收信息——客户订单详情时间线要用，缺了就看不到物流
+  logisticsNodes: true, signedAt: true, signedBy: true
 };
 
 async function listMyOrders(openid, { limit = 20, skip = 0 } = {}) {
