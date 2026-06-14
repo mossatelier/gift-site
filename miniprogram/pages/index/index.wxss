@@ -394,10 +394,10 @@
 }
 .points-quick-title {
   display: block;
-  font-size: 25rpx;
+  font-size: 27rpx;
   font-weight: 800;
-  color: #6b4f2a;
-  margin-bottom: 16rpx;
+  color: #6b441a;
+  margin-bottom: 18rpx;
 }
 .points-quick-row {
   display: flex;
@@ -407,13 +407,13 @@
   flex: 1;
   text-align: center;
   font-size: 27rpx;
-  font-weight: 600;
-  color: #5a3d1a;
-  background: #fff;
-  border: 3rpx solid #ffb784;
+  font-weight: 700;
+  color: #6b441a;
+  background: linear-gradient(135deg, #ffe7c0 0%, #ffd28f 100%);
+  border: 2rpx solid #f0ad5e;
   border-radius: 999rpx;
-  padding: 18rpx 0;
-  box-shadow: 0 6rpx 14rpx rgba(232, 83, 31, 0.1);
+  padding: 20rpx 0;
+  box-shadow: 0 6rpx 16rpx rgba(232, 140, 40, 0.22);
 }
 .points-quick-btn:active {
   background: linear-gradient(135deg, #ff8a3d 0%, #e8531f 100%);

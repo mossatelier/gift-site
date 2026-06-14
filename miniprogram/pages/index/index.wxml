@@ -78,7 +78,7 @@
 
   <!-- 积分快捷跳转栏（图标区下方、热门兑换上方） -->
   <view class="points-quick">
-    <text class="points-quick-title">按积分快速兑换</text>
+    <text class="points-quick-title">🪙 按积分快速兑换</text>
     <view class="points-quick-row">
       <view
         class="points-quick-btn"
