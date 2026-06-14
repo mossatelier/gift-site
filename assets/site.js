@@ -670,6 +670,8 @@ const PROVINCE_MAP = {
   "香港": "香港特别行政区", "澳门": "澳门特别行政区"
 };
 const MUNICIPALITIES = ["北京市", "天津市", "上海市", "重庆市"];
+// 合法省级名集合（简称+全称都认），用于下单防呆：省份框被填成名字/城市时拦下
+const PROVINCE_NAMES = new Set([].concat(Object.keys(PROVINCE_MAP), Object.values(PROVINCE_MAP)));
 
 // 从一整段文字里尽力解析出 收件人/手机/省市区/详细（移植自小程序 parseAddress）
 function parseAddress(raw) {
@@ -818,6 +820,7 @@ function submitWebOrder() {
   if (!address.recipient) { setWebOrderMsg("请填写收件人姓名。", "error"); return; }
   if (!/^1\d{10}$/.test(address.phone)) { setWebOrderMsg("请填写正确的 11 位手机号。", "error"); return; }
   if (!address.province || !address.city) { setWebOrderMsg("请填写省份和城市。", "error"); return; }
+  if (!PROVINCE_NAMES.has(address.province)) { setWebOrderMsg("省份填写有误（应为“广东省”这类省级名称），请检查省/市/区是否填串行了。", "error"); return; }
   if (!address.detail) { setWebOrderMsg("请填写详细地址。", "error"); return; }
   if (!remark) { setWebOrderMsg("请填写备注：想要的颜色 / 规格 / 想办的银行等。", "error"); return; }
 
