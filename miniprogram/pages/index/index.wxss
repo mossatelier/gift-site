@@ -394,27 +394,29 @@
 }
 .points-quick-title {
   display: block;
-  font-size: 24rpx;
-  font-weight: 700;
-  color: #8a7351;
-  margin-bottom: 14rpx;
+  font-size: 25rpx;
+  font-weight: 800;
+  color: #6b4f2a;
+  margin-bottom: 16rpx;
 }
 .points-quick-row {
   display: flex;
-  gap: 16rpx;
+  gap: 14rpx;
 }
 .points-quick-btn {
   flex: 1;
   text-align: center;
-  font-size: 26rpx;
+  font-size: 27rpx;
   font-weight: 800;
-  color: #6b4f2a;
-  background: linear-gradient(180deg, #fff6e4 0%, #fff0d4 100%);
-  border: 1rpx solid rgba(224, 172, 77, 0.45);
-  border-radius: 18rpx;
-  padding: 20rpx 0;
-  box-shadow: 0 4rpx 12rpx rgba(46, 35, 18, 0.05);
+  color: #e8531f;
+  background: #fff;
+  border: 3rpx solid #ffb784;
+  border-radius: 999rpx;
+  padding: 18rpx 0;
+  box-shadow: 0 6rpx 14rpx rgba(232, 83, 31, 0.1);
 }
 .points-quick-btn:active {
-  background: linear-gradient(180deg, #ffefcf 0%, #ffe6bd 100%);
+  background: linear-gradient(135deg, #ff8a3d 0%, #e8531f 100%);
+  color: #fff;
+  border-color: transparent;
 }

@@ -3991,28 +3991,31 @@ body.admin-logged-in #adminLogoutButtonLogged {
 }
 .points-quick-title {
   margin: 0 0 10px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #8a7351;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #6b4f2a;
 }
 .points-quick-row {
   display: flex;
-  gap: 10px;
+  gap: 9px;
 }
 .points-quick-btn {
   flex: 1;
   text-align: center;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 800;
-  color: #6b4f2a;
-  background: linear-gradient(180deg, #fff6e4 0%, #fff0d4 100%);
-  border: 1px solid rgba(224, 172, 77, 0.45);
-  border-radius: 14px;
-  padding: 12px 0;
+  color: #e8531f;
+  background: #fff;
+  border: 1.5px solid #ffb784;
+  border-radius: 999px;
+  padding: 11px 0;
   text-decoration: none;
+  box-shadow: 0 4px 10px rgba(232, 83, 31, 0.08);
 }
 .points-quick-btn:active {
-  background: linear-gradient(180deg, #ffefcf 0%, #ffe6bd 100%);
+  background: linear-gradient(135deg, #ff8a3d 0%, #e8531f 100%);
+  color: #fff;
+  border-color: transparent;
 }
 
 /* ============ 手机后台 · 推荐管理 CRM ============ */
