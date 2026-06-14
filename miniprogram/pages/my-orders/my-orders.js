@@ -1,12 +1,11 @@
 const auth = require('../../utils/auth.js');
 const { listMyOrders } = require('../../utils/db.js');
 
-// 旧码兼容：processing→pending、done→shipped、closed→signed
-const STATUS_LEGACY = { processing: 'pending', done: 'shipped', closed: 'signed' };
+// 旧码兼容：processing/preparing→pending、done→shipped、closed→signed
+const STATUS_LEGACY = { processing: 'pending', preparing: 'pending', done: 'shipped', closed: 'signed' };
 function normStatus(s) { return STATUS_LEGACY[s] || s || 'pending'; }
 const STATUS_LABEL = {
-  pending: '待处理',
-  preparing: '待发货',
+  pending: '待发货',
   shipped: '运输中',
   signed: '已签收',
   cancelled: '已取消'

@@ -1,28 +1,25 @@
 const auth = require('../../utils/auth.js');
 const { getMyOrder } = require('../../utils/db.js');
 
-// 旧码兼容：processing→pending、done→shipped、closed→signed
-const STATUS_LEGACY = { processing: 'pending', done: 'shipped', closed: 'signed' };
+// 旧码兼容：processing/preparing→pending、done→shipped、closed→signed
+const STATUS_LEGACY = { processing: 'pending', preparing: 'pending', done: 'shipped', closed: 'signed' };
 function normStatus(s) { return STATUS_LEGACY[s] || s || 'pending'; }
 
 const STATUS_LABEL = {
-  pending: '待处理',
-  preparing: '待发货',
+  pending: '待发货',
   shipped: '运输中',
   signed: '已签收',
   cancelled: '已取消'
 };
 const STATUS_DESC = {
-  pending: '客服已收到申请，将尽快处理',
-  preparing: '商家已接单，商品准备中',
+  pending: '商家已接单，正在为你备货发货',
   shipped: '礼品运输中，可在下方查看物流',
   signed: '礼品已签收，感谢支持，欢迎再来～',
   cancelled: '订单已取消'
 };
 // 进度步骤条（已取消不走此流程）
 const STEPS = [
-  { key: 'pending', label: '待处理' },
-  { key: 'preparing', label: '待发货' },
+  { key: 'pending', label: '待发货' },
   { key: 'shipped', label: '运输中' },
   { key: 'signed', label: '已签收' }
 ];

@@ -3143,3 +3143,14 @@ body.pc-admin {
 .pc-cardbank-row { display: flex; align-items: center; gap: 12px; }
 .pc-cardbank-points { flex: 0 0 84px; font-weight: 800; color: #6b441a; }
 .pc-cardbank-input { flex: 1; }
+
+/* 订单抽屉 · 物流轨迹时间线 */
+.pc-orders-timeline { margin-top: 6px; }
+.pc-orders-tl-node { position: relative; padding: 0 0 14px 18px; border-left: 2px solid #e8ddca; }
+.pc-orders-tl-node:last-child { border-left-color: transparent; padding-bottom: 0; }
+.pc-orders-tl-dot { position: absolute; left: -6px; top: 3px; width: 10px; height: 10px; border-radius: 50%; background: #c9bca3; }
+.pc-orders-tl-node.latest .pc-orders-tl-dot { background: #167a61; }
+.pc-orders-tl-body { display: flex; flex-direction: column; gap: 2px; }
+.pc-orders-tl-ctx { margin: 0; font-size: 13px; color: #3a3325; line-height: 1.4; }
+.pc-orders-tl-node.latest .pc-orders-tl-ctx { color: #167a61; font-weight: 600; }
+.pc-orders-tl-time { margin: 0; font-size: 12px; color: #8a7c66; }

@@ -30,15 +30,15 @@ const KD_KEY = process.env.KUAIDI100_KEY || '';
 const KD_CALLBACK = process.env.KUAIDI100_CALLBACK_URL || '';
 const KD_SUBSCRIBE_URL = 'https://poll.kuaidi100.com/poll';
 
-// 订单状态机：待处理(pending) → 待发货(preparing) → 运输中(shipped) → 已签收(signed)（＋已取消 cancelled）
-// 旧码兼容：processing→pending、done→shipped(运输中)、closed→signed(已签收)；历史单不迁移，读时归一。
-const ALLOWED_STATUS = ['pending', 'preparing', 'shipped', 'signed', 'cancelled'];
-const STATUS_LEGACY = { processing: 'pending', done: 'shipped', closed: 'signed' };
+// 订单状态机：待发货(pending) → 运输中(shipped) → 已签收(signed)（＋已取消 cancelled）
+// pending 即「待发货」(下单创建的初始态)；旧码兼容：processing/preparing→pending、done→shipped、closed→signed。
+const ALLOWED_STATUS = ['pending', 'shipped', 'signed', 'cancelled'];
+const STATUS_LEGACY = { processing: 'pending', preparing: 'pending', done: 'shipped', closed: 'signed' };
 // 任意（含历史）状态码 → 新码
 function normStatus(s) { return STATUS_LEGACY[s] || s || 'pending'; }
 // 某新状态在库里对应的所有码（查询用，吸收历史单）
 function statusQueryCodes(s) {
-  if (s === 'pending') return ['pending', 'processing'];
+  if (s === 'pending') return ['pending', 'processing', 'preparing'];
   if (s === 'shipped') return ['shipped', 'done'];
   if (s === 'signed') return ['signed', 'closed'];
   return [s];
@@ -302,7 +302,7 @@ async function getStats({ period = 'today' }) {
   const productsNew = since ? (productsNewRes.total || 0) : 0;
 
   // 状态分布（历史码归一：processing→pending、done→shipped、closed→signed）
-  const byStatus = { pending: 0, preparing: 0, shipped: 0, signed: 0, cancelled: 0 };
+  const byStatus = { pending: 0, shipped: 0, signed: 0, cancelled: 0 };
   for (const o of orders) {
     const k = normStatus(o.status);
     if (byStatus[k] !== undefined) byStatus[k]++;

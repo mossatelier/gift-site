@@ -450,7 +450,6 @@
     // 四个订单入口各自数量（list 的 total 是该状态全量计数，不受日期影响）
     var badgeJobs = [
       { status: "pending", el: pcBadgeOrders },
-      { status: "preparing", el: pcBadgePreparing },
       { status: "shipped", el: pcBadgeDone },
       { status: "signed", el: pcBadgeClosed },
       { status: "cancelled", el: pcBadgeCancelled },
@@ -642,8 +641,7 @@
       '<div class="pc-kpi-card">'
         + '<div class="pc-kpi-label">订单状态分布</div>'
         + '<div class="pc-stats-status-grid">'
-        + '<div class="pc-stats-status-row"><span class="pc-order-status pc-order-status-pending">待处理</span><span>' + escapeHtml(byStatus.pending || 0) + "</span></div>"
-        + '<div class="pc-stats-status-row"><span class="pc-order-status pc-order-status-preparing">待发货</span><span>' + escapeHtml(byStatus.preparing || 0) + "</span></div>"
+        + '<div class="pc-stats-status-row"><span class="pc-order-status pc-order-status-pending">待发货</span><span>' + escapeHtml(byStatus.pending || 0) + "</span></div>"
         + '<div class="pc-stats-status-row"><span class="pc-order-status pc-order-status-shipped">运输中</span><span>' + escapeHtml(byStatus.shipped || 0) + "</span></div>"
         + '<div class="pc-stats-status-row"><span class="pc-order-status pc-order-status-signed">已签收</span><span>' + escapeHtml(byStatus.signed || 0) + "</span></div>"
         + '<div class="pc-stats-status-row"><span class="pc-order-status pc-order-status-cancelled">已取消</span><span>' + escapeHtml(byStatus.cancelled || 0) + "</span></div>"
@@ -3361,21 +3359,19 @@
 
   var ORDERS_PAGE_SIZE = 50;
   var ORDER_STATUS_LABEL = {
-    pending: "待处理",
-    preparing: "待发货",
+    pending: "待发货",
     shipped: "运输中",
     signed: "已签收",
     cancelled: "已取消"
   };
-  // 旧码归一：processing→pending、done→shipped、closed→signed
-  var ORDER_STATUS_LEGACY = { processing: "pending", done: "shipped", closed: "signed" };
+  // 旧码归一：processing/preparing→pending、done→shipped、closed→signed
+  var ORDER_STATUS_LEGACY = { processing: "pending", preparing: "pending", done: "shipped", closed: "signed" };
   function normOrderStatus(s) { return ORDER_STATUS_LEGACY[s] || s || "pending"; }
-  // 状态文案（历史码/未知一律归一后兜底「待处理」），用于徽标显示
-  function orderStatusText(s) { return ORDER_STATUS_LABEL[normOrderStatus(s)] || "待处理"; }
+  // 状态文案（历史码/未知一律归一后兜底「待发货」），用于徽标显示
+  function orderStatusText(s) { return ORDER_STATUS_LABEL[normOrderStatus(s)] || "待发货"; }
   // 工具栏状态筛选 tab（各环节 + 全部）。
   var ORDER_STATUS_TABS = [
-    { value: "pending", label: "待处理" },
-    { value: "preparing", label: "待发货" },
+    { value: "pending", label: "待发货" },
     { value: "shipped", label: "运输中" },
     { value: "signed", label: "已签收" },
     { value: "cancelled", label: "已取消" },
@@ -3991,6 +3987,22 @@
       + '<div class="pc-orders-carrier-chips"><span class="pc-orders-carrier-label">常用：</span>' + carrierChips + "</div>"
       + '<button class="pc-btn-primary pc-orders-tracking-save" type="button" data-orders-save-tracking="' + idEsc + '">保存单号</button>'
       + "</section>"
+      // 物流轨迹（快递100 推送写入；老单需重存单号触发订阅）
+      + ((Array.isArray(o.logisticsNodes) && o.logisticsNodes.length)
+        ? '<section class="pc-orders-sec"><div class="pc-orders-sec-head"><strong>物流轨迹</strong>'
+          + (o.signedAt ? '<span class="pc-orders-sec-hint">已签收</span>' : '')
+          + "</div><div class=\"pc-orders-timeline\">"
+          + o.logisticsNodes.map(function (n, i) {
+            return '<div class="pc-orders-tl-node' + (i === 0 ? " latest" : "") + '">'
+              + '<span class="pc-orders-tl-dot"></span>'
+              + '<div class="pc-orders-tl-body"><p class="pc-orders-tl-ctx">' + escapeHtml(n.context || "") + "</p>"
+              + '<p class="pc-orders-tl-time">' + escapeHtml(n.time || "") + "</p></div></div>";
+          }).join("")
+          + "</div></section>"
+        : (o.trackingNo
+          ? '<section class="pc-orders-sec"><div class="pc-orders-sec-head"><strong>物流轨迹</strong></div>'
+            + '<p class="pc-orders-sec-hint">暂无物流节点。新发货的单会自动追踪；老单请重新保存一次单号以触发订阅。</p></section>'
+          : ""))
       // 内部备注（客户不可见）
       + '<section class="pc-orders-sec">'
       + '<div class="pc-orders-sec-head"><strong>商家内部备注</strong><span class="pc-orders-sec-hint">仅你可见，客户看不到</span></div>'

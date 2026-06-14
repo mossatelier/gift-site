@@ -4244,3 +4244,14 @@ body.admin-logged-in #adminLogoutButtonLogged {
 }
 .admin-toast[data-tone="success"] { background: rgba(22, 122, 97, 0.95); }
 .admin-toast[data-tone="error"]   { background: rgba(193, 52, 32, 0.95); }
+
+/* 手机后台 · 订单物流轨迹时间线 */
+.admin-timeline { margin-top: 6px; }
+.admin-tl-node { position: relative; padding: 0 0 14px 18px; border-left: 2px solid rgba(234,223,206,0.95); }
+.admin-tl-node:last-child { border-left-color: transparent; padding-bottom: 0; }
+.admin-tl-dot { position: absolute; left: -6px; top: 3px; width: 10px; height: 10px; border-radius: 50%; background: #c9bca3; }
+.admin-tl-node.latest .admin-tl-dot { background: #167a61; }
+.admin-tl-body { display: flex; flex-direction: column; gap: 2px; }
+.admin-tl-ctx { margin: 0; font-size: 13px; color: #3a3325; line-height: 1.4; }
+.admin-tl-node.latest .admin-tl-ctx { color: #167a61; font-weight: 600; }
+.admin-tl-time { margin: 0; font-size: 12px; color: #8a7c66; }

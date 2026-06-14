@@ -1690,17 +1690,16 @@ adminCancelEditButton?.addEventListener("click", () => {
 // ============ 申请管理（订单） ============
 
 const ORDER_STATUS_LABEL = {
-  pending: "待处理",
-  preparing: "待发货",
+  pending: "待发货",
   shipped: "运输中",
   signed: "已签收",
   cancelled: "已取消"
 };
-// 旧码归一：processing→pending、done→shipped、closed→signed
-const ORDER_STATUS_LEGACY = { processing: "pending", done: "shipped", closed: "signed" };
+// 旧码归一：processing/preparing→pending、done→shipped、closed→signed
+const ORDER_STATUS_LEGACY = { processing: "pending", preparing: "pending", done: "shipped", closed: "signed" };
 function normOrderStatus(s) { return ORDER_STATUS_LEGACY[s] || s || "pending"; }
-// 状态文案（历史码/未知归一后兜底「待处理」）
-function orderStatusText(s) { return ORDER_STATUS_LABEL[normOrderStatus(s)] || "待处理"; }
+// 状态文案（历史码/未知归一后兜底「待发货」）
+function orderStatusText(s) { return ORDER_STATUS_LABEL[normOrderStatus(s)] || "待发货"; }
 
 function setOrdersMessage(text, tone = "idle") {
   if (!adminOrdersMessage) return;
@@ -1780,7 +1779,7 @@ async function callAdminOrders(action, payload = {}) {
 function loadOrderSegCounts() {
   const segs = document.getElementById("adminOrdersSegs");
   if (!segs || !activeSession()) return;
-  ["pending", "preparing", "shipped", "signed", "cancelled", "all"].forEach((st) => {
+  ["pending", "shipped", "signed", "cancelled", "all"].forEach((st) => {
     callAdminOrders("list", { status: st, limit: 1 })
       .then((data) => {
         const el = segs.querySelector(`[data-seg-count="${st}"]`);
@@ -1933,6 +1932,24 @@ function renderOrdersList() {
                 <span class="carrier-chip" data-carrier="极兔速递" data-cid="${escapeHtml(o._id)}">极兔</span>
               </div>
             </div>
+            ${(Array.isArray(o.logisticsNodes) && o.logisticsNodes.length) ? `
+            <div class="admin-order-section">
+              <strong>物流轨迹${o.signedAt ? " · 已签收" : ""}</strong>
+              <div class="admin-timeline">
+                ${o.logisticsNodes.map((n, i) => `
+                  <div class="admin-tl-node${i === 0 ? " latest" : ""}">
+                    <span class="admin-tl-dot"></span>
+                    <div class="admin-tl-body">
+                      <p class="admin-tl-ctx">${escapeHtml(n.context || "")}</p>
+                      <p class="admin-tl-time">${escapeHtml(n.time || "")}</p>
+                    </div>
+                  </div>`).join("")}
+              </div>
+            </div>` : (o.trackingNo ? `
+            <div class="admin-order-section">
+              <strong>物流轨迹</strong>
+              <p class="admin-order-danger-hint">暂无物流节点。新发货的单会自动追踪；老单请重新保存一次单号以触发订阅。</p>
+            </div>` : "")}
             <div class="admin-order-section">
               <strong>商家内部备注（仅你可见，客户看不到）</strong>
               <div class="admin-note-row">
@@ -2460,8 +2477,7 @@ function renderStats() {
       <div class="admin-stats-card">
         <div class="admin-stats-label">订单状态分布</div>
         <div class="admin-stats-status-grid">
-          <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-pending">待处理</span><span>${escapeHtml(byStatus.pending || 0)}</span></div>
-          <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-preparing">待发货</span><span>${escapeHtml(byStatus.preparing || 0)}</span></div>
+          <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-pending">待发货</span><span>${escapeHtml(byStatus.pending || 0)}</span></div>
           <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-shipped">运输中</span><span>${escapeHtml(byStatus.shipped || 0)}</span></div>
           <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-signed">已签收</span><span>${escapeHtml(byStatus.signed || 0)}</span></div>
           <div class="admin-stats-status-row"><span class="admin-order-status admin-order-status-cancelled">已取消</span><span>${escapeHtml(byStatus.cancelled || 0)}</span></div>
