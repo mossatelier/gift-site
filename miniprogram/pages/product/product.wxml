@@ -86,14 +86,49 @@
     <text class="product-description">{{product.description}}</text>
   </view>
 
-  <!-- 客服引导 -->
+  <!-- 兑换操作区：左加客服 / 右收藏并提交地址（两个按钮一直都在，客户自己选） -->
   <view class="contact-card">
     <text class="contact-title">想兑换这个礼品？</text>
-    <text class="contact-tip">联系客服微信，免费办卡即可领取</text>
-    <button class="primary-btn" bindtap="showQrcode">添加客服微信</button>
+    <view class="cta-row">
+      <button class="cta-btn cta-btn-kefu" bindtap="showQrcode">添加客服微信</button>
+      <button class="cta-btn cta-btn-submit" bindtap="openSubmit">收藏并提交地址</button>
+    </view>
+    <text class="cta-note">提交地址后，请微信同步客服，核验订单后发货</text>
   </view>
 
   <view class="bottom-spacer"></view>
+
+  <!-- 收藏并提交地址 弹层 -->
+  <view class="submit-mask" wx:if="{{showSubmit}}" bindtap="closeSubmit">
+    <view class="submit-card" catchtap="noop">
+      <text class="submit-title">提交兑换申请</text>
+
+      <view class="submit-gift">
+        <image class="submit-gift-img" src="{{product.imageUrl}}" mode="aspectFill" />
+        <text class="submit-gift-name">{{product.title}}</text>
+      </view>
+
+      <view class="submit-addr" wx:if="{{submitAddress}}" bindtap="goSubmitAddress">
+        <view class="submit-addr-main">
+          <text class="submit-addr-name">{{submitAddress.recipient}} {{submitAddress.phone}}</text>
+          <text class="submit-addr-change">更换 ›</text>
+        </view>
+        <text class="submit-addr-detail">{{submitAddress.province}}{{submitAddress.city}}{{submitAddress.district}}{{submitAddress.detail}}</text>
+      </view>
+      <view class="submit-addr-empty" wx:else bindtap="goSubmitAddress">
+        <text>＋ 填写收货地址</text>
+      </view>
+
+      <textarea class="submit-remark" value="{{submitRemark}}" bindinput="onRemarkInput" placeholder="备注（必填）：颜色 / 规格 / 想办的银行等" maxlength="200" />
+
+      <text class="submit-note">提交后信息会自动复制，请粘贴发给客服微信核验，核验后发货。</text>
+
+      <view class="submit-actions">
+        <button class="submit-cancel" bindtap="closeSubmit">取消</button>
+        <button class="submit-ok" loading="{{submitting}}" bindtap="confirmSubmit">提交并复制给客服</button>
+      </view>
+    </view>
+  </view>
 
   <!-- 二维码弹层 -->
   <view class="qr-mask" wx:if="{{showQr}}" bindtap="hideQrcode">

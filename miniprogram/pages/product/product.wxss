@@ -265,3 +265,148 @@
   border: 1rpx solid var(--red);
   border-radius: 999rpx;
 }
+
+/* 兑换操作区：并排两按钮 */
+.cta-row {
+  display: flex;
+  gap: 18rpx;
+  width: 100%;
+  margin-top: 8rpx;
+}
+.cta-btn {
+  flex: 1;
+  margin: 0;
+  font-size: 28rpx;
+  font-weight: 800;
+  border-radius: 999rpx;
+  padding: 20rpx 0;
+  line-height: 1.3;
+}
+.cta-btn::after { border: none; }
+.cta-btn-kefu {
+  background: linear-gradient(135deg, #e8722e 0%, #d64b2a 100%);
+  color: #fff;
+}
+.cta-btn-submit {
+  background: #fff;
+  color: var(--red);
+  border: 2rpx solid var(--red);
+}
+.cta-note {
+  font-size: 22rpx;
+  color: #8a7c66;
+  text-align: center;
+  margin-top: 4rpx;
+}
+
+/* 收藏并提交地址 弹层 */
+.submit-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(29, 27, 24, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 40rpx;
+}
+.submit-card {
+  background: var(--paper);
+  border-radius: 28rpx;
+  padding: 36rpx 32rpx 32rpx;
+  width: 100%;
+  max-width: 620rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 22rpx;
+  box-shadow: 0 16rpx 40rpx rgba(46, 35, 18, 0.18);
+}
+.submit-title {
+  font-size: 32rpx;
+  font-weight: 800;
+  text-align: center;
+}
+.submit-gift {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  background: var(--paper-soft);
+  border-radius: 18rpx;
+  padding: 16rpx;
+}
+.submit-gift-img {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 12rpx;
+  flex: 0 0 auto;
+  background: #eee;
+}
+.submit-gift-name {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+}
+.submit-addr {
+  border: 1rpx solid var(--line);
+  border-radius: 18rpx;
+  padding: 20rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+.submit-addr-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.submit-addr-name { font-size: 28rpx; font-weight: 700; }
+.submit-addr-change { font-size: 24rpx; color: var(--red); }
+.submit-addr-detail { font-size: 24rpx; color: #5d5140; }
+.submit-addr-empty {
+  border: 1rpx dashed var(--red);
+  border-radius: 18rpx;
+  padding: 28rpx;
+  text-align: center;
+  color: var(--red);
+  font-size: 28rpx;
+  font-weight: 700;
+}
+.submit-remark {
+  border: 1rpx solid var(--line);
+  border-radius: 18rpx;
+  padding: 20rpx;
+  height: 140rpx;
+  font-size: 26rpx;
+  background: #fff;
+  width: 100%;
+  box-sizing: border-box;
+}
+.submit-note {
+  font-size: 22rpx;
+  color: #8a7c66;
+  line-height: 1.5;
+}
+.submit-actions {
+  display: flex;
+  gap: 18rpx;
+  margin-top: 4rpx;
+}
+.submit-cancel, .submit-ok {
+  flex: 1;
+  margin: 0;
+  font-size: 28rpx;
+  font-weight: 800;
+  border-radius: 999rpx;
+  padding: 20rpx 0;
+}
+.submit-cancel::after, .submit-ok::after { border: none; }
+.submit-cancel {
+  background: #fff;
+  color: #5d5140;
+  border: 1rpx solid var(--line);
+}
+.submit-ok {
+  background: linear-gradient(135deg, #e8722e 0%, #d64b2a 100%);
+  color: #fff;
+}
