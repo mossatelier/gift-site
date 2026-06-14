@@ -23,6 +23,18 @@ const MORE_CATS = [
   { value: 'appliance', label: '家用电器' }
 ];
 
+// 积分区间分档（无空档，覆盖全部商品）；15+ 的 max 为 null = 单边
+const CARDS_BUCKETS = [
+  { key: '6-7',   label: '6–7分',   min: 6,  max: 7 },
+  { key: '8-9',   label: '8–9分',   min: 8,  max: 9 },
+  { key: '10-14', label: '10–14分', min: 10, max: 14 },
+  { key: '15+',   label: '15分以上', min: 15, max: null }
+];
+function cardsRangeOf(key) {
+  const b = CARDS_BUCKETS.find(x => x.key === key);
+  return b ? { cardsMin: b.min, cardsMax: b.max } : { cardsMin: null, cardsMax: null };
+}
+
 // 把传入的分类（可能是细分类）解析成展示分类 + 二级
 function resolveDisplay(cat) {
   if (!cat || cat === 'all') return { display: 'all', sub: '' };
@@ -63,6 +75,8 @@ Page({
     currentSub: '',             // 二级选中 value
     sort: 'default',            // default | newest | cards-asc | cards-desc
     keyword: '',
+    cardsBuckets: CARDS_BUCKETS,
+    cards: '',                  // 选中的积分档 key（空 = 全部）
     items: [],
     wishlistMap: {},
     totalCount: 0,
@@ -88,8 +102,13 @@ Page({
       display = r.display; sub = r.sub;
     }
     if (options.sort) initial.sort = options.sort;
+    if (options.cards) initial.cards = options.cards;
 
     const app = getApp();
+    if (app.globalData.listCardsIntent != null) {
+      initial.cards = app.globalData.listCardsIntent;
+      app.globalData.listCardsIntent = null;
+    }
     if (app.globalData.listSortIntent === 'newest') {
       initial.sort = 'newest';
       app.globalData.listSortIntent = null;
@@ -135,6 +154,11 @@ Page({
       app.globalData.listCategoryIntent = null;
       changed = true;
     }
+    if (app.globalData.listCardsIntent != null) {
+      patch.cards = app.globalData.listCardsIntent;
+      app.globalData.listCardsIntent = null;
+      changed = true;
+    }
     if (changed) {
       this.setData(patch, () => this.reload());
     } else {
@@ -166,6 +190,19 @@ Page({
     return { category: currentCategory, subcategory: currentSub || null };
   },
 
+  // 积分档位筛选：点同一档再次取消；切换即重新查询
+  onSelectCards(e) {
+    const key = e.currentTarget.dataset.key || '';
+    const next = this.data.cards === key ? '' : key;
+    if (next === this.data.cards) return;
+    this.setData({ cards: next }, () => this.reload());
+  },
+
+  resetCards() {
+    if (!this.data.cards) return;
+    this.setData({ cards: '' }, () => this.reload());
+  },
+
   onPullDownRefresh() {
     this.reload().then(() => wx.stopPullDownRefresh());
   },
@@ -184,8 +221,9 @@ Page({
       currentCategoryLabel: displayLabel(this.data.currentCategory)
     });
     const f = this._filter();
+    const { cardsMin, cardsMax } = cardsRangeOf(this.data.cards);
     try {
-      const totalCount = await countProducts({ category: f.category, subcategory: f.subcategory, keyword: this.data.keyword });
+      const totalCount = await countProducts({ category: f.category, subcategory: f.subcategory, keyword: this.data.keyword, cardsMin, cardsMax });
       this.setData({ totalCount });
     } catch (err) {
       console.warn('countProducts 失败', err);
@@ -202,6 +240,7 @@ Page({
   async _loadPage() {
     const { sort, keyword, skip } = this.data;
     const f = this._filter();
+    const { cardsMin, cardsMax } = cardsRangeOf(this.data.cards);
     try {
       const raw = await listProducts({
         category: f.category,
@@ -209,7 +248,9 @@ Page({
         keyword,
         sort,
         skip,
-        limit: PAGE_SIZE
+        limit: PAGE_SIZE,
+        cardsMin,
+        cardsMax
       });
       const page = raw.map(it => ({ ...it, _metaText: buildMetaText(it) }));
       this.setData({

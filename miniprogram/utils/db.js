@@ -12,7 +12,7 @@ function products() {
 }
 
 // 构造 where 条件（多字段搜索：title + description + subcategory 都尝试匹配）
-function _buildWhere({ category, subcategory, keyword }) {
+function _buildWhere({ category, subcategory, keyword, cardsMin, cardsMax }) {
   const _ = db().command;
   const cond = { isActive: true };
   if (category && category !== 'all') {
@@ -20,6 +20,14 @@ function _buildWhere({ category, subcategory, keyword }) {
     cond.category = Array.isArray(category) ? _.in(category) : category;
   }
   if (subcategory) cond.subcategory = subcategory;
+  // 积分区间筛选（cardsNeeded 闭区间；只传一端则单边）
+  if (cardsMin != null && cardsMax != null) {
+    cond.cardsNeeded = _.gte(cardsMin).and(_.lte(cardsMax));
+  } else if (cardsMin != null) {
+    cond.cardsNeeded = _.gte(cardsMin);
+  } else if (cardsMax != null) {
+    cond.cardsNeeded = _.lte(cardsMax);
+  }
   if (keyword) {
     const re = db().RegExp({ regexp: keyword, options: 'i' });
     cond._matchKeyword = _.or([
@@ -44,9 +52,11 @@ async function listProducts({
   limit = 20,
   skip = 0,
   keyword = '',
-  sort = 'default'
+  sort = 'default',
+  cardsMin = null,
+  cardsMax = null
 } = {}) {
-  let q = products().where(_buildWhere({ category, subcategory, keyword }));
+  let q = products().where(_buildWhere({ category, subcategory, keyword, cardsMin, cardsMax }));
 
   if (sort === 'newest') {
     q = q.orderBy('createdAt', 'desc');
@@ -68,9 +78,11 @@ async function listProducts({
 async function countProducts({
   category = null,
   subcategory = null,
-  keyword = ''
+  keyword = '',
+  cardsMin = null,
+  cardsMax = null
 } = {}) {
-  const res = await products().where(_buildWhere({ category, subcategory, keyword })).count();
+  const res = await products().where(_buildWhere({ category, subcategory, keyword, cardsMin, cardsMax })).count();
   return res.total || 0;
 }
 

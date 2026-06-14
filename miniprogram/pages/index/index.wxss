@@ -387,3 +387,34 @@
   border: 1rpx solid var(--red);
   border-radius: 999rpx;
 }
+
+/* 积分快捷跳转栏（浅米色底深棕字，与功能图标协调） */
+.points-quick {
+  margin: 8rpx 24rpx 0;
+}
+.points-quick-title {
+  display: block;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #8a7351;
+  margin-bottom: 14rpx;
+}
+.points-quick-row {
+  display: flex;
+  gap: 16rpx;
+}
+.points-quick-btn {
+  flex: 1;
+  text-align: center;
+  font-size: 26rpx;
+  font-weight: 800;
+  color: #6b4f2a;
+  background: linear-gradient(180deg, #fff6e4 0%, #fff0d4 100%);
+  border: 1rpx solid rgba(224, 172, 77, 0.45);
+  border-radius: 18rpx;
+  padding: 20rpx 0;
+  box-shadow: 0 4rpx 12rpx rgba(46, 35, 18, 0.05);
+}
+.points-quick-btn:active {
+  background: linear-gradient(180deg, #ffefcf 0%, #ffe6bd 100%);
+}

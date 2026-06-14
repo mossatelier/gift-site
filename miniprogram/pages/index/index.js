@@ -14,7 +14,14 @@ Page({
     keyword: '',
     showQr: false,
     floatStyle: '',
-    showBackTop: false
+    showBackTop: false,
+    // 积分快捷跳转（与全部礼品页的区间分档一致，取前 4 档）
+    cardsQuick: [
+      { key: '6-7',   label: '6–7分' },
+      { key: '8-9',   label: '8–9分' },
+      { key: '10-14', label: '10–14分' },
+      { key: '15+',   label: '15分+' }
+    ]
   },
 
   onPageScroll(e) {
@@ -84,6 +91,13 @@ Page({
   },
 
   goList() {
+    wx.switchTab({ url: '/pages/list/list' });
+  },
+
+  // 积分快捷栏：跳全部礼品页并按对应积分档筛选
+  goCardsList(e) {
+    const key = e.currentTarget.dataset.key || '';
+    getApp().globalData.listCardsIntent = key;
     wx.switchTab({ url: '/pages/list/list' });
   },
 

@@ -76,6 +76,20 @@
     </view>
   </view>
 
+  <!-- 积分快捷跳转栏（图标区下方、热门兑换上方） -->
+  <view class="points-quick">
+    <text class="points-quick-title">按积分快速兑换</text>
+    <view class="points-quick-row">
+      <view
+        class="points-quick-btn"
+        wx:for="{{cardsQuick}}"
+        wx:key="key"
+        data-key="{{item.key}}"
+        bindtap="goCardsList"
+      >{{item.label}}</view>
+    </view>
+  </view>
+
   <!-- 热门兑换 -->
   <view class="section">
     <view class="section-banner">

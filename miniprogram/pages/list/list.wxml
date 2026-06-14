@@ -14,6 +14,18 @@
     <view class="search-button" bindtap="onSearch">搜索</view>
   </view>
 
+  <!-- 积分筛选行（区间分档，固定在搜索下方、品类上方） -->
+  <scroll-view class="cards-filter-bar" scroll-x enable-flex>
+    <view
+      class="cards-chip {{cards === item.key ? 'active' : ''}}"
+      wx:for="{{cardsBuckets}}"
+      wx:key="key"
+      data-key="{{item.key}}"
+      bindtap="onSelectCards"
+    >{{item.label}}</view>
+    <view class="cards-chip cards-chip-reset {{cards === '' ? 'disabled' : ''}}" bindtap="resetCards">重置</view>
+  </scroll-view>
+
   <!-- 分类筛选条（展示大类 + 更多下拉） -->
   <view class="category-row">
     <scroll-view class="category-bar" scroll-x enable-flex>
