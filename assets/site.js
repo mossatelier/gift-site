@@ -100,7 +100,8 @@ const state = {
   category: initialCategory(),
   sub: "",
   showMore: false,
-  query: urlParams.get("q") || ""
+  query: urlParams.get("q") || "",
+  cards: urlParams.get("cards") || ""
 };
 
 function isSupabaseConfigured() {
@@ -157,6 +158,34 @@ function displayCatLabel(value) {
   return f ? f.label : categoryLabel(value);
 }
 // 列表页分类匹配：all / mombaby(整组或单细类) / 普通分类(+二级)
+// 积分区间分档（无空档，覆盖全部商品）；15+ 的 max 为 null = 单边
+const CARDS_BUCKETS = [
+  { key: "6-7", label: "6–7分", min: 6, max: 7 },
+  { key: "8-9", label: "8–9分", min: 8, max: 9 },
+  { key: "10-14", label: "10–14分", min: 10, max: 14 },
+  { key: "15+", label: "15分以上", min: 15, max: null }
+];
+function cardsBucket(key) {
+  return CARDS_BUCKETS.find((b) => b.key === key) || null;
+}
+function cardsMatch(item) {
+  const b = cardsBucket(state.cards);
+  if (!b) return true;
+  const n = Number(item.cardsNeeded) || 0;
+  if (n < b.min) return false;
+  if (b.max != null && n > b.max) return false;
+  return true;
+}
+function renderCardsFilter() {
+  const el = document.getElementById("cardsFilter");
+  if (!el) return;
+  const chips = CARDS_BUCKETS.map((b) =>
+    `<button class="cards-chip ${state.cards === b.key ? "active" : ""}" type="button" data-cards-filter="${escapeHtml(b.key)}">${b.label}</button>`
+  ).join("");
+  const reset = `<button class="cards-chip cards-chip-reset ${state.cards ? "" : "disabled"}" type="button" data-cards-filter="">重置</button>`;
+  el.innerHTML = chips + reset;
+}
+
 function categoryMatch(item) {
   const cat = state.category;
   if (cat === "all") return true;
@@ -334,6 +363,10 @@ function filteredProducts(items = state.products) {
       return false;
     }
 
+    if (!cardsMatch(item)) {
+      return false;
+    }
+
     if (!keyword) {
       return true;
     }
@@ -410,6 +443,7 @@ function renderProducts() {
   updateCategoryNav();
   updateSortButtons();
   updateChipRow();
+  renderCardsFilter();
 }
 
 function renderHomeSections() {
@@ -1151,6 +1185,16 @@ function bindEvents() {
       const cid = collectSubmit.dataset.collectSubmit;
       if (!isWishlisted(cid)) toggleWishlist(cid);
       window.location.href = "wishlist.html#webOrderForm";
+      return;
+    }
+
+    // 积分筛选 chip（再点同档取消；重置=清空）
+    const cardsChip = event.target.closest("[data-cards-filter]");
+    if (cardsChip) {
+      event.preventDefault();
+      const key = cardsChip.dataset.cardsFilter || "";
+      state.cards = state.cards === key ? "" : key;
+      renderProducts();
       return;
     }
 
