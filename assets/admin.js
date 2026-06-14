@@ -2053,9 +2053,10 @@ async function handleTrackingSave(orderId) {
     adminToast("请先填写快递单号", "error");
     return;
   }
-  setOrdersMessage("正在保存单号…");
+  const courierCode = carrierCodeOf(trackingCompany);
+  setOrdersMessage(courierCode ? "正在保存单号…" : "正在保存单号（未识别快递公司，将不自动追踪物流）…");
   try {
-    await callAdminOrders("update-tracking", { orderId, trackingNo, trackingCompany });
+    await callAdminOrders("update-tracking", { orderId, trackingNo, trackingCompany, courierCode });
     // 就地写回；填单号 = 发货 → 云端已自动置「运输中」，前端同步状态并重渲染徽标
     const idx = state.orders.findIndex((o) => o._id === orderId);
     if (idx >= 0) {
@@ -2234,6 +2235,24 @@ adminOrdersList?.addEventListener("change", (event) => {
   if (!sel) return;
   handleOrderStatusChange(sel);
 });
+
+// 公司展示名 → 快递100 标准编码（保存时据此推导 courierCode，供物流订阅）。与 detectCarrier 返回名一致。
+const CARRIER_CODE = {
+  "顺丰速运": "shunfeng",
+  "圆通速递": "yuantong",
+  "中通快递": "zhongtong",
+  "申通快递": "shentong",
+  "韵达速递": "yunda",
+  "京东物流": "jd",
+  "极兔速递": "jtexpress",
+  "百世快递": "huitongkuaidi",
+  "德邦快递": "debangkuaidi",
+  "EMS / 邮政": "ems",
+  "邮政快递包裹": "youzhengguonei",
+  "国通快递": "guotongkuaidi",
+  "天天快递": "tiantian"
+};
+function carrierCodeOf(name) { return CARRIER_CODE[String(name || "").trim()] || ""; }
 
 // 输入快递单号时自动识别快递公司（带字母前缀/常见号段准确，纯数字仅作推荐）
 function detectCarrier(noRaw) {

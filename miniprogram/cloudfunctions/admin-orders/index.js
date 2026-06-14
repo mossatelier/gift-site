@@ -22,6 +22,14 @@ const _ = db.command;
 const SUPABASE_URL = 'https://ukoqffocqjokcroilyyv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrb3FmZm9jcWpva2Nyb2lseXl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzMxMDUsImV4cCI6MjA5MDkwOTEwNX0.jKFzbuDLbbDboUD8vJLAu0uTkkEzE2YnC2bHU5I8RH0';
 
+// 快递100 物流（凭据走环境变量，绝不写进代码——仓库公开）。
+// 控制台「云函数 → admin-orders → 配置 → 环境变量」里填：
+//   KUAIDI100_KEY          授权 key
+//   KUAIDI100_CALLBACK_URL admin-orders 自身的 HTTP 触发器地址（快递100 物流更新回调到这里）
+const KD_KEY = process.env.KUAIDI100_KEY || '';
+const KD_CALLBACK = process.env.KUAIDI100_CALLBACK_URL || '';
+const KD_SUBSCRIBE_URL = 'https://poll.kuaidi100.com/poll';
+
 // 订单状态机：待处理(pending) → 待发货(preparing) → 运输中(shipped) → 已签收(signed)（＋已取消 cancelled）
 // 旧码兼容：processing→pending、done→shipped(运输中)、closed→signed(已签收)；历史单不迁移，读时归一。
 const ALLOWED_STATUS = ['pending', 'preparing', 'shipped', 'signed', 'cancelled'];
@@ -503,8 +511,86 @@ async function sendShipNotify(order, trackingNo, trackingCompany) {
   }
 }
 
+// 向快递100 订阅该单号的物流推送：物流有更新会回调 KD_CALLBACK。best-effort，失败不影响发货。
+async function subscribeLogistics({ com, num, phone }) {
+  if (!KD_KEY || !KD_CALLBACK) {
+    console.warn('[kd100] 未配置 KUAIDI100_KEY / KUAIDI100_CALLBACK_URL，跳过订阅');
+    return { skipped: true };
+  }
+  if (!com || !num) return { skipped: true };
+  const paramObj = {
+    company: com,
+    number: num,
+    key: KD_KEY,
+    parameters: { callbackurl: KD_CALLBACK, resultv2: '1', autoCom: '0' }
+  };
+  if (phone) paramObj.parameters.phone = String(phone);
+  const form = 'schema=json&param=' + encodeURIComponent(JSON.stringify(paramObj));
+  try {
+    const res = await httpsReq(KD_SUBSCRIBE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(form)
+      },
+      body: form
+    });
+    let parsed = {};
+    try { parsed = JSON.parse(res.body); } catch (e) {}
+    console.log('[kd100] subscribe', num, res.status, res.body);
+    return parsed;
+  } catch (err) {
+    console.warn('[kd100] subscribe failed', err);
+    return { error: String(err) };
+  }
+}
+
+// 快递100 物流推送回调处理：按单号匹配订单，写物流节点；签收(state=3)自动置「已签收」。
+// 返回快递100 约定的应答体，否则会被反复重推。
+async function handleLogisticsPush(param) {
+  const lr = param && param.lastResult;
+  if (!lr || !lr.nu) return { result: false, returnCode: '500', message: '缺少单号' };
+  const num = String(lr.nu);
+  let order = null;
+  try {
+    const r = await db.collection('orders').where({ trackingNo: num }).limit(1).get();
+    order = r.data && r.data[0];
+  } catch (e) {
+    console.warn('[kd100] push find order failed', e);
+  }
+  // 找不到对应订单也回 200，避免快递100 不断重推
+  if (!order) return { result: true, returnCode: '200', message: '无对应订单' };
+
+  const nodes = Array.isArray(lr.data)
+    ? lr.data.map(d => ({ time: d.ftime || d.time || '', context: d.context || '', status: d.status || '' }))
+    : [];
+  const state = String(lr.state || '');
+  const patch = { logisticsNodes: nodes, logisticsState: state, updatedAt: new Date() };
+
+  // state=3 已签收（已取消的订单不动）
+  if (state === '3' && order.status !== 'cancelled' && order.status !== 'signed') {
+    patch.status = 'signed';
+    if (!order.signedAt) patch.signedAt = new Date();
+    const latest = nodes[0];
+    if (latest && latest.context) {
+      const m = latest.context.match(/签收人[:：]?\s*([^\s，,。]+)/);
+      if (m) patch.signedBy = m[1];
+      else if (/驿站|代收|代签|快递柜|菜鸟|丰巢/.test(latest.context)) patch.signedBy = '代收';
+      else if (/本人/.test(latest.context)) patch.signedBy = '本人签收';
+    }
+  }
+
+  try {
+    await db.collection('orders').doc(order._id).update({ data: patch });
+  } catch (e) {
+    console.error('[kd100] push update failed', e);
+    return { result: false, returnCode: '500', message: '写入失败' };
+  }
+  return { result: true, returnCode: '200', message: '成功' };
+}
+
 // 更新快递信息：填了单号 = 发货 → 自动置「运输中」(shipped) + 推送（已取消的不动）
-// courierCode = 快递公司标准编码（快递100，用于第二步订阅物流）；trackingCompany = 展示名
+// courierCode = 快递公司标准编码（快递100，用于订阅物流）；trackingCompany = 展示名
 async function updateTracking({ orderId, trackingNo, trackingCompany, courierCode }) {
   if (!orderId) throw new Error('缺少 orderId');
   const trimmedNo = String(trackingNo || '').trim().slice(0, 50);
@@ -523,6 +609,11 @@ async function updateTracking({ orderId, trackingNo, trackingCompany, courierCod
   // 录入单号后推送发货提醒（仅当填了单号）
   if (patch.trackingNo) {
     await sendShipNotify(r.data, patch.trackingNo, patch.trackingCompany);
+  }
+  // 发货 + 有快递公司编码 → 向快递100 订阅物流推送（best-effort，失败不影响发货）
+  if (patch.status === 'shipped' && patch.courierCode && patch.trackingNo) {
+    const phone = (r.data && r.data.address && r.data.address.phone) || '';
+    await subscribeLogistics({ com: patch.courierCode, num: patch.trackingNo, phone });
   }
   return { ...r.data, _autoDone: patch.status === 'shipped' };
 }
@@ -1027,6 +1118,27 @@ exports.main = async (event) => {
   // CORS preflight
   if ((event.httpMethod || '').toUpperCase() === 'OPTIONS') {
     return buildResponse(204, {});
+  }
+
+  // 快递100 物流推送回调（公开，无管理员鉴权）：body 为 form-urlencoded，含 param 字段。
+  // 必须在 JSON 解析之前处理（form 体 JSON.parse 会失败）。
+  {
+    let rawBody = (typeof event.body === 'string') ? event.body : '';
+    if (rawBody && event.isBase64Encoded) {
+      try { rawBody = Buffer.from(rawBody, 'base64').toString('utf8'); } catch (e) {}
+    }
+    if (rawBody && rawBody.indexOf('param=') >= 0 && rawBody.trim().charAt(0) !== '{') {
+      try {
+        const qs = require('querystring');
+        const parsed = qs.parse(rawBody);
+        const paramObj = JSON.parse(parsed.param);
+        const data = await handleLogisticsPush(paramObj);
+        return buildResponse(200, data);
+      } catch (err) {
+        console.error('[kd100] push parse/handle', err);
+        return buildResponse(200, { result: false, returnCode: '500', message: 'parse error' });
+      }
+    }
   }
 
   // 解析 body

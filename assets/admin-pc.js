@@ -3383,8 +3383,26 @@
   ];
   // 详情抽屉常用快递 chip（点击填公司框）。
   var ORDER_CARRIERS = [
-    "京东物流", "中通快递", "申通快递", "圆通速递", "韵达速递", "极兔速递"
+    "顺丰速运", "京东物流", "中通快递", "申通快递", "圆通速递", "韵达速递", "极兔速递"
   ];
+  // 公司展示名 → 快递100 标准编码（保存时据此推导 courierCode，供物流订阅）。
+  // 与 detectCarrier 的返回名保持一致。
+  var CARRIER_CODE = {
+    "顺丰速运": "shunfeng",
+    "圆通速递": "yuantong",
+    "中通快递": "zhongtong",
+    "申通快递": "shentong",
+    "韵达速递": "yunda",
+    "京东物流": "jd",
+    "极兔速递": "jtexpress",
+    "百世快递": "huitongkuaidi",
+    "德邦快递": "debangkuaidi",
+    "EMS / 邮政": "ems",
+    "邮政快递包裹": "youzhengguonei",
+    "国通快递": "guotongkuaidi",
+    "天天快递": "tiantian"
+  };
+  function carrierCodeOf(name) { return CARRIER_CODE[String(name || "").trim()] || ""; }
 
   state.orders = [];                 // 当前页订单
   state.ordersStatus = "pending";    // 状态筛选（pending/processing/done/cancelled/all）
@@ -4188,9 +4206,10 @@
       toast("请先填写快递单号", "error");
       return;
     }
-    setOrdersDrawerMsg("正在保存单号…", null);
+    var courierCode = carrierCodeOf(trackingCompany);
+    setOrdersDrawerMsg(courierCode ? "正在保存单号…" : "正在保存单号（未识别快递公司，将不自动追踪物流）…", null);
 
-    Core.callAdminOrders("update-tracking", { orderId: id, trackingNo: trackingNo, trackingCompany: trackingCompany })
+    Core.callAdminOrders("update-tracking", { orderId: id, trackingNo: trackingNo, trackingCompany: trackingCompany, courierCode: courierCode })
       .then(function (res) {
         o.trackingNo = trackingNo;
         o.trackingCompany = trackingCompany;
