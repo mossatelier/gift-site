@@ -3482,6 +3482,7 @@
       '<div class="pc-orders-toolbar">'
       + '<input class="pc-orders-search" id="pcOrdersSearch" type="search" placeholder="搜索收件人 / 手机号 / 订单号…" autocomplete="off">'
       + '<span class="pc-orders-count" id="pcOrdersCount"></span>'
+      + '<button class="pc-btn-ghost pc-orders-bulk-logistics" id="pcOrdersBulkLogisticsBtn" type="button">刷新本页物流</button>'
       + '<button class="pc-btn-ghost pc-orders-refresh" id="pcOrdersRefreshBtn" type="button">刷新</button>'
       + "</div>"
       + '<div class="pc-orders-table-wrap" id="pcOrdersTableWrap"></div>'
@@ -3542,6 +3543,10 @@
     var refreshEl = document.getElementById("pcOrdersRefreshBtn");
     if (refreshEl) {
       refreshEl.addEventListener("click", function () { loadOrders(true); });
+    }
+    var bulkLogEl = document.getElementById("pcOrdersBulkLogisticsBtn");
+    if (bulkLogEl) {
+      bulkLogEl.addEventListener("click", batchQueryShippedLogistics);
     }
 
     // 表格区交互（事件委托）：勾选框 / 行点击开抽屉 / 分页。
@@ -4222,23 +4227,69 @@
     setOrdersDrawerMsg("正在查询物流…", null);
     Core.callAdminOrders("query-logistics", { orderId: id })
       .then(function (updated) {
+        var becameSigned = updated && updated.status === "signed" && o.status !== "signed";
         if (updated) {
           o.logisticsNodes = updated.logisticsNodes || [];
           o.logisticsState = updated.logisticsState || "";
           o.status = updated.status || o.status;
           o.signedAt = updated.signedAt || o.signedAt;
-          renderOrdersTable();
           renderOrdersDrawerBody(o); // 重渲染抽屉内容以显示新轨迹
         }
         setOrdersDrawerMsg("物流已更新。", "success");
         toast("✅ 物流已刷新", "success");
         loadBadges();
+        // 签收后从「运输中」筛选视图移走
+        if (becameSigned && state.ordersStatus === "shipped") {
+          loadOrders(true);
+        } else {
+          renderOrdersTable();
+        }
       })
       .catch(function (err) {
         if (btn) { btn.disabled = false; btn.textContent = "刷新物流"; }
         setOrdersDrawerMsg((err && err.message) || "查询失败", "error");
         toast((err && err.message) || "查询失败", "error");
       });
+  }
+
+  // 一键刷新本页所有「运输中」订单的物流（老单批量补轨迹）。顺序执行，避免高频打快递100。
+  function batchQueryShippedLogistics() {
+    var targets = (state.orders || []).filter(function (o) {
+      return normOrderStatus(o.status) === "shipped" && o.trackingNo;
+    });
+    if (!targets.length) { toast("本页没有可刷新的运输中订单", "error"); return; }
+    var btn = document.getElementById("pcOrdersBulkLogisticsBtn");
+    if (btn) btn.disabled = true;
+    var ok = 0, fail = 0, i = 0, signedCount = 0;
+    function step() {
+      if (i >= targets.length) {
+        if (btn) { btn.disabled = false; btn.textContent = "刷新本页物流"; }
+        loadBadges();
+        // 有签收的 + 当前在运输中视图 → 重拉以移走已签收
+        if (signedCount > 0 && state.ordersStatus === "shipped") loadOrders(true);
+        else renderOrdersTable();
+        setOrdersMsg("刷新完成：成功 " + ok + " 单" + (fail ? ("，失败 " + fail + " 单") : ""), "success");
+        toast("✅ 物流刷新完成 " + ok + " 单" + (fail ? ("（" + fail + " 失败）") : ""), fail ? "error" : "success");
+        return;
+      }
+      var o = targets[i];
+      if (btn) btn.textContent = "刷新中 " + (i + 1) + "/" + targets.length;
+      setOrdersMsg("刷新物流 " + (i + 1) + "/" + targets.length + "…", null);
+      Core.callAdminOrders("query-logistics", { orderId: orderId(o) })
+        .then(function (updated) {
+          if (updated) {
+            if (updated.status === "signed" && o.status !== "signed") signedCount++;
+            o.logisticsNodes = updated.logisticsNodes || [];
+            o.logisticsState = updated.logisticsState || "";
+            o.status = updated.status || o.status;
+            o.signedAt = updated.signedAt || o.signedAt;
+          }
+          ok++;
+        })
+        .catch(function () { fail++; })
+        .then(function () { i++; step(); });
+    }
+    step();
   }
 
   function handleOrdersTrackingSave(id) {

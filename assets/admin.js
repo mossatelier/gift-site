@@ -58,6 +58,7 @@ const adminOrdersStatusFilter = document.getElementById("adminOrdersStatusFilter
 const adminOrdersSearchInput = document.getElementById("adminOrdersSearchInput");
 const adminOrdersCount = document.getElementById("adminOrdersCount");
 const adminOrdersRefreshButton = document.getElementById("adminOrdersRefreshButton");
+const adminOrdersBulkLogisticsButton = document.getElementById("adminOrdersBulkLogisticsButton");
 const adminOrdersBulkBar = document.getElementById("adminOrdersBulkBar");
 const adminOrdersSelectAll = document.getElementById("adminOrdersSelectAll");
 const adminOrdersSelectedCount = document.getElementById("adminOrdersSelectedCount");
@@ -2068,20 +2069,56 @@ async function handleQueryLogistics(orderId) {
   try {
     const updated = await callAdminOrders("query-logistics", { orderId });
     const idx = state.orders.findIndex((o) => o._id === orderId);
+    let becameSigned = false;
     if (idx >= 0 && updated) {
+      becameSigned = updated.status === "signed" && state.orders[idx].status !== "signed";
       state.orders[idx].logisticsNodes = updated.logisticsNodes || [];
       state.orders[idx].logisticsState = updated.logisticsState || "";
       state.orders[idx].status = updated.status || state.orders[idx].status;
       state.orders[idx].signedAt = updated.signedAt || state.orders[idx].signedAt;
     }
-    renderOrdersList();
     setOrdersMessage("物流已更新。", "success");
     adminToast("✅ 物流已刷新", "success");
+    // 签收后从「运输中」分段移走
+    if (becameSigned && state.ordersStatus === "shipped") loadOrders();
+    else renderOrdersList();
   } catch (err) {
     if (btn) { btn.disabled = false; btn.textContent = "刷新物流"; }
     setOrdersMessage(err.message, "error");
     adminToast((err.message || "查询失败"), "error");
   }
+}
+
+// 一键刷新本页所有「运输中」订单的物流（老单批量补轨迹）。顺序执行，避免高频打快递100。
+async function batchQueryShippedLogistics() {
+  const targets = (state.orders || []).filter((o) => normOrderStatus(o.status) === "shipped" && o.trackingNo);
+  if (!targets.length) { adminToast("本页没有可刷新的运输中订单", "error"); return; }
+  const btn = adminOrdersBulkLogisticsButton;
+  if (btn) btn.disabled = true;
+  let ok = 0, fail = 0, signedCount = 0;
+  for (let i = 0; i < targets.length; i += 1) {
+    if (btn) btn.textContent = `刷新中 ${i + 1}/${targets.length}`;
+    setOrdersMessage(`刷新物流 ${i + 1}/${targets.length}…`);
+    try {
+      const updated = await callAdminOrders("query-logistics", { orderId: targets[i]._id });
+      const idx = state.orders.findIndex((o) => o._id === targets[i]._id);
+      if (idx >= 0 && updated) {
+        if (updated.status === "signed" && state.orders[idx].status !== "signed") signedCount += 1;
+        state.orders[idx].logisticsNodes = updated.logisticsNodes || [];
+        state.orders[idx].logisticsState = updated.logisticsState || "";
+        state.orders[idx].status = updated.status || state.orders[idx].status;
+        state.orders[idx].signedAt = updated.signedAt || state.orders[idx].signedAt;
+      }
+      ok += 1;
+    } catch (err) {
+      fail += 1;
+    }
+  }
+  if (btn) { btn.disabled = false; btn.textContent = "刷新本页物流"; }
+  setOrdersMessage(`刷新完成：成功 ${ok} 单${fail ? `，失败 ${fail} 单` : ""}`, "success");
+  adminToast(`✅ 物流刷新完成 ${ok} 单${fail ? `（${fail} 失败）` : ""}`, fail ? "error" : "success");
+  if (signedCount > 0 && state.ordersStatus === "shipped") loadOrders();
+  else renderOrdersList();
 }
 
 async function handleTrackingSave(orderId) {
@@ -2172,6 +2209,7 @@ adminTabOrders?.addEventListener("click", () => {
 });
 
 adminOrdersRefreshButton?.addEventListener("click", () => loadOrders());
+adminOrdersBulkLogisticsButton?.addEventListener("click", () => batchQueryShippedLogistics());
 
 // 状态分段 tab：待处理 / 已发货 / 已取消 / 全部订单
 const adminOrdersSegs = document.getElementById("adminOrdersSegs");

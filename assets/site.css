@@ -4259,3 +4259,6 @@ body.admin-logged-in #adminLogoutButtonLogged {
 /* 手机后台 · 物流轨迹标题行（含刷新按钮） */
 .admin-tl-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .admin-tl-refresh { flex: 0 0 auto; padding: 5px 12px; font-size: 13px; }
+
+/* 手机后台 · 订单标题行按钮组 */
+.admin-orders-head-btns { display: flex; gap: 8px; flex-wrap: wrap; }
