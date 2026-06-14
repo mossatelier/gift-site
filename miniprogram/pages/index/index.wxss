@@ -390,7 +390,7 @@
 
 /* 积分快捷跳转栏（浅米色底深棕字，与功能图标协调） */
 .points-quick {
-  margin: 8rpx 24rpx 0;
+  margin: 32rpx 24rpx 0;
 }
 .points-quick-title {
   display: block;
