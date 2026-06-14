@@ -160,10 +160,11 @@ function displayCatLabel(value) {
 // 列表页分类匹配：all / mombaby(整组或单细类) / 普通分类(+二级)
 // 积分区间分档（无空档，覆盖全部商品）；15+ 的 max 为 null = 单边
 const CARDS_BUCKETS = [
-  { key: "6-7", label: "6–7分", min: 6, max: 7 },
-  { key: "8-9", label: "8–9分", min: 8, max: 9 },
-  { key: "10-14", label: "10–14分", min: 10, max: 14 },
-  { key: "15+", label: "15分以上", min: 15, max: null }
+  { key: "6", label: "6分", min: 6, max: 6 },
+  { key: "7", label: "7分", min: 7, max: 7 },
+  { key: "8", label: "8分", min: 8, max: 8 },
+  { key: "9-10", label: "9–10分", min: 9, max: 10 },
+  { key: "11+", label: "11分以上", min: 11, max: null }
 ];
 function cardsBucket(key) {
   return CARDS_BUCKETS.find((b) => b.key === key) || null;

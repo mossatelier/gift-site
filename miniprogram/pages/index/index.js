@@ -17,10 +17,11 @@ Page({
     showBackTop: false,
     // 积分快捷跳转（与全部礼品页的区间分档一致，取前 4 档）
     cardsQuick: [
-      { key: '6-7',   label: '6–7分' },
-      { key: '8-9',   label: '8–9分' },
-      { key: '10-14', label: '10–14分' },
-      { key: '15+',   label: '15分+' }
+      { key: '6',    label: '6分' },
+      { key: '7',    label: '7分' },
+      { key: '8',    label: '8分' },
+      { key: '9-10', label: '9–10分' },
+      { key: '11+',  label: '11分+' }
     ]
   },
 
