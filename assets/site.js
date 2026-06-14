@@ -192,13 +192,6 @@ function cardsMatch(item) {
 function renderCardsFilter() {
   const el = document.getElementById("cardsFilter");
   if (!el) return;
-  // 推荐有礼按推荐人数换，无积分概念 → 整条隐藏
-  if (state.category === "referral") {
-    el.hidden = true;
-    el.innerHTML = "";
-    return;
-  }
-  el.hidden = false;
   const chips = CARDS_BUCKETS.map((b) =>
     `<button class="cards-chip ${state.cards === b.key ? "active" : ""}" type="button" data-cards-filter="${escapeHtml(b.key)}">${b.label}</button>`
   ).join("");
