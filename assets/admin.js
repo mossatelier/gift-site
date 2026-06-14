@@ -1951,6 +1951,7 @@ function renderOrdersList() {
                     </div>
                   </div>`).join("")}
               </div>` : `<p class="admin-order-danger-hint">暂无物流节点。点「刷新物流」立即查询；新发货的单也会自动更新。</p>`}
+              ${(/顺丰/.test(o.trackingCompany || "") || o.courierCode === "shunfeng") ? `<p class="admin-sf-tip">⚠️ 顺丰提示：拼多多/代发单的收件手机是隐私号，刷新会报「验证码错误」、查不到。这种情况把单号复制发给客户，让客户自己在顺丰里查即可（客户查不用验手机）。</p>` : ""}
             </div>` : ""}
             <div class="admin-order-section">
               <strong>商家内部备注（仅你可见，客户看不到）</strong>
