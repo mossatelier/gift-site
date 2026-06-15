@@ -3546,7 +3546,7 @@
     }
     var bulkLogEl = document.getElementById("pcOrdersBulkLogisticsBtn");
     if (bulkLogEl) {
-      bulkLogEl.addEventListener("click", batchQueryShippedLogistics);
+      bulkLogEl.addEventListener("click", function () { batchQueryShippedLogistics(false); });
     }
 
     // 表格区交互（事件委托）：勾选框 / 行点击开抽屉 / 分页。
@@ -3683,6 +3683,15 @@
           return;
         }
         renderOrdersTable();
+        // 进入「运输中」视图自动刷一次本页物流（同一单号计费周期内不重复扣）。
+        // key 防重复触发：同一状态/页/搜索只自动刷一次。
+        if (state.ordersStatus === "shipped") {
+          var autoKey = "shipped:" + state.ordersPage + ":" + (state.ordersSearch || "");
+          if (state._autoLogiKey !== autoKey) {
+            state._autoLogiKey = autoKey;
+            batchQueryShippedLogistics(true);
+          }
+        }
       })
       .catch(function (err) {
         renderLoadError(wrap, (err && err.message) || "加载失败", function () { loadOrders(true); });
@@ -4263,11 +4272,11 @@
   }
 
   // 一键刷新本页所有「运输中」订单的物流（老单批量补轨迹）。顺序执行，避免高频打快递100。
-  function batchQueryShippedLogistics() {
+  function batchQueryShippedLogistics(auto) {
     var targets = (state.orders || []).filter(function (o) {
       return normOrderStatus(o.status) === "shipped" && o.trackingNo;
     });
-    if (!targets.length) { toast("本页没有可刷新的运输中订单", "error"); return; }
+    if (!targets.length) { if (!auto) toast("本页没有可刷新的运输中订单", "error"); return; }
     var btn = document.getElementById("pcOrdersBulkLogisticsBtn");
     if (btn) btn.disabled = true;
     var ok = 0, fail = 0, i = 0, signedCount = 0;

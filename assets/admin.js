@@ -1885,6 +1885,15 @@ async function loadOrders() {
       return loadOrders();
     }
     renderOrdersList();
+    // 进入「运输中」视图时自动刷一次本页物流（同一单号计费周期内不重复扣）。
+    // 用 key 防重复触发：同一状态/页/搜索只自动刷一次，避免分页/签收回写造成的循环。
+    if (state.ordersStatus === "shipped") {
+      const autoKey = `shipped:${state.ordersPage}:${state.ordersSearch || ""}`;
+      if (state._autoLogiKey !== autoKey) {
+        state._autoLogiKey = autoKey;
+        batchQueryShippedLogistics(true);
+      }
+    }
   } catch (err) {
     adminOrdersList.innerHTML = `<p class="admin-status-text">${escapeHtml(err.message)}</p>`;
   }
@@ -2164,9 +2173,9 @@ async function handleQueryLogistics(orderId) {
 }
 
 // 一键刷新本页所有「运输中」订单的物流（老单批量补轨迹）。顺序执行，避免高频打快递100。
-async function batchQueryShippedLogistics() {
+async function batchQueryShippedLogistics(auto) {
   const targets = (state.orders || []).filter((o) => normOrderStatus(o.status) === "shipped" && o.trackingNo);
-  if (!targets.length) { adminToast("本页没有可刷新的运输中订单", "error"); return; }
+  if (!targets.length) { if (!auto) adminToast("本页没有可刷新的运输中订单", "error"); return; }
   const btn = adminOrdersBulkLogisticsButton;
   if (btn) btn.disabled = true;
   let ok = 0, fail = 0, signedCount = 0;
