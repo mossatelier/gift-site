@@ -1161,6 +1161,37 @@ async function referralSetStatus(body) {
   return { _id: id, status };
 }
 
+// 解绑：删掉这条推荐关系，清空被推荐人 users 上的绑定，已发奖励顺带回收。
+// 用于「老用户被错绑成下线」「误录入」等情况。
+async function referralUnbind(body) {
+  const id = body.id;
+  if (!id) throw new Error('缺少 id');
+  const cur = await db.collection(REFERRALS).doc(id).get();
+  const rec = cur.data;
+  if (!rec) throw new Error('记录不存在');
+  const now = new Date();
+
+  // 若已发过奖励积分，先回收，账目保持一致
+  if (rec.rewardedAt && rec.rewardPoints > 0 && rec.referrerOpenid) {
+    await db.collection(USERS).where({ openid: rec.referrerOpenid })
+      .update({ data: { rewardPoints: _.inc(-rec.rewardPoints), updatedAt: now } });
+    await db.collection(LEDGER).add({ data: {
+      openid: rec.referrerOpenid, delta: -rec.rewardPoints, reason: '推荐解绑回收', refId: id, createdAt: now
+    }});
+  }
+
+  // 清空被推荐人 users 记录上的绑定关系（仅当确实绑的是这个推荐人，避免误清）
+  if (rec.refereeOpenid && rec.referrerOpenid) {
+    await db.collection(USERS)
+      .where({ openid: rec.refereeOpenid, referredByOpenid: rec.referrerOpenid })
+      .update({ data: { referredByCode: '', referredByOpenid: '', referredAt: null, updatedAt: now } });
+  }
+
+  // 删除这条推荐记录
+  await db.collection(REFERRALS).doc(id).remove();
+  return { _id: id, unbound: true };
+}
+
 async function referralRanking() {
   let rows = [];
   try {
@@ -1321,6 +1352,9 @@ exports.main = async (event) => {
         break;
       case 'referral-set-status':
         data = await referralSetStatus(body);
+        break;
+      case 'referral-unbind':
+        data = await referralUnbind(body);
         break;
       case 'referral-ranking':
         data = await referralRanking(body);

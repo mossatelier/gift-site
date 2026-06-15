@@ -3093,10 +3093,23 @@ body.pc-admin {
 
 .pc-ref-list-head, .pc-ref-row {
   display: grid;
-  grid-template-columns: 1.4fr 1.6fr 1.3fr 0.8fr 1fr;
+  grid-template-columns: 1.4fr 1.6fr 1.3fr 0.8fr 1fr 0.7fr;
   gap: 12px;
   align-items: center;
 }
+.pc-ref-ops { align-items: flex-start; }
+.pc-ref-unbind {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid #e3b4a6;
+  border-radius: 8px;
+  background: #fff;
+  color: #c0392b;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.pc-ref-unbind:hover { background: #fdecea; }
 .pc-ref-list-head {
   padding: 8px 14px;
   font-size: 12px;

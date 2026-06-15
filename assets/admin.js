@@ -1423,6 +1423,7 @@ function renderRefAdminList() {
         <select class="admin-ref-status-sel" data-ref-id="${refEsc(r._id)}" data-ref-prev="${refEsc(r.status)}">${refStatusOptions(r.status)}</select>
         <span class="admin-ref-reward">${r.rewardPoints > 0 ? "+" + r.rewardPoints + "分" : ""}</span>
         <span class="admin-ref-date">${refEsc(refFmtDate(r.createdAt))}</span>
+        <button class="admin-ref-unbind" data-ref-unbind="${refEsc(r._id)}" data-ref-name="${refEsc(r.refereeNick || "该好友")}" type="button">解绑</button>
       </div>
     </div>`).join("");
 }
@@ -1501,6 +1502,18 @@ async function changeRefAdminStatus(sel) {
   }
 }
 
+async function doRefAdminUnbind(id, name) {
+  if (!id) return;
+  if (!window.confirm("解绑「" + (name || "该好友") + "」？\n会移除这条推荐关系、清空其下线归属，已发奖励积分一并回收。不可恢复。")) return;
+  try {
+    await callAdminOrders("referral-unbind", { id });
+    adminToast("已解绑");
+    loadReferralAdmin();
+  } catch (e) {
+    window.alert(e.message);
+  }
+}
+
 function bindRefAdmin() {
   if (refAdminState.bound) return;
   refAdminState.bound = true;
@@ -1516,6 +1529,10 @@ function bindRefAdmin() {
   if (list) list.addEventListener("change", (e) => {
     const sel = e.target.closest(".admin-ref-status-sel");
     if (sel) changeRefAdminStatus(sel);
+  });
+  if (list) list.addEventListener("click", (e) => {
+    const ub = e.target.closest("[data-ref-unbind]");
+    if (ub) doRefAdminUnbind(ub.getAttribute("data-ref-unbind"), ub.getAttribute("data-ref-name"));
   });
   const addBtn = document.getElementById("adminRefAddBtn");
   if (addBtn) addBtn.addEventListener("click", doRefAdminAdd);

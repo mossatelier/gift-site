@@ -4143,6 +4143,17 @@ body.admin-logged-in #adminLogoutButtonLogged {
 }
 .admin-ref-reward { font-size: 13px; font-weight: 800; color: #e8531f; }
 .admin-ref-date { font-size: 12px; color: #8a7c66; }
+.admin-ref-unbind {
+  margin-left: auto;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid #e3b4a6;
+  border-radius: 8px;
+  background: #fff;
+  color: #c0392b;
+  font-size: 12px;
+  font-weight: 700;
+}
 
 .admin-ref-ranking { margin-top: 22px; }
 .admin-ref-sub { font-size: 15px; font-weight: 800; margin: 0 0 10px; color: #2e2318; }

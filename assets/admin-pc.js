@@ -4457,6 +4457,8 @@
             '" data-ref-prev="' + esc(r.status) + '">' + statusOptions(r.status) + "</select></div>" +
           '<div class="pc-ref-cell pc-ref-reward">' + (r.rewardPoints > 0 ? "+" + r.rewardPoints + "分" : "—") + "</div>" +
           '<div class="pc-ref-cell pc-ref-date">' + esc(fmtDate(r.createdAt)) + "</div>" +
+          '<div class="pc-ref-cell pc-ref-ops"><button class="pc-ref-unbind" type="button" data-ref-unbind="' + esc(r._id) +
+            '" data-ref-name="' + esc(r.refereeNick || "该好友") + '">解绑</button></div>' +
         "</div>";
       }).join("");
     }
@@ -4522,6 +4524,14 @@
         .catch(function (e) { window.alert(e.message); sel.value = prev; });
     }
 
+    function doUnbind(id, name) {
+      if (!id) return;
+      if (!window.confirm("解绑「" + (name || "该好友") + "」？\n会移除这条推荐关系、清空其下线归属，已发奖励积分一并回收。不可恢复。")) return;
+      Core.callAdminOrders("referral-unbind", { id: id })
+        .then(function () { toast("已解绑"); loadReferral(); })
+        .catch(function (e) { window.alert(e.message); });
+    }
+
     function exportCsv() {
       var rows = refState.rows || [];
       if (!rows.length) { window.alert("当前无数据可导出"); return; }
@@ -4549,6 +4559,10 @@
       var list = $("pcRefList");
       if (list) list.addEventListener("change", function (e) {
         var sel = e.target.closest(".pc-ref-status-sel"); if (sel) changeStatus(sel);
+      });
+      if (list) list.addEventListener("click", function (e) {
+        var ub = e.target.closest("[data-ref-unbind]");
+        if (ub) doUnbind(ub.getAttribute("data-ref-unbind"), ub.getAttribute("data-ref-name"));
       });
       var addBtn = $("pcRefAddBtn"); if (addBtn) addBtn.addEventListener("click", doAdd);
       var searchBtn = $("pcRefSearchBtn"); if (searchBtn) searchBtn.addEventListener("click", function () {
