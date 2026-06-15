@@ -4498,11 +4498,13 @@
             var sub = n.children.length ? '<span class="pc-tree-cnt">直接下线 ' + n.children.length + "</span>" : "";
             var ph = n.phone ? '<span class="pc-tree-phone">' + esc(n.phone) + "</span>" : "";
             var ordered = n.orderCount > 0 ? '<span class="pc-tree-ordered">已下单</span>' : "";
+            var unbind = n.parent ? '<button class="pc-tree-unbind" type="button" data-tree-unbind="' + esc(n.id) +
+              '" data-tree-name="' + esc(n.realName || n.nick) + '">解绑</button>' : "";
             var html = '<div class="pc-tree-node" style="margin-left:' + (depth * 22) + 'px">' +
               '<span class="pc-tree-dot"></span>' +
               '<span class="pc-tree-nick">' + esc(n.realName || n.nick) + "</span>" +
               ph + '<span class="pc-tree-code">' + esc(n.code) + "</span>" +
-              ordered + ok + sub + "</div>";
+              ordered + ok + sub + unbind + "</div>";
             n.children.forEach(function (c) { html += renderNode(c, depth + 1); });
             return html;
           }
@@ -4571,6 +4573,14 @@
         .catch(function (e) { window.alert(e.message); });
     }
 
+    function doUnbindOpenid(openid, name) {
+      if (!openid) return;
+      if (!window.confirm("解绑「" + (name || "该用户") + "」？\n会断开他与上线的关系、删相关推荐记录、回收已发积分。他自己的下线(若有)会各自独立。不可恢复。")) return;
+      Core.callAdminOrders("referral-unbind", { openid: openid })
+        .then(function () { toast("已解绑"); loadReferral(); })
+        .catch(function (e) { window.alert(e.message); });
+    }
+
     function exportCsv() {
       var rows = refState.rows || [];
       if (!rows.length) { window.alert("当前无数据可导出"); return; }
@@ -4602,6 +4612,11 @@
       if (list) list.addEventListener("click", function (e) {
         var ub = e.target.closest("[data-ref-unbind]");
         if (ub) doUnbind(ub.getAttribute("data-ref-unbind"), ub.getAttribute("data-ref-name"));
+      });
+      var tree = $("pcRefTree");
+      if (tree) tree.addEventListener("click", function (e) {
+        var ub = e.target.closest("[data-tree-unbind]");
+        if (ub) doUnbindOpenid(ub.getAttribute("data-tree-unbind"), ub.getAttribute("data-tree-name"));
       });
       var addBtn = $("pcRefAddBtn"); if (addBtn) addBtn.addEventListener("click", doAdd);
       var searchBtn = $("pcRefSearchBtn"); if (searchBtn) searchBtn.addEventListener("click", function () {

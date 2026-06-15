@@ -1464,7 +1464,8 @@ async function loadRefAdminTree() {
       const sub = n.children.length ? `<span class="admin-tree-cnt">下${n.children.length}</span>` : "";
       const ph = n.phone ? `<span class="admin-tree-phone">${refEsc(n.phone)}</span>` : "";
       const nm = refEsc(n.realName || n.nick);
-      let html = `<div class="admin-tree-node" style="margin-left:${depth * 16}px"><span class="admin-tree-dot"></span><span class="admin-tree-nick">${nm}</span>${ph}<span class="admin-tree-code">${refEsc(n.code)}</span>${ok}${sub}</div>`;
+      const unbind = n.parent ? `<button class="admin-tree-unbind" type="button" data-tree-unbind="${refEsc(n.id)}" data-tree-name="${refEsc(n.realName || n.nick)}">解绑</button>` : "";
+      let html = `<div class="admin-tree-node" style="margin-left:${depth * 16}px"><span class="admin-tree-dot"></span><span class="admin-tree-nick">${nm}</span>${ph}<span class="admin-tree-code">${refEsc(n.code)}</span>${ok}${sub}${unbind}</div>`;
       n.children.forEach((c) => { html += renderNode(c, depth + 1); });
       return html;
     };
@@ -1546,6 +1547,18 @@ async function doRefAdminUnbind(id, name) {
   }
 }
 
+async function doRefAdminUnbindOpenid(openid, name) {
+  if (!openid) return;
+  if (!window.confirm("解绑「" + (name || "该用户") + "」？\n会断开他与上线的关系、删相关推荐记录、回收已发积分。他自己的下线(若有)会各自独立。不可恢复。")) return;
+  try {
+    await callAdminOrders("referral-unbind", { openid });
+    adminToast("已解绑");
+    loadReferralAdmin();
+  } catch (e) {
+    window.alert(e.message);
+  }
+}
+
 function bindRefAdmin() {
   if (refAdminState.bound) return;
   refAdminState.bound = true;
@@ -1565,6 +1578,11 @@ function bindRefAdmin() {
   if (list) list.addEventListener("click", (e) => {
     const ub = e.target.closest("[data-ref-unbind]");
     if (ub) doRefAdminUnbind(ub.getAttribute("data-ref-unbind"), ub.getAttribute("data-ref-name"));
+  });
+  const tree = document.getElementById("adminRefTree");
+  if (tree) tree.addEventListener("click", (e) => {
+    const ub = e.target.closest("[data-tree-unbind]");
+    if (ub) doRefAdminUnbindOpenid(ub.getAttribute("data-tree-unbind"), ub.getAttribute("data-tree-name"));
   });
   const addBtn = document.getElementById("adminRefAddBtn");
   if (addBtn) addBtn.addEventListener("click", doRefAdminAdd);

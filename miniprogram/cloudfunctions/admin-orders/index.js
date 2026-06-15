@@ -1231,35 +1231,49 @@ async function referralSetStatus(body) {
   return { _id: id, status };
 }
 
-// 解绑：删掉这条推荐关系，清空被推荐人 users 上的绑定，已发奖励顺带回收。
+// 解绑：清空被推荐人 users 上的上线绑定（关系树的真正来源），删掉相关 referrals 记录，已发奖励回收。
+// 支持两种入参：{id}=按某条推荐记录解绑(列表用)；{openid}=按被推荐人解绑(关系树用，即使没有 referrals 记录也能清 users 绑定)。
 // 用于「老用户被错绑成下线」「误录入」等情况。
 async function referralUnbind(body) {
   const id = body.id;
-  if (!id) throw new Error('缺少 id');
-  const cur = await db.collection(REFERRALS).doc(id).get();
-  const rec = cur.data;
-  if (!rec) throw new Error('记录不存在');
+  const openid = String(body.openid || '').trim();
+  if (!id && !openid) throw new Error('缺少 id 或 openid');
   const now = new Date();
 
-  // 若已发过奖励积分，先回收，账目保持一致
-  if (rec.rewardedAt && rec.rewardPoints > 0 && rec.referrerOpenid) {
-    await db.collection(USERS).where({ openid: rec.referrerOpenid })
-      .update({ data: { rewardPoints: _.inc(-rec.rewardPoints), updatedAt: now } });
-    await db.collection(LEDGER).add({ data: {
-      openid: rec.referrerOpenid, delta: -rec.rewardPoints, reason: '推荐解绑回收', refId: id, createdAt: now
-    }});
+  // 收集要删的 referrals 记录 + 目标被推荐人 openid
+  const recs = [];
+  let refereeOpenid = openid;
+  if (id) {
+    const cur = await db.collection(REFERRALS).doc(id).get();
+    if (cur.data) { recs.push(cur.data); if (!refereeOpenid) refereeOpenid = cur.data.refereeOpenid || ''; }
+  }
+  if (openid) {
+    try {
+      const r = await db.collection(REFERRALS).where({ refereeOpenid: openid }).get();
+      const seen = new Set(recs.map(x => x._id));
+      (r.data || []).forEach(x => { if (!seen.has(x._id)) recs.push(x); });
+    } catch (e) { /* 集合可能未建 */ }
   }
 
-  // 清空被推荐人 users 记录上的绑定关系（仅当确实绑的是这个推荐人，避免误清）
-  if (rec.refereeOpenid && rec.referrerOpenid) {
-    await db.collection(USERS)
-      .where({ openid: rec.refereeOpenid, referredByOpenid: rec.referrerOpenid })
+  // 逐条回收已发奖励 + 删记录
+  for (const rec of recs) {
+    if (rec.rewardedAt && rec.rewardPoints > 0 && rec.referrerOpenid) {
+      await db.collection(USERS).where({ openid: rec.referrerOpenid })
+        .update({ data: { rewardPoints: _.inc(-rec.rewardPoints), updatedAt: now } });
+      await db.collection(LEDGER).add({ data: {
+        openid: rec.referrerOpenid, delta: -rec.rewardPoints, reason: '推荐解绑回收', refId: rec._id, createdAt: now
+      }});
+    }
+    await db.collection(REFERRALS).doc(rec._id).remove();
+  }
+
+  // 清空被推荐人 users 上的上线绑定（关系树就是读这里）
+  if (refereeOpenid) {
+    await db.collection(USERS).where({ openid: refereeOpenid })
       .update({ data: { referredByCode: '', referredByOpenid: '', referredAt: null, updatedAt: now } });
   }
 
-  // 删除这条推荐记录
-  await db.collection(REFERRALS).doc(id).remove();
-  return { _id: id, unbound: true };
+  return { unbound: true, removed: recs.length };
 }
 
 // 裂变关系树（只读）：从 users.referredByOpenid 还原整张上下线网，带每人开卡状态。
