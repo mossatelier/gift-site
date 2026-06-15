@@ -1192,6 +1192,38 @@ async function referralUnbind(body) {
   return { _id: id, unbound: true };
 }
 
+// 裂变关系树（只读）：从 users.referredByOpenid 还原整张上下线网，带每人开卡状态。
+// 仅用于后台查看全貌；奖励仍是单层（由 referral-set-status 只发直接上线），这里不涉及任何发分。
+async function referralTree() {
+  const usersRes = await db.collection(USERS).limit(1000).get();
+  const users = usersRes.data || [];
+  let refs = [];
+  try { refs = (await db.collection(REFERRALS).limit(1000).get()).data || []; } catch (e) { refs = []; }
+  // 每个被推荐人的开卡状态 / 手机号（取其作为 referee 的那条记录）
+  const statusByReferee = {};
+  const phoneByReferee = {};
+  refs.forEach((r) => {
+    if (!r.refereeOpenid) return;
+    statusByReferee[r.refereeOpenid] = r.status || '';
+    if (r.refereePhone) phoneByReferee[r.refereeOpenid] = r.refereePhone;
+  });
+  // 谁被当作上线（用于过滤掉与推荐无关的孤立用户）
+  const isParent = {};
+  users.forEach((u) => { if (u.referredByOpenid) isParent[u.referredByOpenid] = true; });
+  const nodes = users
+    .filter((u) => u.referredByOpenid || isParent[u.openid])
+    .map((u) => ({
+      id: u.openid,
+      nick: u.nickName || '微信用户',
+      code: u.referralCode || '',
+      parent: u.referredByOpenid || '',
+      status: statusByReferee[u.openid] || '',
+      phone: phoneByReferee[u.openid] || '',
+      rewardPoints: u.rewardPoints || 0
+    }));
+  return { nodes, truncated: users.length >= 1000 };
+}
+
 async function referralRanking() {
   let rows = [];
   try {
@@ -1355,6 +1387,9 @@ exports.main = async (event) => {
         break;
       case 'referral-unbind':
         data = await referralUnbind(body);
+        break;
+      case 'referral-tree':
+        data = await referralTree(body);
         break;
       case 'referral-ranking':
         data = await referralRanking(body);

@@ -3110,6 +3110,24 @@ body.pc-admin {
   cursor: pointer;
 }
 .pc-ref-unbind:hover { background: #fdecea; }
+
+.pc-ref-tree-wrap { margin-top: 22px; }
+.pc-ref-tree-note { font-size: 12px; font-weight: 400; color: #8a7c66; }
+.pc-tree-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 14px;
+  border-bottom: 1px dashed #f0ebe0;
+}
+.pc-tree-dot { width: 7px; height: 7px; border-radius: 50%; background: #d9cdb6; flex: none; }
+.pc-tree-nick { font-weight: 700; color: #2e2318; }
+.pc-tree-code { font-size: 12px; color: #e8531f; font-weight: 700; }
+.pc-tree-phone { font-size: 12px; color: #8a7c66; }
+.pc-tree-ok { font-size: 11px; font-weight: 700; color: #1a7f4b; background: #e6f6ec; border-radius: 6px; padding: 1px 7px; }
+.pc-tree-st { font-size: 11px; color: #8a7c66; background: #f3eee3; border-radius: 6px; padding: 1px 7px; }
+.pc-tree-cnt { font-size: 11px; color: #8a7c66; margin-left: auto; }
 .pc-ref-list-head {
   padding: 8px 14px;
   font-size: 12px;

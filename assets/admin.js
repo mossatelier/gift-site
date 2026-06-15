@@ -1441,6 +1441,34 @@ async function loadReferralAdmin() {
     if (listEl) listEl.innerHTML = `<p class="admin-ref-empty">加载失败：${refEsc(e.message)}</p>`;
   }
   loadRefAdminRanking();
+  loadRefAdminTree();
+}
+
+async function loadRefAdminTree() {
+  const el = document.getElementById("adminRefTree");
+  if (!el) return;
+  el.innerHTML = '<p class="admin-ref-empty">加载中…</p>';
+  try {
+    const res = await callAdminOrders("referral-tree", {});
+    const nodes = (res && res.nodes) || [];
+    if (!nodes.length) { el.innerHTML = '<p class="admin-ref-empty">暂无关系（还没有人通过邀请进来）</p>'; return; }
+    const map = {}, roots = [];
+    nodes.forEach((n) => { n.children = []; map[n.id] = n; });
+    nodes.forEach((n) => { (n.parent && map[n.parent]) ? map[n.parent].children.push(n) : roots.push(n); });
+    const renderNode = (n, depth) => {
+      const ok = n.status === "开户成功"
+        ? '<span class="admin-tree-ok">已开卡</span>'
+        : (n.status ? `<span class="admin-tree-st">${refEsc(n.status)}</span>` : "");
+      const sub = n.children.length ? `<span class="admin-tree-cnt">下${n.children.length}</span>` : "";
+      let html = `<div class="admin-tree-node" style="margin-left:${depth * 16}px"><span class="admin-tree-dot"></span><span class="admin-tree-nick">${refEsc(n.nick)}</span><span class="admin-tree-code">${refEsc(n.code)}</span>${ok}${sub}</div>`;
+      n.children.forEach((c) => { html += renderNode(c, depth + 1); });
+      return html;
+    };
+    const head = `<p class="admin-ref-empty">共 ${nodes.length} 人在关系网中${res.truncated ? "（超1000仅显示部分）" : ""}</p>`;
+    el.innerHTML = head + roots.map((r) => renderNode(r, 0)).join("");
+  } catch (e) {
+    el.innerHTML = '<p class="admin-ref-empty">关系树加载失败</p>';
+  }
 }
 
 async function loadRefAdminRanking() {

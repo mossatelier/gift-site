@@ -4471,6 +4471,41 @@
         .then(function (rows) { refState.rows = rows || []; renderRefList(); })
         .catch(function (e) { if (listEl) listEl.innerHTML = '<p class="pc-ref-empty">加载失败：' + esc(e.message) + "</p>"; });
       loadRanking();
+      loadRefTree();
+    }
+
+    function loadRefTree() {
+      var el = $("pcRefTree"); if (!el) return;
+      el.innerHTML = '<p class="pc-ref-empty">加载中…</p>';
+      Core.callAdminOrders("referral-tree", {})
+        .then(function (res) {
+          var nodes = (res && res.nodes) || [];
+          if (!nodes.length) { el.innerHTML = '<p class="pc-ref-empty">暂无关系（还没有人通过邀请进来）</p>'; return; }
+          var map = {}, roots = [];
+          nodes.forEach(function (n) { n.children = []; map[n.id] = n; });
+          nodes.forEach(function (n) {
+            if (n.parent && map[n.parent]) map[n.parent].children.push(n);
+            else roots.push(n);
+          });
+          function countAll(n) { var t = n.children.length; n.children.forEach(function (c) { t += countAll(c); }); return t; }
+          function renderNode(n, depth) {
+            var ok = n.status === "开户成功"
+              ? '<span class="pc-tree-ok">已开卡</span>'
+              : (n.status ? '<span class="pc-tree-st">' + esc(n.status) + "</span>" : "");
+            var sub = n.children.length ? '<span class="pc-tree-cnt">直接下线 ' + n.children.length + "</span>" : "";
+            var ph = n.phone ? '<span class="pc-tree-phone">' + esc(n.phone) + "</span>" : "";
+            var html = '<div class="pc-tree-node" style="margin-left:' + (depth * 22) + 'px">' +
+              '<span class="pc-tree-dot"></span>' +
+              '<span class="pc-tree-nick">' + esc(n.nick) + "</span>" +
+              '<span class="pc-tree-code">' + esc(n.code) + "</span>" +
+              ph + ok + sub + "</div>";
+            n.children.forEach(function (c) { html += renderNode(c, depth + 1); });
+            return html;
+          }
+          var head = '<p class="pc-ref-empty">共 ' + nodes.length + ' 人在关系网中' + (res.truncated ? "（超 1000，仅显示部分）" : "") + "</p>";
+          el.innerHTML = head + roots.map(function (r) { return renderNode(r, 0); }).join("");
+        })
+        .catch(function () { el.innerHTML = '<p class="pc-ref-empty">关系树加载失败</p>'; });
     }
 
     function loadRanking() {
