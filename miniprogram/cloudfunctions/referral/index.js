@@ -40,7 +40,8 @@ async function ensureMyUser(openid) {
     const code = await genUniqueCode();
     const doc = { openid, nickName: '微信用户', avatarUrl: '', referralCode: code, rewardPoints: 0, createdAt: now, updatedAt: now };
     const add = await db.collection(USERS).add({ data: doc });
-    return { _id: add._id, ...doc };
+    // _isNew：这条 users 记录是本次调用现建的（= 该 openid 第一次出现）。绑定推荐人时据此「只绑新人」。
+    return { _id: add._id, ...doc, _isNew: true };
   }
   if (!user.referralCode) {
     const code = await genUniqueCode();
@@ -48,6 +49,7 @@ async function ensureMyUser(openid) {
     user.referralCode = code;
   }
   if (user.rewardPoints == null) user.rewardPoints = 0;
+  user._isNew = false;   // 已存在的老用户
   return user;
 }
 
@@ -100,6 +102,8 @@ async function bindReferrer(openid, code) {
   if (!c) return { success: false, error: '缺少推荐码' };
   const me = await ensureMyUser(openid);
   if (me.referredByCode) return { success: true, already: true };       // 已绑定，不覆盖
+  // 只绑新人：老用户（之前已自己注册/用过小程序）后来才扫码的，不算下线，避免「抢」别人已有的用户
+  if (!me._isNew) return { success: true, skipped: 'existing-user' };
   if (me.referralCode === c) return { success: false, error: '不能绑定自己的推荐码' };
 
   const ref = await db.collection(USERS).where({ referralCode: c }).limit(1).get();
