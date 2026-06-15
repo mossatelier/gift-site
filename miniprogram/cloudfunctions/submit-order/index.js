@@ -68,6 +68,56 @@ async function sendOrderPlacedNotify(openid, orderId, order) {
   }
 }
 
+// 下单时按手机号对账推荐关系：
+// 后台「手动录入推荐」是按手机号建的记录(refereeOpenid 为空)，新客自己登录拿到的是 openid，二者对不上。
+// openid 与手机号只在订单里同时出现，所以在这里把它们接上：
+//  1) 把手机号匹配、refereeOpenid 为空的推荐记录关联到该 openid；
+//  2) 若该用户还没有上线，补上 users.referredByOpenid；
+//  3) 同一被推荐人+同一上线的多条记录(扫码 vs 手填)去重，避免重复发奖励。
+// 整段 try 包裹，绝不影响下单主流程。
+async function reconcileReferralByPhone(openid, phone) {
+  const p = String(phone || '').trim();
+  if (!openid || !/^1\d{10}$/.test(p)) return;
+  try {
+    const pr = await db.collection('referrals').where({ refereePhone: p, refereeOpenid: '' }).get();
+    const pending = pr.data || [];
+    if (!pending.length) return;
+    const now = new Date();
+    for (const rec of pending) {
+      await db.collection('referrals').doc(rec._id).update({ data: { refereeOpenid: openid, updatedAt: now } });
+    }
+    // 补上线绑定（仅当该用户当前没有上线，不覆盖已有）
+    const ur = await db.collection('users').where({ openid }).limit(1).get();
+    const user = ur.data[0];
+    if (user && !user.referredByOpenid) {
+      const pick = pending[0];
+      if (pick.referrerOpenid && pick.referrerOpenid !== openid) {
+        await db.collection('users').doc(user._id).update({ data: {
+          referredByOpenid: pick.referrerOpenid,
+          referredByCode: pick.referrerCode || '',
+          referredAt: now,
+          updatedAt: now
+        }});
+      }
+    }
+    // 去重：同一被推荐人(openid)下、同一上线多条 → 留信息最全的一条，其余删
+    const mine = (await db.collection('referrals').where({ refereeOpenid: openid }).get()).data || [];
+    const groups = {};
+    mine.forEach(r => { (groups[r.referrerOpenid] = groups[r.referrerOpenid] || []).push(r); });
+    const score = (r) => (r.rewardedAt ? 8 : 0) + (r.source === 'admin' ? 4 : 0) + (r.refereePhone ? 2 : 0) + (r.status && r.status !== '待审核' ? 1 : 0);
+    for (const k in groups) {
+      const list = groups[k];
+      if (list.length <= 1) continue;
+      list.sort((a, b) => score(b) - score(a));
+      for (let i = 1; i < list.length; i++) {
+        await db.collection('referrals').doc(list[i]._id).remove();
+      }
+    }
+  } catch (err) {
+    console.warn('[submit-order] reconcileReferralByPhone failed', err);
+  }
+}
+
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext();
   if (!OPENID) return { success: false, error: '未登录' };
@@ -187,5 +237,7 @@ exports.main = async (event, context) => {
   const add = await db.collection('orders').add({ data: order });
   // 下单成功 → 立即推一条「下单成功通知」（用户在下单时已授权；失败不阻断）
   await sendOrderPlacedNotify(OPENID, add._id, order);
+  // 按手机号对账推荐关系（把手动录入的记录关联到本人 openid + 补上线 + 去重；失败不阻断）
+  await reconcileReferralByPhone(OPENID, addressSnapshot.phone);
   return { success: true, orderId: add._id, itemCount: itemSnapshots.length, totalCards };
 };
