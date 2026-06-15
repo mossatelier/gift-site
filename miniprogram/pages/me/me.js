@@ -63,7 +63,7 @@ Page({
   logout() {
     wx.showModal({
       title: '退出登录',
-      content: '退出后将无法管理订单和地址，确定吗？',
+      content: '退出后将无法管理领取记录和地址，确定吗？',
       confirmText: '退出',
       confirmColor: '#d64b2a',
       success: (res) => {

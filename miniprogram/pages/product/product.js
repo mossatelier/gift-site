@@ -9,9 +9,9 @@ function buildPointsText(product) {
   if (product.category === 'referral') {
     if (product.subcategory) {
       const m = String(product.subcategory).match(/推荐\s*(\d+)\s*人/);
-      if (m) return `推荐 ${m[1]} 人可领`;
+      if (m) return `邀请 ${m[1]} 人可领`;
     }
-    return '推荐办理可领';   // 推荐有礼一律不显示积分
+    return '邀请可领';   // 邀请有礼一律不显示积分
   }
   if (product.cardsNeeded > 0) return `兑换积分：${product.cardsNeeded} 分`;
   return '';
@@ -227,7 +227,7 @@ Page({
         this.setData({ showSubmit: false, submitRemark: '', wishlisted: false, submitting: false });
         wx.showModal({
           title: '提交成功',
-          content: '订单信息已复制到剪贴板，请粘贴发送给客服微信核验，核验后发货。',
+          content: '申请信息已复制到剪贴板，请粘贴发送给客服微信核验，核验后发货。',
           confirmText: '去找客服',
           cancelText: '知道了',
           confirmColor: '#d64b2a',

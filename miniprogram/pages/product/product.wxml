@@ -61,7 +61,7 @@
   <!-- 商品信息卡 -->
   <view class="product-detail-card">
     <view class="product-detail-taghead">
-      <text class="title-tag {{product.category === 'referral' ? 'title-tag-referral' : 'title-tag-card'}}">{{product.category === 'referral' ? '推荐可兑' : '办卡可兑'}}</text>
+      <text class="title-tag {{product.category === 'referral' ? 'title-tag-referral' : 'title-tag-card'}}">{{product.category === 'referral' ? '邀请可兑' : '办卡可兑'}}</text>
     </view>
     <text class="product-detail-title">{{product.title}}</text>
     <view class="product-detail-meta">
@@ -93,7 +93,7 @@
       <button class="cta-btn cta-btn-kefu" bindtap="showQrcode">添加客服微信</button>
       <button class="cta-btn cta-btn-submit" bindtap="openSubmit">收藏并提交地址</button>
     </view>
-    <text class="cta-note">提交地址后，请微信同步客服，核验订单后发货</text>
+    <text class="cta-note">提交地址后，请微信同步客服，核验后发货</text>
   </view>
 
   <view class="bottom-spacer"></view>

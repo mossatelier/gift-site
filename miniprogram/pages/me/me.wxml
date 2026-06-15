@@ -41,8 +41,8 @@
   <view class="me-referral-entry" bindtap="goReferral">
     <text class="me-referral-emoji">🎁</text>
     <view class="me-referral-text">
-      <text class="me-referral-title">邀友推荐办卡</text>
-      <text class="me-referral-sub">邀好友办卡，得奖励积分</text>
+      <text class="me-referral-title">邀友享好礼</text>
+      <text class="me-referral-sub">邀好友，得奖励积分</text>
     </view>
     <text class="me-referral-arrow">›</text>
   </view>
@@ -51,7 +51,7 @@
   <view class="me-menu">
     <view class="me-menu-item" bindtap="goOrders">
       <text class="me-menu-icon">📦</text>
-      <text class="me-menu-text">我的订单</text>
+      <text class="me-menu-text">我的领取</text>
       <text class="me-menu-chevron">›</text>
     </view>
     <view class="me-menu-item" bindtap="goWishlist">

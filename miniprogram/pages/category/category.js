@@ -14,9 +14,9 @@ function buildCategoryMetaText(item, currentCategory) {
   if (item.category === 'referral' || currentCategory === 'referral') {
     if (item.subcategory) {
       const m = String(item.subcategory).match(/推荐\s*(\d+)\s*人/);
-      if (m) return `推荐 ${m[1]} 人可领`;
+      if (m) return `邀请 ${m[1]} 人可领`;
     }
-    return '推荐办理可领';   // 推荐有礼一律不显示积分
+    return '邀请可领';   // 邀请有礼一律不显示积分
   }
   if (item.cardsNeeded > 0) return `兑换积分：${item.cardsNeeded} 分`;
   return '';

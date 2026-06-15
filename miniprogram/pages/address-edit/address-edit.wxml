@@ -20,7 +20,7 @@
 
     <view class="addr-row">
       <text class="addr-label">收件人</text>
-      <input class="addr-input" placeholder="请正确输入办卡人名字" placeholder-class="addr-placeholder" value="{{recipient}}" bindinput="onRecipient" maxlength="20" />
+      <input class="addr-input" placeholder="请输入收件人姓名" placeholder-class="addr-placeholder" value="{{recipient}}" bindinput="onRecipient" maxlength="20" />
     </view>
 
     <view class="addr-row">

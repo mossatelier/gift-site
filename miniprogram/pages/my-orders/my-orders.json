@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "我的订单",
+  "navigationBarTitleText": "我的领取",
   "enablePullDownRefresh": true,
   "usingComponents": {}
 }

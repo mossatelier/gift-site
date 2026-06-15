@@ -3,8 +3,8 @@
 
   <view class="orders-empty" wx:elif="{{orders.length === 0}}">
     <text class="empty-icon">📦</text>
-    <text class="empty-title">还没有订单</text>
-    <text class="empty-text">心愿单选好后提交申请，订单会出现在这里</text>
+    <text class="empty-title">还没有领取记录</text>
+    <text class="empty-text">心愿单选好后提交申请，记录会出现在这里</text>
   </view>
 
   <view class="order-list" wx:else>

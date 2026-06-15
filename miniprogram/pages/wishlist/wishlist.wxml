@@ -26,7 +26,7 @@
           <image class="product-image" src="{{item.imageUrl}}" mode="aspectFill" lazy-load></image>
         </view>
         <view class="product-body" data-id="{{item._id}}" bindtap="goProduct">
-          <text class="product-title"><text class="title-tag">{{item.category === 'referral' ? '推荐可兑' : '办卡可兑'}}</text>{{item.title}}</text>
+          <text class="product-title"><text class="title-tag">{{item.category === 'referral' ? '邀请可兑' : '办卡可兑'}}</text>{{item.title}}</text>
           <text class="product-price" wx:if="{{item.price > 0}}">¥{{item.price}}</text>
           <text class="product-meta" wx:if="{{item.cardsNeeded > 0}}">兑换积分：{{item.cardsNeeded}} 分</text>
         </view>
@@ -89,7 +89,7 @@
         <text class="flow-chevron">{{openFlow === 'credit' ? '▴' : '▾'}}</text>
       </view>
       <view class="flow-body" wx:if="{{openFlow === 'credit'}}">
-        <text class="flow-step">① 选择礼品并领取银行的推荐码</text>
+        <text class="flow-step">① 选择礼品并领取银行的邀请码</text>
         <text class="flow-step">② 提交申请资料</text>
         <text class="flow-step">③ 初审通过后 15 天内去银行网点激活并首刷</text>
         <text class="flow-step">④ 待首刷数据更新（约 2-3 个工作日）后发放礼品</text>
@@ -102,10 +102,10 @@
         <text class="flow-chevron">{{openFlow === 'deposit' ? '▴' : '▾'}}</text>
       </view>
       <view class="flow-body" wx:if="{{openFlow === 'deposit'}}">
-        <text class="flow-step">① 选择礼品并联系推荐人</text>
+        <text class="flow-step">① 选择礼品并联系邀请人</text>
         <text class="flow-step">② 扫码完成银行存款任务</text>
         <text class="flow-step">③ 存款达标后截图确认</text>
-        <text class="flow-step">④ 联系推荐人，存款任务到期后发放礼品</text>
+        <text class="flow-step">④ 联系邀请人，存款任务到期后发放礼品</text>
       </view>
     </view>
 
@@ -115,10 +115,10 @@
         <text class="flow-chevron">{{openFlow === 'securities' ? '▴' : '▾'}}</text>
       </view>
       <view class="flow-body" wx:if="{{openFlow === 'securities'}}">
-        <text class="flow-step">① 选择礼品并联系推荐人</text>
+        <text class="flow-step">① 选择礼品并联系邀请人</text>
         <text class="flow-step">② 扫码完成证券开户并入金</text>
         <text class="flow-step">③ 购买指定理财产品达标后截图确认</text>
-        <text class="flow-step">④ 联系推荐人，证券任务到期后发送礼品</text>
+        <text class="flow-step">④ 联系邀请人，证券任务到期后发送礼品</text>
       </view>
     </view>
   </view>

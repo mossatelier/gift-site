@@ -12,7 +12,7 @@ const MOMBABY_SUBS = MOMBABY_GROUP.map(v => ({ value: v, label: labelOfCategory(
 // 顶部平铺的展示分类
 const DISPLAY_CATS = [
   { value: 'all', label: '全部礼品' },
-  { value: 'referral', label: '推荐有礼' },
+  { value: 'referral', label: '邀请有礼' },
   { value: 'mombaby', label: '母婴好物' },
   { value: 'pet', label: '宠物用品' },
   { value: 'camping', label: '户外露营' }
@@ -54,9 +54,9 @@ function buildMetaText(item) {
   if (item.category === 'referral') {
     if (item.subcategory) {
       const m = String(item.subcategory).match(/推荐\s*(\d+)\s*人/);
-      if (m) return `推荐 ${m[1]} 人可领`;
+      if (m) return `邀请 ${m[1]} 人可领`;
     }
-    return '推荐办理可领';
+    return '邀请可领';
   }
   if (item.cardsNeeded > 0) return `兑换积分：${item.cardsNeeded} 分`;
   return '';

@@ -1,10 +1,10 @@
 const auth = require('../../utils/auth.js');
 
 const RULES = [
-  '把你的专属推荐码 / 分享卡片发给新朋友；',
-  '新朋友联系客服微信办卡，办卡时报上你的推荐码；',
-  '好友银行开户成功后，奖励积分自动到账；',
-  '好友 30 天内开户均算有效推荐（伴侣及凑卡不算）。'
+  '把你的专属邀请码 / 分享卡片发给新朋友；',
+  '新朋友联系客服微信咨询，报上你的邀请码；',
+  '好友办理成功后，奖励积分自动到账；',
+  '好友 30 天内办理均算有效邀请（伴侣及凑单不算）。'
 ];
 
 Page({
@@ -59,7 +59,7 @@ Page({
     if (!this.data.code) return;
     wx.setClipboardData({
       data: this.data.code,
-      success: () => wx.showToast({ title: '推荐码已复制', icon: 'success' })
+      success: () => wx.showToast({ title: '邀请码已复制', icon: 'success' })
     });
   },
 
@@ -109,12 +109,12 @@ Page({
         roundRect(ctx, 40, 130, W - 80, H - 210, 28); ctx.fill();
 
         ctx.fillStyle = '#2e2318'; ctx.font = 'bold 42px sans-serif';
-        ctx.fillText('办卡免费领好礼', W / 2, 212);
+        ctx.fillText('免费领好礼', W / 2, 212);
         ctx.fillStyle = '#8a7c66'; ctx.font = '24px sans-serif';
-        ctx.fillText('用我的推荐码，办卡更省心~', W / 2, 256);
+        ctx.fillText('用我的邀请码，轻松领好礼~', W / 2, 256);
 
         ctx.fillStyle = '#8a7c66'; ctx.font = '24px sans-serif';
-        ctx.fillText('我的专属推荐码', W / 2, 332);
+        ctx.fillText('我的专属邀请码', W / 2, 332);
         ctx.fillStyle = '#e8531f'; ctx.font = 'bold 88px sans-serif';
         ctx.fillText(self.data.code, W / 2, 412);
 
@@ -161,7 +161,7 @@ Page({
   onShareAppMessage() {
     const code = this.data.code;
     return {
-      title: '加加好物图集 · 办卡免费领好礼，用我的推荐码更省心',
+      title: '加加好物图集 · 免费领好礼，用我的邀请码更省心',
       path: `/pages/index/index${code ? '?ref=' + code : ''}`
     };
   }
