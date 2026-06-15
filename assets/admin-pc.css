@@ -3128,6 +3128,10 @@ body.pc-admin {
 .pc-tree-ok { font-size: 11px; font-weight: 700; color: #1a7f4b; background: #e6f6ec; border-radius: 6px; padding: 1px 7px; }
 .pc-tree-st { font-size: 11px; color: #8a7c66; background: #f3eee3; border-radius: 6px; padding: 1px 7px; }
 .pc-tree-cnt { font-size: 11px; color: #8a7c66; margin-left: auto; }
+.pc-tree-ordered { font-size: 11px; font-weight: 700; color: #1a7f4b; background: #e6f6ec; border-radius: 6px; padding: 1px 7px; }
+.pc-ref-ordered { font-size: 11px; font-weight: 700; color: #1a7f4b; background: #e6f6ec; border-radius: 6px; padding: 1px 6px; }
+.pc-ref-noorder { font-size: 11px; color: #b08; background: #fbeef4; border-radius: 6px; padding: 1px 6px; }
+.pc-orders-referby { color: #b5651d; font-weight: 600; margin-top: 4px; }
 .pc-ref-list-head {
   padding: 8px 14px;
   font-size: 12px;

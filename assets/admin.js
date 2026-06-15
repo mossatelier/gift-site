@@ -1415,9 +1415,11 @@ function renderRefAdminList() {
   el.innerHTML = refAdminState.rows.map((r) => `
     <div class="admin-ref-card">
       <div class="admin-ref-card-top">
-        <span class="admin-ref-friend">${refEsc(r.refereeNick || "客户")}</span>
-        <span class="admin-ref-phone">${refEsc(r.refereePhone || "")}</span>
+        <span class="admin-ref-friend">${refEsc(r.realName || r.refereeNick || "客户")}</span>
+        <span class="admin-ref-phone">${refEsc(r.realPhone || r.refereePhone || "")}</span>
+        ${r.orderCount > 0 ? `<span class="admin-ref-ordered">已下单${r.orderCount}</span>` : `<span class="admin-ref-noorder">未下单</span>`}
       </div>
+      ${(r.realName && r.refereeNick && r.realName !== r.refereeNick) ? `<div class="admin-ref-card-sub">微信昵称：${refEsc(r.refereeNick)}</div>` : ""}
       <div class="admin-ref-card-mid">推荐人：<b>${refEsc(r.referrerCode || "-")}</b> ${refEsc(r.referrerNick || "")}</div>
       <div class="admin-ref-card-bot">
         <select class="admin-ref-status-sel" data-ref-id="${refEsc(r._id)}" data-ref-prev="${refEsc(r.status)}">${refStatusOptions(r.status)}</select>
@@ -1460,7 +1462,9 @@ async function loadRefAdminTree() {
         ? '<span class="admin-tree-ok">已开卡</span>'
         : (n.status ? `<span class="admin-tree-st">${refEsc(n.status)}</span>` : "");
       const sub = n.children.length ? `<span class="admin-tree-cnt">下${n.children.length}</span>` : "";
-      let html = `<div class="admin-tree-node" style="margin-left:${depth * 16}px"><span class="admin-tree-dot"></span><span class="admin-tree-nick">${refEsc(n.nick)}</span><span class="admin-tree-code">${refEsc(n.code)}</span>${ok}${sub}</div>`;
+      const ph = n.phone ? `<span class="admin-tree-phone">${refEsc(n.phone)}</span>` : "";
+      const nm = refEsc(n.realName || n.nick);
+      let html = `<div class="admin-tree-node" style="margin-left:${depth * 16}px"><span class="admin-tree-dot"></span><span class="admin-tree-nick">${nm}</span>${ph}<span class="admin-tree-code">${refEsc(n.code)}</span>${ok}${sub}</div>`;
       n.children.forEach((c) => { html += renderNode(c, depth + 1); });
       return html;
     };
@@ -1950,6 +1954,7 @@ function renderOrdersList() {
               <strong>收货信息</strong>
               <p>${escapeHtml(addr.recipient || "")}　${escapeHtml(addr.phone || "")}</p>
               <p>${escapeHtml(addr.province || "")} ${escapeHtml(addr.city || "")} ${escapeHtml(addr.district || "")} ${escapeHtml(addr.detail || "")}</p>
+              ${o.referredBy ? `<p class="admin-order-referby">🤝 推荐人：<b>${escapeHtml(o.referredBy.code || "")}</b> ${escapeHtml(o.referredBy.nick || "")}</p>` : ""}
               <button class="admin-secondary-btn admin-order-copy" data-copy-order="${escapeHtml(o._id)}" type="button">复制收件信息</button>
             </div>
             <div class="admin-order-section">

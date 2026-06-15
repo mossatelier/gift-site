@@ -3959,6 +3959,7 @@
       + '<p class="pc-orders-addr-line">' + escapeHtml(addr.recipient || "") + "　" + escapeHtml(addr.phone || "") + "</p>"
       + '<p class="pc-orders-addr-line">' + escapeHtml(addr.province || "") + " " + escapeHtml(addr.city || "") + " "
       + escapeHtml(addr.district || "") + " " + escapeHtml(addr.detail || "") + "</p>"
+      + (o.referredBy ? '<p class="pc-orders-referby">🤝 推荐人：<b>' + escapeHtml(o.referredBy.code || "") + "</b> " + escapeHtml(o.referredBy.nick || "") + "</p>" : "")
       + "</section>"
       // 礼品清单
       + '<section class="pc-orders-sec">'
@@ -4451,8 +4452,10 @@
         return '<div class="pc-ref-row">' +
           '<div class="pc-ref-cell pc-ref-ref"><span class="pc-ref-code">' + esc(r.referrerCode || "-") +
             '</span><span class="pc-ref-nick">' + esc(r.referrerNick || "") + "</span></div>" +
-          '<div class="pc-ref-cell pc-ref-friend"><span class="pc-ref-fnick">' + esc(r.refereeNick || "-") +
-            '</span><span class="pc-ref-phone">' + esc(r.refereePhone || "") + "</span></div>" +
+          '<div class="pc-ref-cell pc-ref-friend"><span class="pc-ref-fnick">' + esc(r.realName || r.refereeNick || "-") +
+            (r.orderCount > 0 ? ' <span class="pc-ref-ordered">已下单' + r.orderCount + '</span>' : ' <span class="pc-ref-noorder">未下单</span>') +
+            '</span><span class="pc-ref-phone">' + esc(r.realPhone || r.refereePhone || "") +
+            ((r.realName && r.refereeNick && r.realName !== r.refereeNick) ? '　微信：' + esc(r.refereeNick) : "") + "</span></div>" +
           '<div class="pc-ref-cell"><select class="pc-ref-status-sel" data-ref-id="' + esc(r._id) +
             '" data-ref-prev="' + esc(r.status) + '">' + statusOptions(r.status) + "</select></div>" +
           '<div class="pc-ref-cell pc-ref-reward">' + (r.rewardPoints > 0 ? "+" + r.rewardPoints + "分" : "—") + "</div>" +
@@ -4494,11 +4497,12 @@
               : (n.status ? '<span class="pc-tree-st">' + esc(n.status) + "</span>" : "");
             var sub = n.children.length ? '<span class="pc-tree-cnt">直接下线 ' + n.children.length + "</span>" : "";
             var ph = n.phone ? '<span class="pc-tree-phone">' + esc(n.phone) + "</span>" : "";
+            var ordered = n.orderCount > 0 ? '<span class="pc-tree-ordered">已下单</span>' : "";
             var html = '<div class="pc-tree-node" style="margin-left:' + (depth * 22) + 'px">' +
               '<span class="pc-tree-dot"></span>' +
-              '<span class="pc-tree-nick">' + esc(n.nick) + "</span>" +
-              '<span class="pc-tree-code">' + esc(n.code) + "</span>" +
-              ph + ok + sub + "</div>";
+              '<span class="pc-tree-nick">' + esc(n.realName || n.nick) + "</span>" +
+              ph + '<span class="pc-tree-code">' + esc(n.code) + "</span>" +
+              ordered + ok + sub + "</div>";
             n.children.forEach(function (c) { html += renderNode(c, depth + 1); });
             return html;
           }

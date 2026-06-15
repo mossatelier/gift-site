@@ -170,6 +170,38 @@ async function verifyAdmin(accessToken) {
 
 // ---------- Actions ----------
 
+// 给订单挂上「推荐人」：小程序单按 openid→users.referredByOpenid 回溯；网页单按订单上的 referrerCode。
+// 让你处理某人的领礼订单时，顺手就看到「他是谁推荐来的」，方便核办卡 / 推进推荐状态。
+async function attachOrderReferrers(orders) {
+  if (!orders || !orders.length) return orders;
+  const openids = Array.from(new Set(orders.map(o => o.openid).filter(Boolean)));
+  const refByOpenid = {}; // 顾客 openid -> 其推荐人 openid
+  for (let i = 0; i < openids.length; i += 100) {
+    const batch = openids.slice(i, i + 100);
+    let ur; try { ur = await db.collection(USERS).where({ openid: _.in(batch) }).limit(200).get(); } catch (e) { ur = { data: [] }; }
+    (ur.data || []).forEach(u => { if (u.referredByOpenid) refByOpenid[u.openid] = u.referredByOpenid; });
+  }
+  const referrerOpenids = Array.from(new Set(Object.values(refByOpenid)));
+  const webCodes = Array.from(new Set(orders.map(o => o.referrerCode).filter(Boolean)));
+  const byOpenid = {}, byCode = {};
+  for (let i = 0; i < referrerOpenids.length; i += 100) {
+    const batch = referrerOpenids.slice(i, i + 100);
+    let ur; try { ur = await db.collection(USERS).where({ openid: _.in(batch) }).limit(200).get(); } catch (e) { ur = { data: [] }; }
+    (ur.data || []).forEach(u => { byOpenid[u.openid] = { nick: u.nickName || '', code: u.referralCode || '' }; });
+  }
+  if (webCodes.length) {
+    let ur; try { ur = await db.collection(USERS).where({ referralCode: _.in(webCodes) }).limit(200).get(); } catch (e) { ur = { data: [] }; }
+    (ur.data || []).forEach(u => { byCode[u.referralCode] = { nick: u.nickName || '', code: u.referralCode || '' }; });
+  }
+  orders.forEach(o => {
+    let ref = null;
+    if (o.openid && refByOpenid[o.openid]) ref = byOpenid[refByOpenid[o.openid]] || null;
+    else if (o.referrerCode) ref = byCode[o.referrerCode] || { nick: '', code: o.referrerCode };
+    o.referredBy = ref ? { nick: ref.nick, code: ref.code } : null;
+  });
+  return orders;
+}
+
 async function listOrders({ status, limit = 50, skip = 0, search = '' }) {
   const where = {};
   // 按新状态筛选，自动吸收历史码（done/closed/processing）
@@ -202,13 +234,16 @@ async function listOrders({ status, limit = 50, skip = 0, search = '' }) {
     });
   }
 
+  await attachOrderReferrers(items);
   return { items, total: countRes.total || 0 };
 }
 
 async function getOrder({ orderId }) {
   if (!orderId) throw new Error('缺少 orderId');
   const r = await db.collection('orders').doc(orderId).get();
-  return r.data;
+  const o = r.data;
+  if (o) await attachOrderReferrers([o]);
+  return o;
 }
 
 async function updateOrderStatus({ orderId, status, adminNote }) {
@@ -1036,6 +1071,7 @@ async function webSubmitOrder({ items, address, remark, referrerCode }) {
       detail: String(addr.detail).trim().slice(0, 200)
     },
     remark: String(remark || '').trim().slice(0, 500),
+    referrerCode: String(referrerCode || '').trim(),   // 网页单带的推荐码，后台订单页据此显示推荐人
     totalCards,
     itemCount: itemSnapshots.length,
     status: 'pending',
@@ -1054,6 +1090,32 @@ const USERS = 'users';
 const LEDGER = 'points_ledger';
 const REF_STATUS = ['待审核', '已加微信', '办卡中', '开户成功', '无效'];
 const REF_OPENED = '开户成功';
+
+// 按 openid 批量取订单里的真实联系信息（真名/手机/下单数），用于把推荐关系接上真实身份。
+// 推荐记录只有微信昵称、没手机；真名手机在用户「下单选地址」时才进 orders，二者共用 openid。
+async function ordersContactByOpenid(openids) {
+  const ids = Array.from(new Set((openids || []).filter(Boolean)));
+  const map = {};
+  if (!ids.length) return map;
+  for (let i = 0; i < ids.length; i += 100) {
+    const batch = ids.slice(i, i + 100);
+    let res;
+    try {
+      res = await db.collection('orders').where({ openid: _.in(batch) })
+        .orderBy('createdAt', 'desc').limit(1000).get();
+    } catch (e) { res = { data: [] }; }
+    (res.data || []).forEach(o => {
+      const k = o.openid;
+      if (!k) return;
+      const a = o.address || {};
+      if (!map[k]) map[k] = { recipient: '', phone: '', orderCount: 0, lastAt: o.createdAt };
+      map[k].orderCount += 1;
+      if (!map[k].recipient && a.recipient) map[k].recipient = a.recipient; // desc 排序，最新的先到
+      if (!map[k].phone && a.phone) map[k].phone = a.phone;
+    });
+  }
+  return map;
+}
 
 async function referralList(body) {
   const status = body.status;
@@ -1079,18 +1141,26 @@ async function referralList(body) {
     const ur = await db.collection(USERS).where({ openid: _.in(openids) }).limit(200).get();
     ur.data.forEach(u => { nickMap[u.openid] = { nick: u.nickName, code: u.referralCode }; });
   }
-  return rows.map(r => ({
-    _id: r._id,
-    referrerCode: r.referrerCode || (nickMap[r.referrerOpenid] && nickMap[r.referrerOpenid].code) || '',
-    referrerNick: (nickMap[r.referrerOpenid] && nickMap[r.referrerOpenid].nick) || '',
-    refereeNick: r.refereeNick || '',
-    refereePhone: r.refereePhone || '',
-    status: r.status || '待审核',
-    rewardPoints: r.rewardPoints || 0,
-    createdAt: r.createdAt,
-    openedAt: r.openedAt || null,
-    rewardedAt: r.rewardedAt || null
-  }));
+  // 关联被推荐人的订单 → 带出真名/手机/下单数（扫码绑定的下线本来只有微信昵称没手机）
+  const contact = await ordersContactByOpenid(rows.map(r => r.refereeOpenid));
+  return rows.map(r => {
+    const c = contact[r.refereeOpenid] || null;
+    return {
+      _id: r._id,
+      referrerCode: r.referrerCode || (nickMap[r.referrerOpenid] && nickMap[r.referrerOpenid].code) || '',
+      referrerNick: (nickMap[r.referrerOpenid] && nickMap[r.referrerOpenid].nick) || '',
+      refereeNick: r.refereeNick || '',
+      refereePhone: r.refereePhone || '',
+      realName: c ? c.recipient : '',          // 订单里的真实收件人
+      realPhone: c ? c.phone : '',             // 订单里的真实手机
+      orderCount: c ? c.orderCount : 0,        // 下过几单（>0 说明此人真在领礼）
+      status: r.status || '待审核',
+      rewardPoints: r.rewardPoints || 0,
+      createdAt: r.createdAt,
+      openedAt: r.openedAt || null,
+      rewardedAt: r.rewardedAt || null
+    };
+  });
 }
 
 async function referralAdd(body) {
@@ -1210,17 +1280,23 @@ async function referralTree() {
   // 谁被当作上线（用于过滤掉与推荐无关的孤立用户）
   const isParent = {};
   users.forEach((u) => { if (u.referredByOpenid) isParent[u.referredByOpenid] = true; });
-  const nodes = users
-    .filter((u) => u.referredByOpenid || isParent[u.openid])
-    .map((u) => ({
+  const inNet = users.filter((u) => u.referredByOpenid || isParent[u.openid]);
+  // 关联订单 → 每人真名/手机/下单数
+  const contact = await ordersContactByOpenid(inNet.map((u) => u.openid));
+  const nodes = inNet.map((u) => {
+    const c = contact[u.openid] || null;
+    return {
       id: u.openid,
       nick: u.nickName || '微信用户',
       code: u.referralCode || '',
       parent: u.referredByOpenid || '',
       status: statusByReferee[u.openid] || '',
-      phone: phoneByReferee[u.openid] || '',
+      phone: (c && c.phone) || phoneByReferee[u.openid] || '',
+      realName: c ? c.recipient : '',
+      orderCount: c ? c.orderCount : 0,
       rewardPoints: u.rewardPoints || 0
-    }));
+    };
+  });
   return { nodes, truncated: users.length >= 1000 };
 }
 

@@ -4170,6 +4170,11 @@ body.admin-logged-in #adminLogoutButtonLogged {
 .admin-tree-ok { font-size: 10px; font-weight: 700; color: #1a7f4b; background: #e6f6ec; border-radius: 5px; padding: 1px 6px; }
 .admin-tree-st { font-size: 10px; color: #8a7c66; background: #f3eee3; border-radius: 5px; padding: 1px 6px; }
 .admin-tree-cnt { font-size: 10px; color: #8a7c66; margin-left: auto; }
+.admin-tree-phone { font-size: 11px; color: #8a7c66; }
+.admin-ref-ordered { font-size: 10px; font-weight: 700; color: #1a7f4b; background: #e6f6ec; border-radius: 5px; padding: 1px 6px; }
+.admin-ref-noorder { font-size: 10px; color: #b08; background: #fbeef4; border-radius: 5px; padding: 1px 6px; }
+.admin-ref-card-sub { font-size: 11px; color: #8a7c66; margin-top: 2px; }
+.admin-order-referby { color: #b5651d; font-weight: 600; }
 
 .admin-ref-ranking { margin-top: 22px; }
 .admin-ref-sub { font-size: 15px; font-weight: 800; margin: 0 0 10px; color: #2e2318; }
