@@ -4276,6 +4276,10 @@
     var targets = (state.orders || []).filter(function (o) {
       return normOrderStatus(o.status) === "shipped" && o.trackingNo;
     });
+    // 自动刷新跳过顺丰：代发隐私号注定查不到（验证码错误），别每次白试还弹失败。手动仍可尝试。
+    if (auto) targets = targets.filter(function (o) {
+      return o.courierCode !== "shunfeng" && !/顺丰/.test(o.trackingCompany || "");
+    });
     if (!targets.length) { if (!auto) toast("本页没有可刷新的运输中订单", "error"); return; }
     var btn = document.getElementById("pcOrdersBulkLogisticsBtn");
     if (btn) btn.disabled = true;

@@ -2174,7 +2174,9 @@ async function handleQueryLogistics(orderId) {
 
 // 一键刷新本页所有「运输中」订单的物流（老单批量补轨迹）。顺序执行，避免高频打快递100。
 async function batchQueryShippedLogistics(auto) {
-  const targets = (state.orders || []).filter((o) => normOrderStatus(o.status) === "shipped" && o.trackingNo);
+  let targets = (state.orders || []).filter((o) => normOrderStatus(o.status) === "shipped" && o.trackingNo);
+  // 自动刷新跳过顺丰：代发隐私号注定查不到（验证码错误），别每次白试还弹失败。手动仍可尝试。
+  if (auto) targets = targets.filter((o) => o.courierCode !== "shunfeng" && !/顺丰/.test(o.trackingCompany || ""));
   if (!targets.length) { if (!auto) adminToast("本页没有可刷新的运输中订单", "error"); return; }
   const btn = adminOrdersBulkLogisticsButton;
   if (btn) btn.disabled = true;
