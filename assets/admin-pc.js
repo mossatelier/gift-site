@@ -3542,7 +3542,7 @@
     // 刷新（强制重拉当前页）。
     var refreshEl = document.getElementById("pcOrdersRefreshBtn");
     if (refreshEl) {
-      refreshEl.addEventListener("click", function () { loadOrders(true); });
+      refreshEl.addEventListener("click", function () { loadOrders(true); loadBadges(); });
     }
     var bulkLogEl = document.getElementById("pcOrdersBulkLogisticsBtn");
     if (bulkLogEl) {
