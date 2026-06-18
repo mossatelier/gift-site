@@ -1,7 +1,19 @@
 {
   "libVersion": "3.16.1",
   "projectname": "%E5%8A%A0%E5%8A%A0%E5%8A%9E%E5%8D%A1%E7%A4%BC%E5%93%81%E9%A6%86",
-  "condition": {},
+  "condition": {
+    "miniprogram": {
+      "list": [
+        {
+          "name": "pages/login/login",
+          "pathName": "pages/login/login",
+          "query": "",
+          "scene": null,
+          "launchMode": "default"
+        }
+      ]
+    }
+  },
   "setting": {
     "urlCheck": true,
     "coverView": false,

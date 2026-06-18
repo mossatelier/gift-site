@@ -118,6 +118,19 @@ async function reconcileReferralByPhone(openid, phone) {
   }
 }
 
+// 被推荐人下单领礼 = 在走流程：把他自己那条推荐记录从「待审核」推进到「办卡中」。
+// 只推进「待审核」，绝不动「开户成功」(那是发奖励档，必须人工核银行办卡后才标)，也不发任何奖励。
+async function advanceRefereeStatusOnOrder(openid) {
+  if (!openid) return;
+  try {
+    await db.collection('referrals')
+      .where({ refereeOpenid: openid, status: '待审核' })
+      .update({ data: { status: '办卡中', updatedAt: new Date() } });
+  } catch (err) {
+    console.warn('[submit-order] advanceRefereeStatusOnOrder failed', err);
+  }
+}
+
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext();
   if (!OPENID) return { success: false, error: '未登录' };
@@ -239,5 +252,7 @@ exports.main = async (event, context) => {
   await sendOrderPlacedNotify(OPENID, add._id, order);
   // 按手机号对账推荐关系（把手动录入的记录关联到本人 openid + 补上线 + 去重；失败不阻断）
   await reconcileReferralByPhone(OPENID, addressSnapshot.phone);
+  // 下单后把自己那条推荐记录「待审核→办卡中」（不发奖励；失败不阻断）
+  await advanceRefereeStatusOnOrder(OPENID);
   return { success: true, orderId: add._id, itemCount: itemSnapshots.length, totalCards };
 };
