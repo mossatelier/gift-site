@@ -1143,14 +1143,26 @@ async function referralList(body) {
   }
   // 关联被推荐人的订单 → 带出真名/手机/下单数（扫码绑定的下线本来只有微信昵称没手机）
   const contact = await ordersContactByOpenid(rows.map(r => r.refereeOpenid));
+  // 被推荐人的后台备注名（adminAlias，存在 users 上）
+  const refereeOpenids = Array.from(new Set(rows.map(r => r.refereeOpenid).filter(Boolean)));
+  const aliasMap = {};
+  for (let i = 0; i < refereeOpenids.length; i += 100) {
+    const batch = refereeOpenids.slice(i, i + 100);
+    try {
+      const ur = await db.collection(USERS).where({ openid: _.in(batch) }).limit(200).get();
+      (ur.data || []).forEach(u => { aliasMap[u.openid] = u.adminAlias || ''; });
+    } catch (e) { /* ignore */ }
+  }
   return rows.map(r => {
     const c = contact[r.refereeOpenid] || null;
     return {
       _id: r._id,
+      refereeOpenid: r.refereeOpenid || '',
       referrerCode: r.referrerCode || (nickMap[r.referrerOpenid] && nickMap[r.referrerOpenid].code) || '',
       referrerNick: (nickMap[r.referrerOpenid] && nickMap[r.referrerOpenid].nick) || '',
       refereeNick: r.refereeNick || '',
       refereePhone: r.refereePhone || '',
+      alias: aliasMap[r.refereeOpenid] || '',  // 后台备注名
       realName: c ? c.recipient : '',          // 订单里的真实收件人
       realPhone: c ? c.phone : '',             // 订单里的真实手机
       orderCount: c ? c.orderCount : 0,        // 下过几单（>0 说明此人真在领礼）
@@ -1302,6 +1314,7 @@ async function referralTree() {
     return {
       id: u.openid,
       nick: u.nickName || '微信用户',
+      alias: u.adminAlias || '',
       code: u.referralCode || '',
       parent: u.referredByOpenid || '',
       status: statusByReferee[u.openid] || '',
@@ -1312,6 +1325,16 @@ async function referralTree() {
     };
   });
   return { nodes, truncated: users.length >= 1000 };
+}
+
+// 给被推荐人设后台备注名（adminAlias，存 users 上）。
+// 用于扫码进来但没授权昵称的「微信用户」——管理员手动标个认得的名字，树/列表统一显示。
+async function referralSetAlias(body) {
+  const openid = String(body.openid || '').trim();
+  const alias = String(body.alias || '').trim().slice(0, 30);
+  if (!openid) throw new Error('缺少 openid');
+  await db.collection(USERS).where({ openid }).update({ data: { adminAlias: alias, updatedAt: new Date() } });
+  return { openid, alias };
 }
 
 async function referralRanking() {
@@ -1480,6 +1503,9 @@ exports.main = async (event) => {
         break;
       case 'referral-tree':
         data = await referralTree(body);
+        break;
+      case 'referral-set-alias':
+        data = await referralSetAlias(body);
         break;
       case 'referral-ranking':
         data = await referralRanking(body);

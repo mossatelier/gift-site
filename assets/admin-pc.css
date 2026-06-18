@@ -3134,6 +3134,9 @@ body.pc-admin {
 .pc-orders-referby { color: #b5651d; font-weight: 600; margin-top: 4px; }
 .pc-tree-unbind { margin-left: 10px; height: 26px; padding: 0 10px; border: 1px solid #e3b4a6; border-radius: 7px; background: #fff; color: #c0392b; font-size: 12px; font-weight: 700; cursor: pointer; }
 .pc-tree-unbind:hover { background: #fdecea; }
+.pc-tree-alias { height: 24px; padding: 0 8px; border: 1px solid #d9cdb6; border-radius: 6px; background: #fff; color: #8a6d2b; font-size: 12px; cursor: pointer; }
+.pc-tree-alias:hover { background: #f9f4e6; }
+.pc-tree-aliastag { font-size: 10px; color: #8a6d2b; background: #f6efdd; border-radius: 5px; padding: 1px 6px; }
 .pc-ref-list-head {
   padding: 8px 14px;
   font-size: 12px;

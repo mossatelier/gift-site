@@ -1415,7 +1415,7 @@ function renderRefAdminList() {
   el.innerHTML = refAdminState.rows.map((r) => `
     <div class="admin-ref-card">
       <div class="admin-ref-card-top">
-        <span class="admin-ref-friend">${refEsc(r.realName || r.refereeNick || "客户")}</span>
+        <span class="admin-ref-friend">${refEsc(r.alias || r.realName || r.refereeNick || "客户")}</span>
         <span class="admin-ref-phone">${refEsc(r.realPhone || r.refereePhone || "")}</span>
         ${r.orderCount > 0 ? `<span class="admin-ref-ordered">已下单${r.orderCount}</span>` : `<span class="admin-ref-noorder">未下单</span>`}
       </div>
@@ -1463,9 +1463,11 @@ async function loadRefAdminTree() {
         : (n.status ? `<span class="admin-tree-st">${refEsc(n.status)}</span>` : "");
       const sub = n.children.length ? `<span class="admin-tree-cnt">下${n.children.length}</span>` : "";
       const ph = n.phone ? `<span class="admin-tree-phone">${refEsc(n.phone)}</span>` : "";
-      const nm = refEsc(n.realName || n.nick);
-      const unbind = n.parent ? `<button class="admin-tree-unbind" type="button" data-tree-unbind="${refEsc(n.id)}" data-tree-name="${refEsc(n.realName || n.nick)}">解绑</button>` : "";
-      let html = `<div class="admin-tree-node" style="margin-left:${depth * 16}px"><span class="admin-tree-dot"></span><span class="admin-tree-nick">${nm}</span>${ph}<span class="admin-tree-code">${refEsc(n.code)}</span>${ok}${sub}${unbind}</div>`;
+      const dispName = n.alias || n.realName || n.nick;
+      const nm = refEsc(dispName);
+      const aliasBtn = `<button class="admin-tree-alias" type="button" data-tree-alias="${refEsc(n.id)}" data-tree-cur="${refEsc(n.alias || "")}">✎</button>`;
+      const unbind = n.parent ? `<button class="admin-tree-unbind" type="button" data-tree-unbind="${refEsc(n.id)}" data-tree-name="${refEsc(dispName)}">解绑</button>` : "";
+      let html = `<div class="admin-tree-node" style="margin-left:${depth * 16}px"><span class="admin-tree-dot"></span><span class="admin-tree-nick">${nm}</span>${aliasBtn}${ph}<span class="admin-tree-code">${refEsc(n.code)}</span>${ok}${sub}${unbind}</div>`;
       n.children.forEach((c) => { html += renderNode(c, depth + 1); });
       return html;
     };
@@ -1559,6 +1561,19 @@ async function doRefAdminUnbindOpenid(openid, name) {
   }
 }
 
+async function doRefAdminSetAlias(openid, cur) {
+  if (!openid) return;
+  const v = window.prompt("给这个人设个备注名（方便认人，留空可清除）：", cur || "");
+  if (v === null) return;
+  try {
+    await callAdminOrders("referral-set-alias", { openid, alias: v.trim() });
+    adminToast("已保存备注");
+    loadReferralAdmin();
+  } catch (e) {
+    window.alert(e.message);
+  }
+}
+
 function bindRefAdmin() {
   if (refAdminState.bound) return;
   refAdminState.bound = true;
@@ -1581,6 +1596,8 @@ function bindRefAdmin() {
   });
   const tree = document.getElementById("adminRefTree");
   if (tree) tree.addEventListener("click", (e) => {
+    const al = e.target.closest("[data-tree-alias]");
+    if (al) { doRefAdminSetAlias(al.getAttribute("data-tree-alias"), al.getAttribute("data-tree-cur")); return; }
     const ub = e.target.closest("[data-tree-unbind]");
     if (ub) doRefAdminUnbindOpenid(ub.getAttribute("data-tree-unbind"), ub.getAttribute("data-tree-name"));
   });

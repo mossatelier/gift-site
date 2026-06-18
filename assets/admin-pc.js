@@ -4461,7 +4461,7 @@
         return '<div class="pc-ref-row">' +
           '<div class="pc-ref-cell pc-ref-ref"><span class="pc-ref-code">' + esc(r.referrerCode || "-") +
             '</span><span class="pc-ref-nick">' + esc(r.referrerNick || "") + "</span></div>" +
-          '<div class="pc-ref-cell pc-ref-friend"><span class="pc-ref-fnick">' + esc(r.realName || r.refereeNick || "-") +
+          '<div class="pc-ref-cell pc-ref-friend"><span class="pc-ref-fnick">' + esc(r.alias || r.realName || r.refereeNick || "-") +
             (r.orderCount > 0 ? ' <span class="pc-ref-ordered">已下单' + r.orderCount + '</span>' : ' <span class="pc-ref-noorder">未下单</span>') +
             '</span><span class="pc-ref-phone">' + esc(r.realPhone || r.refereePhone || "") +
             ((r.realName && r.refereeNick && r.realName !== r.refereeNick) ? '　微信：' + esc(r.refereeNick) : "") + "</span></div>" +
@@ -4507,12 +4507,16 @@
             var sub = n.children.length ? '<span class="pc-tree-cnt">直接下线 ' + n.children.length + "</span>" : "";
             var ph = n.phone ? '<span class="pc-tree-phone">' + esc(n.phone) + "</span>" : "";
             var ordered = n.orderCount > 0 ? '<span class="pc-tree-ordered">已下单</span>' : "";
+            var dispName = n.alias || n.realName || n.nick;
+            var aliasBtn = '<button class="pc-tree-alias" type="button" data-tree-alias="' + esc(n.id) +
+              '" data-tree-cur="' + esc(n.alias || "") + '" title="备注名">✎</button>';
             var unbind = n.parent ? '<button class="pc-tree-unbind" type="button" data-tree-unbind="' + esc(n.id) +
-              '" data-tree-name="' + esc(n.realName || n.nick) + '">解绑</button>' : "";
+              '" data-tree-name="' + esc(dispName) + '">解绑</button>' : "";
             var html = '<div class="pc-tree-node" style="margin-left:' + (depth * 22) + 'px">' +
               '<span class="pc-tree-dot"></span>' +
-              '<span class="pc-tree-nick">' + esc(n.realName || n.nick) + "</span>" +
-              ph + '<span class="pc-tree-code">' + esc(n.code) + "</span>" +
+              '<span class="pc-tree-nick">' + esc(dispName) + "</span>" +
+              (n.alias ? '<span class="pc-tree-aliastag">备注</span>' : "") +
+              aliasBtn + ph + '<span class="pc-tree-code">' + esc(n.code) + "</span>" +
               ordered + ok + sub + unbind + "</div>";
             n.children.forEach(function (c) { html += renderNode(c, depth + 1); });
             return html;
@@ -4590,6 +4594,15 @@
         .catch(function (e) { window.alert(e.message); });
     }
 
+    function doSetAlias(openid, cur) {
+      if (!openid) return;
+      var v = window.prompt("给这个人设个备注名（方便认人，留空可清除）：", cur || "");
+      if (v === null) return;
+      Core.callAdminOrders("referral-set-alias", { openid: openid, alias: v.trim() })
+        .then(function () { toast("已保存备注"); loadReferral(); })
+        .catch(function (e) { window.alert(e.message); });
+    }
+
     function exportCsv() {
       var rows = refState.rows || [];
       if (!rows.length) { window.alert("当前无数据可导出"); return; }
@@ -4624,6 +4637,8 @@
       });
       var tree = $("pcRefTree");
       if (tree) tree.addEventListener("click", function (e) {
+        var al = e.target.closest("[data-tree-alias]");
+        if (al) { doSetAlias(al.getAttribute("data-tree-alias"), al.getAttribute("data-tree-cur")); return; }
         var ub = e.target.closest("[data-tree-unbind]");
         if (ub) doUnbindOpenid(ub.getAttribute("data-tree-unbind"), ub.getAttribute("data-tree-name"));
       });
