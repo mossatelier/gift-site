@@ -1,4 +1,5 @@
 const wishlist = require('./utils/wishlist.js');
+const auth = require('./utils/auth.js');
 
 App({
   onLaunch(options) {
@@ -29,7 +30,25 @@ App({
     if (!code || this._bindTriedFor === code) return;
     this._bindTriedFor = code;
     wx.cloud.callFunction({ name: 'referral', data: { action: 'bind-referrer', code } })
+      .then((res) => {
+        const r = res && res.result;
+        // 仅「刚刚新绑定的新用户」才引导（已绑过 already / 老用户 skipped 都不打扰）
+        if (r && r.success && !r.already && !r.skipped) this._promptProfileForReferral();
+      })
       .catch((err) => { console.warn('bind-referrer failed', err); });
+  },
+
+  // 新用户扫码绑定后引导完善昵称头像：否则后台只能看到「微信用户」分不清是谁。
+  // 微信规则下昵称只能用户主动授权，做不到静默/强制，这里是强引导（可被用户关掉）。
+  _promptProfileForReferral() {
+    if (auth.isLoggedIn && auth.isLoggedIn()) return;  // 已填过昵称就不打扰
+    setTimeout(() => {
+      if (auth.isLoggedIn && auth.isLoggedIn()) return;
+      wx.navigateTo({
+        url: '/pages/login/login?from=ref&redirect=' + encodeURIComponent('/pages/index/index'),
+        fail: () => {}
+      });
+    }, 1500);  // 等首页渲染好再引导，体验更顺
   },
 
   _extractRefCode(options) {

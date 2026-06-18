@@ -5,12 +5,14 @@ Page({
     avatarUrl: '',
     nickName: '',
     submitting: false,
-    redirect: ''
+    redirect: '',
+    fromRef: false
   },
 
   onLoad(query) {
     this.setData({
-      redirect: query && query.redirect ? decodeURIComponent(query.redirect) : ''
+      redirect: query && query.redirect ? decodeURIComponent(query.redirect) : '',
+      fromRef: !!(query && query.from === 'ref')
     });
     // 已登录直接跳回
     if (auth.isLoggedIn()) {

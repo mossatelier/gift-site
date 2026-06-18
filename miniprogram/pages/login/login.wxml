@@ -1,7 +1,7 @@
 <view class="page-shell login-page">
   <view class="login-card">
-    <text class="login-title">微信登录</text>
-    <text class="login-sub">填写头像和昵称后可提交申请、管理订单</text>
+    <text class="login-title">{{fromRef ? '完善你的昵称头像' : '微信登录'}}</text>
+    <text class="login-sub">{{fromRef ? '好友邀请你来领礼 · 填写昵称头像，方便客服为你服务' : '填写头像和昵称后可提交申请、管理订单'}}</text>
 
     <button
       class="avatar-btn"
