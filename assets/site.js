@@ -420,7 +420,7 @@ function productCard(item) {
     <article class="product-card">
       <a class="product-card-link" href="${escapeHtml(detailHref)}">
         <div class="product-media">
-          <img class="product-image" src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.title)}">
+          <img class="product-image" src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.title)}" loading="lazy" decoding="async">
         </div>
         <div class="product-body">
           <h3 class="product-title"><span class="${tagClass}">${tagText}</span>${escapeHtml(item.title)}</h3>
