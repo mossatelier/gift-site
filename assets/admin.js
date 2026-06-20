@@ -900,7 +900,8 @@ async function uploadFile(file) {
     { method: "POST", body: uploadTarget },
     {
       "Content-Type": uploadTarget.type || "application/octet-stream",
-      "x-upsert": "true"
+      "x-upsert": "true",
+      "cache-control": "max-age=31536000"  // 缓存1年：图内容不变，让浏览器缓存，省 Supabase 出站流量
     }
   );
 
