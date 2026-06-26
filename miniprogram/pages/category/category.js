@@ -1,4 +1,4 @@
-const { listProducts, getCategoryOrder } = require('../../utils/db.js');
+const { listProducts, countProducts, getCategoryOrder } = require('../../utils/db.js');
 const { categories, subcategories, labelOfCategory, sortCategories } = require('../../config.js');
 const wishlist = require('../../utils/wishlist.js');
 const floatBtn = require('../../utils/floatBtn.js');
@@ -70,17 +70,25 @@ Page({
       currentCategoryLabel: labelOfCategory(this.data.currentCategory)
     });
     try {
-      const raw = await listProducts({
+      const where = {
         category: this.data.currentCategory,
-        subcategory: this.data.currentSub || null,
-        limit: 100,
-        sort: 'hot'   // 按点击量(viewCount)从高到低
-      });
+        subcategory: this.data.currentSub || null
+      };
+      // 列表只取一部分（云开发客户端 limit 上限 20，不全加载）；
+      // 总数单独用 count() 查真实值（不受 20 限制），用于"查看 N 件全部"。
+      const [raw, total] = await Promise.all([
+        listProducts({ ...where, limit: 100, sort: 'hot' }),
+        countProducts(where).catch(() => null)
+      ]);
       const items = raw.map(it => ({
         ...it,
         _metaText: buildCategoryMetaText(it, this.data.currentCategory)
       }));
-      this.setData({ items, categoryCount: items.length, loading: false });
+      this.setData({
+        items,
+        categoryCount: (total != null ? total : items.length),
+        loading: false
+      });
     } catch (err) {
       console.error('加载分类商品失败', err);
       this.setData({ loading: false });

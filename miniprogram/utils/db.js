@@ -109,6 +109,14 @@ async function getProductsByIds(ids) {
   return ids.map(id => map[id]).filter(Boolean);
 }
 
+// 取热门：按「下单量」降序（走云函数 hot-products 聚合订单，与后台"下单商品统计"同口径）。
+// 失败时由调用方回退到 listHotProducts（按浏览量）。
+async function listHotByOrders(limit = 6) {
+  const r = await wx.cloud.callFunction({ name: 'hot-products', data: { limit } });
+  const arr = (r && r.result && r.result.products) || [];
+  return arr.map(normalize);
+}
+
 // 取热门：按 viewCount 降序，并列时按 sortOrder 升序（与 H5 一致）
 async function listHotProducts(limit = 6) {
   const res = await products()
@@ -349,6 +357,7 @@ module.exports = {
   getProductById,
   getProductsByIds,
   listHotProducts,
+  listHotByOrders,
   listNewProducts,
   listBanks,
   getCategoryOrder,

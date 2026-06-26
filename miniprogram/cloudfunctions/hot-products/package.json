@@ -1,0 +1,9 @@
+{
+  "name": "hot-products",
+  "version": "1.0.0",
+  "description": "首页热门兑换：按订单下单量降序取前N",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}

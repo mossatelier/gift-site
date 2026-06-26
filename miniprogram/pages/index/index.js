@@ -1,4 +1,4 @@
-const { listHotProducts, listNewProducts, getHomeBanners, getCardsBankLabels } = require('../../utils/db.js');
+const { listHotProducts, listHotByOrders, listNewProducts, getHomeBanners, getCardsBankLabels } = require('../../utils/db.js');
 const wishlist = require('../../utils/wishlist.js');
 const floatBtn = require('../../utils/floatBtn.js');
 
@@ -49,7 +49,7 @@ Page({
     this.setData({ loading: true });
     try {
       const results = await Promise.all([
-        listHotProducts(6),
+        listHotByOrders(6).catch(() => listHotProducts(6)),  // 下单排名；云函数失败则回退浏览量
         listNewProducts(6),
         getHomeBanners().catch(() => []),
         getCardsBankLabels().catch(() => ({}))
