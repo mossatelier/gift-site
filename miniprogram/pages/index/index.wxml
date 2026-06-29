@@ -216,4 +216,12 @@
       <view class="qr-close" bindtap="hideQrcode">关闭</view>
     </view>
   </view>
+
+  <!-- 开场使用指南弹窗：打开小程序自动弹，3 秒倒计时后点卡片（我知道了）才能关 -->
+  <view class="guide-mask" wx:if="{{showGuide}}" catchtap="noopGuide">
+    <view class="guide-box" bindtap="closeGuide">
+      <image class="guide-img" src="/images/opening.jpg" mode="widthFix"></image>
+      <view class="guide-countdown" wx:if="{{!guideClosable}}">{{guideCountdown}}s</view>
+    </view>
+  </view>
 </view>

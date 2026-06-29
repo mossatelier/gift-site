@@ -18,6 +18,10 @@ Page({
     showQr: false,
     floatStyle: '',
     showBackTop: false,
+    // 开场「使用指南」弹窗：打开小程序自动弹，倒计时 3 秒后才能关
+    showGuide: false,
+    guideCountdown: 3,
+    guideClosable: false,
     // 积分快捷跳转（与全部礼品页的区间分档一致）；bank 由后台配置覆盖，默认见 CARDS_BANK_DEFAULT
     cardsQuick: [
       { key: '6',    label: '6分',     bank: CARDS_BANK_DEFAULT['6'] },
@@ -35,6 +39,34 @@ Page({
 
   onLoad() {
     this.loadAll();
+    this.openGuide();
+  },
+
+  // 开场使用指南：弹出 + 3 秒倒计时，倒计时结束「我知道了」才可点
+  openGuide() {
+    this.setData({ showGuide: true, guideCountdown: 3, guideClosable: false });
+    this._guideTimer && clearInterval(this._guideTimer);
+    this._guideTimer = setInterval(() => {
+      const n = this.data.guideCountdown - 1;
+      if (n <= 0) {
+        clearInterval(this._guideTimer);
+        this.setData({ guideCountdown: 0, guideClosable: true });
+      } else {
+        this.setData({ guideCountdown: n });
+      }
+    }, 1000);
+  },
+
+  closeGuide() {
+    if (!this.data.guideClosable) return; // 倒计时没走完不让关
+    this._guideTimer && clearInterval(this._guideTimer);
+    this.setData({ showGuide: false });
+  },
+
+  noopGuide() {}, // 挡住点击穿透
+
+  onUnload() {
+    this._guideTimer && clearInterval(this._guideTimer);
   },
 
   onShow() {
