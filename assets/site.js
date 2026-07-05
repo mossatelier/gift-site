@@ -184,6 +184,8 @@ function cardsBucket(key) {
 function cardsMatch(item) {
   const b = cardsBucket(state.cards);
   if (!b) return true;
+  // 积分筛选只对「办卡可兑」生效：邀请可兑(referral)的数字是推荐人数不是积分，排除避免口径混淆
+  if (item.category === "referral") return false;
   const n = Number(item.cardsNeeded) || 0;
   if (n < b.min) return false;
   if (b.max != null && n > b.max) return false;

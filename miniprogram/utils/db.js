@@ -15,9 +15,13 @@ function products() {
 function _buildWhere({ category, subcategory, keyword, cardsMin, cardsMax }) {
   const _ = db().command;
   const cond = { isActive: true };
+  const hasCards = cardsMin != null || cardsMax != null;
   if (category && category !== 'all') {
     // category 支持数组（如「母婴好物」大类 = 一组细分类），用 in 查询
     cond.category = Array.isArray(category) ? _.in(category) : category;
+  } else if (hasCards) {
+    // 积分筛选只对「办卡可兑」生效：邀请可兑(referral)的数字是推荐人数不是积分，排除避免口径混淆
+    cond.category = _.neq('referral');
   }
   if (subcategory) cond.subcategory = subcategory;
   // 积分区间筛选（cardsNeeded 闭区间；只传一端则单边）
