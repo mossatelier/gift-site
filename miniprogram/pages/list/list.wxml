@@ -56,11 +56,11 @@ module.exports = { cardsLabel: cardsLabel };
         bindtap="onCategoryTap"
       >{{item.label}}</view>
     </scroll-view>
-    <view class="more-chip {{(showMore || moreLabel) ? 'active' : ''}}" bindtap="toggleMore">{{moreLabel || '更多'}} {{showMore ? '▴' : '▾'}}</view>
+    <view wx:if="{{moreCats.length}}" class="more-chip {{(showMore || moreLabel) ? 'active' : ''}}" bindtap="toggleMore">{{moreLabel || '更多'}} {{showMore ? '▴' : '▾'}}</view>
   </view>
 
   <!-- 更多分类下拉面板 -->
-  <view class="more-panel" wx:if="{{showMore}}">
+  <view class="more-panel" wx:if="{{showMore && moreCats.length}}">
     <view
       class="more-item {{currentCategory === item.value ? 'active' : ''}}"
       wx:for="{{moreCats}}"
@@ -70,17 +70,27 @@ module.exports = { cardsLabel: cardsLabel };
     >{{item.label}}</view>
   </view>
 
-  <!-- 排序 chip 同排（积分 / 最新） -->
+  <!-- 快捷行：全部礼品 / 邀请有礼（分类）+ 积分排序 / 礼品上新（排序） -->
   <view class="sort-chips">
+    <view
+      class="chip-item {{currentCategory === 'all' ? 'active' : ''}}"
+      data-value="all"
+      bindtap="onCategoryTap"
+    >全部礼品</view>
+    <view
+      class="chip-item {{currentCategory === 'referral' ? 'active' : ''}}"
+      data-value="referral"
+      bindtap="onCategoryTap"
+    >邀请有礼</view>
     <view
       class="chip-item chip-sort {{(sort === 'cards-asc' || sort === 'cards-desc') ? 'active' : ''}}"
       bindtap="onCardsSortToggle"
-    >积分{{sort === 'cards-asc' ? ' ↑' : (sort === 'cards-desc' ? ' ↓' : '')}}</view>
+    >积分排序{{sort === 'cards-asc' ? ' ↑' : (sort === 'cards-desc' ? ' ↓' : '')}}</view>
     <view
       class="chip-item {{sort === 'newest' ? 'active' : ''}}"
       data-sort="newest"
       bindtap="onSortChange"
-    >最新</view>
+    >礼品上新</view>
   </view>
 
   <!-- 二级筛选（选中有二级的分类时显示） -->

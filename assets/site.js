@@ -140,19 +140,16 @@ function buildPointsText(item) {
 const subcategories = (config.subcategories && typeof config.subcategories === "object") ? config.subcategories : {};
 // 「母婴好物」虚拟大类 = 这一组细分类
 const MOMBABY_GROUP = ["stroller", "playpen", "carseat", "carrier", "earlyedu", "toy", "chairtable", "ride"];
-// 全部商品页顶部平铺的大类
+// 全部商品页顶部平铺的大类（全部礼品/邀请有礼 移到下方快捷行；电子/家电从「更多」提上来平铺）
 const DISPLAY_CATS = [
-  { value: "all", label: "全部礼品" },
-  { value: "referral", label: "推荐有礼" },
   { value: "mombaby", label: "母婴好物" },
   { value: "pet", label: "宠物用品" },
-  { value: "camping", label: "户外露营" }
-];
-// 「更多」下拉里的大类
-const MORE_CATS = [
-  { value: "digital", label: "电子数码" },
+  { value: "camping", label: "户外露营" },
+  { value: "digital", label: "电子产品" },
   { value: "appliance", label: "家用电器" }
 ];
+// 「更多」下拉已清空（保留结构，以后有新大类再放回来）
+const MORE_CATS = [];
 // 某展示分类的二级 [{value,label}]：mombaby→8 细类；referral/toy/ride→subcategories
 function subItemsOf(display) {
   if (display === "mombaby") return MOMBABY_GROUP.map((v) => ({ value: v, label: categoryLabel(v) }));
@@ -554,11 +551,19 @@ function updateChipRow() {
   }
 
   const priceArrow = state.priceDirection === "asc" ? " ↑" : " ↓";
+  // 快捷行：全部礼品/邀请有礼（分类）+ 积分排序/礼品上新（排序）
+  const quickCatHtml = [
+    { value: "all", label: "全部礼品" },
+    { value: "referral", label: "邀请有礼" }
+  ].map((item) => {
+    const a = item.value === state.category;
+    return `<button class="chip-item ${a ? "active" : ""}" type="button" data-chip="${escapeHtml(item.value)}">${escapeHtml(item.label)}</button>`;
+  }).join("");
   const sortChips = [
-    { value: "price", label: state.sort === "price" ? `积分${priceArrow}` : "积分", active: state.sort === "price" },
-    { value: "newest", label: "最新", active: state.sort === "newest" }
+    { value: "price", label: state.sort === "price" ? `积分排序${priceArrow}` : "积分排序", active: state.sort === "price" },
+    { value: "newest", label: "礼品上新", active: state.sort === "newest" }
   ];
-  const sortHtml = sortChips.map((item) => {
+  const sortHtml = quickCatHtml + sortChips.map((item) => {
     return `<button class="chip-item chip-sort ${item.active ? "active" : ""}" type="button" data-chip-sort="${escapeHtml(item.value)}">${escapeHtml(item.label)}</button>`;
   }).join("");
 
@@ -568,13 +573,15 @@ function updateChipRow() {
     return `<button class="chip-item ${isActive ? "active" : ""}" type="button" data-chip="${escapeHtml(item.value)}">${escapeHtml(item.label)}</button>`;
   }).join("");
 
-  // 「更多」chip：选中的是更多里的分类时高亮并显示其名
+  // 「更多」chip：MORE_CATS 为空时整体不渲染（结构保留，以后有新大类再放回来）
   const moreActive = MORE_CATS.some((c) => c.value === state.category);
   const moreLabel = moreActive ? displayCatLabel(state.category) : "更多";
-  const moreChip = `<button class="chip-item chip-more ${moreActive || state.showMore ? "active" : ""}" type="button" data-chip-more>${escapeHtml(moreLabel)} ${state.showMore ? "▴" : "▾"}</button>`;
+  const moreChip = MORE_CATS.length
+    ? `<button class="chip-item chip-more ${moreActive || state.showMore ? "active" : ""}" type="button" data-chip-more>${escapeHtml(moreLabel)} ${state.showMore ? "▴" : "▾"}</button>`
+    : "";
 
   // 「更多」下拉面板
-  const morePanel = state.showMore
+  const morePanel = (state.showMore && MORE_CATS.length)
     ? `<div class="chip-more-panel">${MORE_CATS.map((item) => {
         const a = item.value === state.category;
         return `<button class="chip-item ${a ? "active" : ""}" type="button" data-chip="${escapeHtml(item.value)}">${escapeHtml(item.label)}</button>`;

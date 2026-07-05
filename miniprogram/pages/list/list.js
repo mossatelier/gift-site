@@ -9,19 +9,16 @@ const PAGE_SIZE = 20;
 const MOMBABY_GROUP = ['stroller', 'playpen', 'carseat', 'carrier', 'earlyedu', 'toy', 'chairtable', 'ride'];
 const MOMBABY_SUBS = MOMBABY_GROUP.map(v => ({ value: v, label: labelOfCategory(v) }));
 
-// 顶部平铺的展示分类
+// 顶部平铺的展示分类（全部礼品/邀请有礼 移到下方快捷行；电子/家电从「更多」提上来平铺）
 const DISPLAY_CATS = [
-  { value: 'all', label: '全部礼品' },
-  { value: 'referral', label: '邀请有礼' },
   { value: 'mombaby', label: '母婴好物' },
   { value: 'pet', label: '宠物用品' },
-  { value: 'camping', label: '户外露营' }
-];
-// 「更多」下拉里的分类
-const MORE_CATS = [
-  { value: 'digital', label: '电子数码' },
+  { value: 'camping', label: '户外露营' },
+  { value: 'digital', label: '电子产品' },
   { value: 'appliance', label: '家用电器' }
 ];
+// 「更多」下拉已清空（保留结构，以后有新大类再放回来）
+const MORE_CATS = [];
 
 // 积分区间分档；11+ 面板不显示(hidden)但保留匹配——首页「按积分快速兑换」的 11分以上 跳转仍生效
 const CARDS_BUCKETS = [

@@ -187,16 +187,17 @@
   border-color: transparent;
 }
 
+/* 主分类 chip：字号/内边距/间距与下方「积分排序/礼品上新」(.chip-item) 一致 */
 .category-chip {
   display: inline-block;
   background: rgba(255, 255, 255, 0.92);
   color: var(--text);
-  font-size: 22rpx;
+  font-size: 24rpx;
   font-weight: 700;
   letter-spacing: 0;
-  padding: 10rpx 18rpx;
+  padding: 10rpx 22rpx;
   border-radius: 999rpx;
-  margin-right: 8rpx;
+  margin-right: 10rpx;
   border: 1rpx solid rgba(234, 223, 206, 0.9);
   box-shadow: 0 4rpx 14rpx rgba(46, 35, 18, 0.05);
 }
