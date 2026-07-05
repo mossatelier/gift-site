@@ -189,14 +189,28 @@ function cardsMatch(item) {
   if (b.max != null && n > b.max) return false;
   return true;
 }
+// 积分筛选下拉：chip 只是待选(pendingCards)，点「确认」才写回 state.cards
+let pendingCards = state.cards;
+const cardsFilterToggle = document.getElementById("cardsFilterToggle");
+const cardsFilterPanel = document.getElementById("cardsFilterPanel");
 function renderCardsFilter() {
   const el = document.getElementById("cardsFilter");
   if (!el) return;
-  const chips = CARDS_BUCKETS.map((b) =>
-    `<button class="cards-chip ${state.cards === b.key ? "active" : ""}" type="button" data-cards-filter="${escapeHtml(b.key)}">${b.label}</button>`
+  el.innerHTML = CARDS_BUCKETS.map((b) =>
+    `<button class="cards-chip ${pendingCards === b.key ? "active" : ""}" type="button" data-cards-filter="${escapeHtml(b.key)}">${b.label}</button>`
   ).join("");
-  const reset = `<button class="cards-chip cards-chip-reset ${state.cards ? "" : "disabled"}" type="button" data-cards-filter="">重置</button>`;
-  el.innerHTML = chips + reset;
+}
+function closeCardsFilterPanel() {
+  if (cardsFilterPanel) cardsFilterPanel.hidden = true;
+}
+// 「筛选」按钮：有筛选生效时高亮；推荐有礼分类无积分概念 → 隐藏入口并收起面板
+function updateCardsFilterUI() {
+  renderCardsFilter();
+  if (cardsFilterToggle) {
+    cardsFilterToggle.classList.toggle("active", Boolean(state.cards));
+    cardsFilterToggle.hidden = state.category === "referral";
+  }
+  if (state.category === "referral") closeCardsFilterPanel();
 }
 
 function categoryMatch(item) {
@@ -456,7 +470,7 @@ function renderProducts() {
   updateCategoryNav();
   updateSortButtons();
   updateChipRow();
-  renderCardsFilter();
+  updateCardsFilterUI();
 }
 
 function renderHomeSections() {
@@ -1124,7 +1138,7 @@ function bindEvents() {
     state.sub = "";
     state.showMore = false;
     // 推荐有礼按「推荐人数」换，无积分概念 → 切过去时重置积分筛选
-    if (state.category === "referral") state.cards = "";
+    if (state.category === "referral") { state.cards = ""; pendingCards = ""; }
 
     if (categoryFilter) {
       categoryFilter.value = state.category;
@@ -1187,6 +1201,55 @@ function bindEvents() {
   track?.addEventListener("touchend", startAutoplay, { passive: true });
 
   document.addEventListener("click", (event) => {
+    // 「筛选 ▾」按钮：开合下拉面板（打开时以当前生效值初始化待选）
+    if (cardsFilterToggle && event.target.closest("#cardsFilterToggle")) {
+      event.preventDefault();
+      if (cardsFilterPanel) {
+        if (cardsFilterPanel.hidden) {
+          pendingCards = state.cards;
+          renderCardsFilter();
+          cardsFilterPanel.hidden = false;
+        } else {
+          cardsFilterPanel.hidden = true;
+        }
+      }
+      return;
+    }
+
+    // 积分档 chip：只改待选（再点同档取消），不立即筛
+    const cardsChip = event.target.closest("[data-cards-filter]");
+    if (cardsChip) {
+      event.preventDefault();
+      const key = cardsChip.dataset.cardsFilter || "";
+      pendingCards = pendingCards === key ? "" : key;
+      renderCardsFilter();
+      return;
+    }
+
+    // 「确认」：应用待选并收起
+    if (event.target.closest("[data-cards-apply]")) {
+      event.preventDefault();
+      state.cards = pendingCards;
+      closeCardsFilterPanel();
+      renderProducts();
+      return;
+    }
+
+    // 「重置」：清空筛选并收起
+    if (event.target.closest("[data-cards-reset]")) {
+      event.preventDefault();
+      pendingCards = "";
+      state.cards = "";
+      closeCardsFilterPanel();
+      renderProducts();
+      return;
+    }
+
+    // 点面板外任意区域 → 收起（面板内点击已在上面分支消化，不会走到这）
+    if (cardsFilterPanel && !cardsFilterPanel.hidden && !event.target.closest("#cardsFilterPanel")) {
+      closeCardsFilterPanel();
+    }
+
     const heart = event.target.closest("[data-wishlist-toggle]");
 
     if (heart) {
@@ -1204,16 +1267,6 @@ function bindEvents() {
       const cid = collectSubmit.dataset.collectSubmit;
       if (!isWishlisted(cid)) toggleWishlist(cid);
       window.location.href = "wishlist.html#webOrderForm";
-      return;
-    }
-
-    // 积分筛选 chip（再点同档取消；重置=清空）
-    const cardsChip = event.target.closest("[data-cards-filter]");
-    if (cardsChip) {
-      event.preventDefault();
-      const key = cardsChip.dataset.cardsFilter || "";
-      state.cards = state.cards === key ? "" : key;
-      renderProducts();
       return;
     }
 
@@ -1280,7 +1333,7 @@ if (catRail) {
   state.category = resolved.display;
   state.sub = resolved.sub;
   // 推荐有礼无积分概念，落地即清掉可能从 URL 带进来的积分筛选
-  if (state.category === "referral") state.cards = "";
+  if (state.category === "referral") { state.cards = ""; pendingCards = ""; }
 }
 
 if (categoryFilter && categoryLabelMap.has(state.category)) {

@@ -12,19 +12,27 @@
       bindconfirm="onSearch"
     />
     <view class="search-button" bindtap="onSearch">搜索</view>
+    <!-- 积分筛选入口：默认收起，点开下拉；筛选生效时高亮（省一整行常驻 chips） -->
+    <view class="filter-toggle {{cards ? 'active' : ''}}" bindtap="toggleCardsPanel">筛选 {{showCardsPanel ? '▴' : '▾'}}</view>
   </view>
 
-  <!-- 积分筛选行（区间分档，固定在搜索下方、品类上方）；切到推荐有礼时只清空选择、不隐藏 -->
-  <scroll-view class="cards-filter-bar" scroll-x enable-flex>
-    <view
-      class="cards-chip {{cards === item.key ? 'active' : ''}}"
-      wx:for="{{cardsBuckets}}"
-      wx:key="key"
-      data-key="{{item.key}}"
-      bindtap="onSelectCards"
-    >{{item.label}}</view>
-    <view class="cards-chip cards-chip-reset {{cards === '' ? 'disabled' : ''}}" bindtap="resetCards">重置</view>
-  </scroll-view>
+  <!-- 积分筛选下拉面板：选 chip 是待选，点「确认」才应用 -->
+  <view class="cards-panel" wx:if="{{showCardsPanel}}">
+    <text class="cards-panel-title">积分区间</text>
+    <view class="cards-panel-grid">
+      <view
+        class="cards-chip {{pendingCards === item.key ? 'active' : ''}}"
+        wx:for="{{cardsBuckets}}"
+        wx:key="key"
+        data-key="{{item.key}}"
+        bindtap="onPanelCardsTap"
+      >{{item.label}}</view>
+    </view>
+    <view class="cards-panel-actions">
+      <view class="cards-panel-reset" bindtap="resetCards">重置</view>
+      <view class="cards-panel-confirm" bindtap="confirmCards">确认</view>
+    </view>
+  </view>
 
   <!-- 分类筛选条（展示大类 + 更多下拉） -->
   <view class="category-row">

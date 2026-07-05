@@ -9,14 +9,78 @@
   z-index: 20;
   background: var(--bg);
   margin: -16rpx -24rpx 0;
-  padding: 16rpx 24rpx 8rpx;
+  padding: 10rpx 24rpx 4rpx;
   box-shadow: 0 6rpx 12rpx rgba(46, 35, 18, 0.04);
 }
 
 .search-bar {
   display: flex;
+  align-items: center;
   gap: 12rpx;
-  padding: 12rpx 0 16rpx;
+  padding: 8rpx 0 10rpx;
+}
+
+/* 积分筛选入口（与搜索同排；筛选生效时高亮） */
+.filter-toggle {
+  flex: 0 0 auto;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: var(--text);
+  padding: 14rpx 20rpx;
+  border-radius: 22rpx;
+  border: 1rpx solid rgba(234, 223, 206, 0.9);
+  background: rgba(255, 255, 255, 0.92);
+}
+.filter-toggle.active {
+  background: linear-gradient(135deg, #f5973f 0%, #e8531f 100%);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 8rpx 16rpx rgba(232, 83, 31, 0.25);
+}
+
+/* 积分筛选下拉面板 */
+.cards-panel {
+  background: var(--paper);
+  border: 1rpx solid var(--line);
+  border-radius: 16rpx;
+  box-shadow: 0 8rpx 20rpx rgba(46, 35, 18, 0.08);
+  padding: 20rpx;
+  margin-bottom: 12rpx;
+}
+.cards-panel-title {
+  display: block;
+  font-size: 22rpx;
+  color: var(--muted);
+  margin-bottom: 14rpx;
+}
+.cards-panel-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+.cards-panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16rpx;
+  margin-top: 18rpx;
+}
+.cards-panel-reset {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: var(--muted);
+  padding: 12rpx 30rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid rgba(234, 223, 206, 0.9);
+  background: rgba(255, 255, 255, 0.92);
+}
+.cards-panel-confirm {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #fff;
+  padding: 12rpx 38rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, var(--red) 0%, var(--red-deep) 100%);
+  box-shadow: 0 8rpx 16rpx rgba(214, 75, 42, 0.22);
 }
 
 .search-input {
@@ -39,11 +103,11 @@
   box-shadow: 0 8rpx 16rpx rgba(214, 75, 42, 0.22);
 }
 
-/* 排序 chip 同排 */
+/* 排序 chip 同排（压缩间距，精简顶部高度） */
 .sort-chips {
   display: flex;
-  gap: 12rpx;
-  padding: 8rpx 0 12rpx;
+  gap: 10rpx;
+  padding: 4rpx 0 8rpx;
   flex-wrap: wrap;
 }
 
@@ -53,7 +117,7 @@
   color: var(--text);
   font-size: 24rpx;
   font-weight: 700;
-  padding: 12rpx 26rpx;
+  padding: 10rpx 22rpx;
   border-radius: 999rpx;
   border: 1rpx solid rgba(234, 223, 206, 0.9);
   box-shadow: 0 4rpx 14rpx rgba(46, 35, 18, 0.05);
@@ -70,7 +134,7 @@
   display: flex;
   align-items: center;
   gap: 10rpx;
-  padding: 8rpx 0 16rpx;
+  padding: 4rpx 0 10rpx;
 }
 
 .category-bar {
@@ -236,11 +300,7 @@
   padding: 24rpx 0 40rpx;
 }
 
-/* 积分筛选行（区间分档，选中橙红底白字） */
-.cards-filter-bar {
-  white-space: nowrap;
-  margin: 4rpx 0 10rpx;
-}
+/* 积分档 chip（用于下拉面板；选中橙红底白字） */
 .cards-chip {
   display: inline-block;
   background: rgba(255, 255, 255, 0.92);
@@ -249,7 +309,6 @@
   font-weight: 700;
   padding: 12rpx 26rpx;
   border-radius: 999rpx;
-  margin-right: 12rpx;
   border: 1rpx solid rgba(234, 223, 206, 0.9);
   box-shadow: 0 4rpx 14rpx rgba(46, 35, 18, 0.05);
 }
@@ -258,10 +317,4 @@
   color: #fff;
   border-color: transparent;
   box-shadow: 0 8rpx 16rpx rgba(232, 83, 31, 0.25);
-}
-.cards-chip-reset {
-  color: var(--muted);
-}
-.cards-chip-reset.disabled {
-  opacity: 0.45;
 }

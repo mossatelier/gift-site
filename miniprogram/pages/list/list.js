@@ -78,6 +78,8 @@ Page({
     keyword: '',
     cardsBuckets: CARDS_BUCKETS,
     cards: '',                  // 选中的积分档 key（空 = 全部）
+    showCardsPanel: false,      // 积分筛选下拉面板（默认收起，省一行常驻 chips）
+    pendingCards: '',           // 面板内待选档（点「确认」才写入 cards）
     items: [],
     wishlistMap: {},
     totalCount: 0,
@@ -195,17 +197,36 @@ Page({
     return { category: currentCategory, subcategory: currentSub || null };
   },
 
-  // 积分档位筛选：点同一档再次取消；切换即重新查询
-  onSelectCards(e) {
+  // ===== 积分档位筛选（下拉面板；点「确认」才应用） =====
+  toggleCardsPanel() {
+    const open = !this.data.showCardsPanel;
+    // 打开时把当前生效档带入待选，避免面板显示与实际不符
+    this.setData({ showCardsPanel: open, pendingCards: open ? this.data.cards : this.data.pendingCards });
+  },
+
+  onPanelCardsTap(e) {
     const key = e.currentTarget.dataset.key || '';
-    const next = this.data.cards === key ? '' : key;
-    if (next === this.data.cards) return;
-    this.setData({ cards: next }, () => this.reload());
+    this.setData({ pendingCards: this.data.pendingCards === key ? '' : key });
+  },
+
+  confirmCards() {
+    const next = this.data.pendingCards;
+    if (next === this.data.cards) {
+      this.setData({ showCardsPanel: false });
+      return;
+    }
+    this.setData({ cards: next, showCardsPanel: false }, () => this.reload());
   },
 
   resetCards() {
-    if (!this.data.cards) return;
-    this.setData({ cards: '' }, () => this.reload());
+    if (!this.data.cards && !this.data.pendingCards) {
+      this.setData({ showCardsPanel: false });
+      return;
+    }
+    const changed = !!this.data.cards;
+    this.setData({ cards: '', pendingCards: '', showCardsPanel: false }, () => {
+      if (changed) this.reload();
+    });
   },
 
   onPullDownRefresh() {
