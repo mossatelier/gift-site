@@ -1,4 +1,5 @@
 const auth = require('../../utils/auth.js');
+const { getReferralShare, getReferralShareCached } = require('../../utils/db.js');
 
 const RULES = [
   '把你的专属邀请码 / 分享卡片发给新朋友；',
@@ -16,12 +17,21 @@ Page({
     list: [],
     rules: RULES,
     showPoster: false,
-    posterImg: ''
+    posterImg: '',
+    // 分享卡片图/标题（后台 app_config: referral_share 可配；换图不影响返利）
+    shareImage: '',
+    shareTitle: ''
   },
 
   onLoad() {
     if (!auth.ensureLogin('/pages/referral/referral')) return;
-    wx.showShareMenu && wx.showShareMenu({ withShareTicket: false, menus: ['shareAppMessage'] });
+    wx.showShareMenu && wx.showShareMenu({ withShareTicket: false, menus: ['shareAppMessage', 'shareTimeline'] });
+    // 先用缓存兜底，保证马上就能分享；再异步拉后台最新配置刷新缓存
+    const cached = getReferralShareCached();
+    this.setData({ shareImage: cached.imageUrl, shareTitle: cached.title });
+    getReferralShare().then((s) => {
+      if (s) this.setData({ shareImage: s.imageUrl, shareTitle: s.title });
+    }).catch(() => {});
     this.load();
   },
 
@@ -158,12 +168,29 @@ Page({
   },
 
   // 分享卡片带上我的推荐码（好友打开后自动绑定 → 见 app.js）
+  // 卡片图/标题走后台可配（referral_share）；邀请码藏在 path 里，换图不影响返利，观感也不像“拉人头”。
   onShareAppMessage() {
     const code = this.data.code;
-    return {
-      title: '加加好物图集 · 免费领好礼，用我的邀请码更省心',
+    const share = getReferralShareCached();
+    const card = {
+      title: this.data.shareTitle || share.title,
       path: `/pages/index/index${code ? '?ref=' + code : ''}`
     };
+    const img = this.data.shareImage || share.imageUrl;
+    if (img) card.imageUrl = img;
+    return card;
+  },
+
+  onShareTimeline() {
+    const code = this.data.code;
+    const share = getReferralShareCached();
+    const t = {
+      title: this.data.shareTitle || share.title,
+      query: code ? `ref=${code}` : ''
+    };
+    const img = this.data.shareImage || share.imageUrl;
+    if (img) t.imageUrl = img;
+    return t;
   }
 });
 

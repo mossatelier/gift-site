@@ -2133,6 +2133,171 @@
 
   PANEL_LOADERS.cardbanks = function () { loadCardBanks(false); };
 
+  // ============ 邀请分享卡片（referral_share；云开发 app_config + Supabase app_config 双写） ============
+  // 小程序邀请页 onShareAppMessage 读云开发 app_config key=referral_share 的 { imageUrl, title }
+  // 当分享图/标题。邀请码藏在分享链接 path 里，换图不影响返利。
+  var REFSHARE_DEFAULT_TITLE = "加加好物图集 · 办指定银行免费领正品好礼";
+  state.refshare = { imageUrl: "", title: "" };
+  state.refshareLoaded = false;
+  state.refshareSaving = false;
+  state.refshareUploading = false;
+  state.refshareEpoch = 0; // 作废在途上传孤儿回调（load/重置后 +1）
+
+  function setRefShareMsg(text, tone) {
+    var el = document.getElementById("pcRefShareMsg");
+    if (!el) return;
+    el.textContent = text || "";
+    if (tone) el.dataset.tone = tone; else delete el.dataset.tone;
+  }
+
+  function syncRefShareSaveBtn() {
+    var btn = document.getElementById("pcRefShareSaveBtn");
+    if (!btn) return;
+    btn.disabled = state.refshareSaving || state.refshareUploading;
+    btn.textContent = state.refshareSaving ? "保存中…" : "保存到云端";
+  }
+
+  function ensureRefShareShell() {
+    var host = document.getElementById("pcRefSharePanelBody");
+    if (!host) return null;
+    if (host.getAttribute("data-refshare-ready") === "1") return host;
+    host.classList.remove("pc-panel-placeholder");
+    host.setAttribute("data-refshare-ready", "1");
+    host.innerHTML =
+      '<div class="pc-haibao-head">'
+      + '<h3 class="pc-haibao-title">邀请分享卡片</h3>'
+      + '<span class="pc-haibao-hint">这是好友转发邀请页时显示的卡片图与标题，建议图片比例 5:4（如 500×400）。邀请码仍自动带在链接里，换图不影响返利。保存后小程序重进邀请页转发即可看到。</span>'
+      + "</div>"
+      + '<div class="pc-refshare-body" id="pcRefShareBody"></div>'
+      + '<div class="pc-haibao-foot"><button class="pc-btn-primary" id="pcRefShareSaveBtn" type="button">保存到云端</button></div>'
+      + '<p class="pc-inline-msg" id="pcRefShareMsg"></p>';
+    var body = document.getElementById("pcRefShareBody");
+    if (body) {
+      body.addEventListener("change", handleRefShareChange);
+      body.addEventListener("input", handleRefShareInput);
+    }
+    var saveBtn = document.getElementById("pcRefShareSaveBtn");
+    if (saveBtn) saveBtn.addEventListener("click", saveRefShare);
+    return host;
+  }
+
+  function renderRefShare() {
+    var body = document.getElementById("pcRefShareBody");
+    if (!body) return;
+    var s = state.refshare || { imageUrl: "", title: "" };
+    var busy = state.refshareUploading ? " disabled" : "";
+    var thumb = s.imageUrl
+      ? '<img class="pc-haibao-thumb pc-refshare-thumb" src="' + escapeHtml(s.imageUrl) + '" alt="">'
+      : '<span class="pc-haibao-thumb pc-haibao-thumb-empty pc-refshare-thumb">' + (state.refshareUploading ? "上传中…" : "无图") + "</span>";
+    body.innerHTML =
+      '<div class="pc-haibao-row">'
+      + thumb
+      + '<div class="pc-haibao-fields">'
+      + '<label class="pc-create-img-file-btn pc-haibao-file-btn">选图片<input class="pc-create-img-file pc-refshare-file" type="file" accept="image/*" id="pcRefShareFile"' + busy + "></label>"
+      + '<input class="pc-create-input pc-refshare-title" type="text" maxlength="40" placeholder="' + escapeHtml(REFSHARE_DEFAULT_TITLE) + '" value="' + escapeHtml(s.title || "") + '" id="pcRefShareTitle">'
+      + "</div>"
+      + "</div>";
+    syncRefShareSaveBtn();
+  }
+
+  function handleRefShareChange(event) {
+    var fileInput = event.target.closest(".pc-refshare-file");
+    if (fileInput) {
+      var f = fileInput.files && fileInput.files[0];
+      if (f) uploadRefShareImage(f);
+    }
+  }
+
+  function handleRefShareInput(event) {
+    var t = event.target.closest("#pcRefShareTitle");
+    if (t) state.refshare.title = t.value || "";
+  }
+
+  // 上传分享卡片图（epoch 守卫：load/重置后作废在途结果）。复用 Core.uploadImage（带 cache-control 头）。
+  function uploadRefShareImage(file) {
+    if (!file) return;
+    if (!Core.activeSession()) { setRefShareMsg("请先登录管理员账号。", "error"); return; }
+    var epoch = state.refshareEpoch;
+    state.refshareUploading = true;
+    renderRefShare();
+    setRefShareMsg("正在上传图片…", null);
+    Core.uploadImage(file)
+      .then(function (url) {
+        if (epoch !== state.refshareEpoch) return;
+        state.refshare.imageUrl = url;
+        state.refshareUploading = false;
+        renderRefShare();
+        setRefShareMsg("图片已上传，别忘了点「保存到云端」。", "success");
+      })
+      .catch(function (err) {
+        if (epoch !== state.refshareEpoch) return;
+        state.refshareUploading = false;
+        renderRefShare();
+        setRefShareMsg("图片上传失败，请重新选择图片。", "error");
+      });
+  }
+
+  function loadRefShare(force) {
+    var host = ensureRefShareShell();
+    if (!host) return;
+    var body = document.getElementById("pcRefShareBody");
+    if (!Core.activeSession()) {
+      if (body) body.innerHTML = '<p class="pc-empty-text">请先登录管理员账号。</p>';
+      return;
+    }
+    if (state.refshareLoaded && !force) { renderRefShare(); return; }
+    if (body) body.innerHTML = '<p class="pc-empty-text">加载中…</p>';
+    setRefShareMsg("", null);
+    Core.callAdminOrders("get-referral-share", {})
+      .then(function (data) {
+        state.refshare = {
+          imageUrl: (data && data.imageUrl) || "",
+          title: (data && data.title) || ""
+        };
+        state.refshareLoaded = true;
+        state.refshareEpoch += 1; // 作废任何在途上传
+        state.refshareUploading = false;
+        renderRefShare();
+      })
+      .catch(function (err) {
+        renderLoadError(body, (err && err.message) || "加载失败", function () { loadRefShare(true); });
+      });
+  }
+
+  function saveRefShare() {
+    if (state.refshareSaving) return;
+    if (!Core.activeSession()) { setRefShareMsg("请先登录管理员账号。", "error"); return; }
+    if (state.refshareUploading) { setRefShareMsg("图片上传中，请稍候。", "error"); return; }
+    var titleInput = document.getElementById("pcRefShareTitle");
+    var title = ((titleInput ? titleInput.value : state.refshare.title) || "").trim().slice(0, 40);
+    var imageUrl = state.refshare.imageUrl || "";
+    state.refshareSaving = true;
+    syncRefShareSaveBtn();
+    setRefShareMsg("保存中…", null);
+    Core.callAdminOrders("save-referral-share", { imageUrl: imageUrl, title: title })
+      .then(function () {
+        // 同时写 Supabase，供 H5 网页端读取（写失败不影响小程序，仅提示）。
+        return Core.saveAppConfig("referral_share", { imageUrl: imageUrl, title: title }).catch(function (err) {
+          toast("小程序已更新；网页端同步失败：" + ((err && err.message) || ""), "error");
+        });
+      })
+      .then(function () {
+        state.refshare.title = title;
+        state.refshareSaving = false;
+        syncRefShareSaveBtn();
+        setRefShareMsg("已保存，小程序重进邀请页转发即可看到新卡片。", "success");
+        toast("邀请分享卡片已保存（小程序 + 网页端）", "success");
+      })
+      .catch(function (err) {
+        state.refshareSaving = false;
+        syncRefShareSaveBtn();
+        setRefShareMsg((err && err.message) || "保存失败", "error");
+        toast((err && err.message) || "保存失败", "error");
+      });
+  }
+
+  PANEL_LOADERS.refshare = function () { loadRefShare(false); };
+
   // ============ 晒图审核（reviews） ============
   //
   // 渲染进 #pcReviewsPanelBody（html 占位容器）。读取走

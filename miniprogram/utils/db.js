@@ -161,6 +161,35 @@ async function getCardsBankLabels() {
   }
 }
 
+// 邀请页分享卡片（app_config key=referral_share）：好友转发邀请页时显示的图+标题。
+// 邀请码仍藏在分享 path 的 ?ref= 里，换图不影响返利。
+const REFERRAL_SHARE_DEFAULT = {
+  imageUrl: '/images/referral-share.jpg',       // 后台未配置时的兜底本地图
+  title: '加加好物图集 · 办指定银行免费领正品好礼'
+};
+async function getReferralShare() {
+  try {
+    const res = await db().collection('app_config').where({ key: 'referral_share' }).limit(1).get();
+    const doc = res.data[0];
+    const share = {
+      imageUrl: (doc && doc.imageUrl) ? String(doc.imageUrl) : REFERRAL_SHARE_DEFAULT.imageUrl,
+      title: (doc && doc.title) ? String(doc.title) : REFERRAL_SHARE_DEFAULT.title
+    };
+    try { wx.setStorageSync('referralShare', share); } catch (e) {}
+    return share;
+  } catch (err) {
+    return Object.assign({}, REFERRAL_SHARE_DEFAULT);
+  }
+}
+// 同步读缓存（供 onShareAppMessage 这类不能 await 的地方用）；无缓存回退默认
+function getReferralShareCached() {
+  try {
+    const s = wx.getStorageSync('referralShare');
+    if (s && s.imageUrl && s.title) return s;
+  } catch (e) {}
+  return Object.assign({}, REFERRAL_SHARE_DEFAULT);
+}
+
 // 取银行积分对照（按 points 降序）
 async function listBanks() {
   const res = await db()
@@ -363,6 +392,8 @@ module.exports = {
   getCategoryOrder,
   getHomeBanners,
   getCardsBankLabels,
+  getReferralShare,
+  getReferralShareCached,
   // addresses
   listMyAddresses,
   getDefaultAddress,

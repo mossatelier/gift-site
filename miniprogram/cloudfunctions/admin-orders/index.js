@@ -822,6 +822,34 @@ async function saveCardsBankLabels({ labels }) {
   return { labels: clean };
 }
 
+// 邀请页分享卡片（存 app_config，key=referral_share）：好友转发邀请页时显示的图与标题。
+// 邀请码仍走分享 path 的 ?ref=，换图不影响返利。
+const REFERRAL_SHARE_DEFAULT_TITLE = '加加好物图集 · 办指定银行免费领正品好礼';
+
+async function getReferralShare() {
+  const r = await db.collection('app_config').where({ key: 'referral_share' }).limit(1).get();
+  const doc = r.data[0] || {};
+  return {
+    imageUrl: String(doc.imageUrl || ''),
+    title: String(doc.title || '') || REFERRAL_SHARE_DEFAULT_TITLE
+  };
+}
+
+async function saveReferralShare({ imageUrl, title }) {
+  const clean = {
+    imageUrl: String(imageUrl || '').slice(0, 500),
+    title: (String(title || '').trim() || REFERRAL_SHARE_DEFAULT_TITLE).slice(0, 60)
+  };
+  const now = new Date();
+  const existing = await db.collection('app_config').where({ key: 'referral_share' }).limit(1).get();
+  if (existing.data[0]) {
+    await db.collection('app_config').doc(existing.data[0]._id).update({ data: { imageUrl: clean.imageUrl, title: clean.title, updatedAt: now } });
+  } else {
+    await db.collection('app_config').add({ data: { key: 'referral_share', imageUrl: clean.imageUrl, title: clean.title, createdAt: now, updatedAt: now } });
+  }
+  return clean;
+}
+
 // 商家内部备注（客户端不可见）
 async function updateNote({ orderId, adminNote }) {
   if (!orderId) throw new Error('缺少 orderId');
@@ -1479,6 +1507,12 @@ exports.main = async (event) => {
         break;
       case 'save-cards-bank-labels':
         data = await saveCardsBankLabels(body);
+        break;
+      case 'get-referral-share':
+        data = await getReferralShare(body);
+        break;
+      case 'save-referral-share':
+        data = await saveReferralShare(body);
         break;
       case 'stats':
         data = await getStats(body);

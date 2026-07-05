@@ -100,6 +100,14 @@ const adminCardBankMessage = document.getElementById("adminCardBankMessage");
 const adminHaibaoMessage = document.getElementById("adminHaibaoMessage");
 const adminHaibaoSave = document.getElementById("adminHaibaoSave");
 const adminHaibaoAdd = document.getElementById("adminHaibaoAdd");
+const adminTabRefShare = document.getElementById("adminTabRefShare");
+const adminRefSharePanel = document.getElementById("adminRefSharePanel");
+const adminRefShareThumb = document.getElementById("adminRefShareThumb");
+const adminRefShareThumbEmpty = document.getElementById("adminRefShareThumbEmpty");
+const adminRefShareFile = document.getElementById("adminRefShareFile");
+const adminRefShareTitle = document.getElementById("adminRefShareTitle");
+const adminRefShareSave = document.getElementById("adminRefShareSave");
+const adminRefShareMessage = document.getElementById("adminRefShareMessage");
 
 const subcategoriesMap = config.subcategories || {};
 const TITLE_HISTORY_KEY = "gift-site-admin-title-history";
@@ -478,7 +486,8 @@ function updatePanelUi() {
     reviews: adminReviewsPanel,
     catorder: adminCatOrderPanel,
     haibao: adminHaibaoPanel,
-    cardbank: adminCardBankPanel
+    cardbank: adminCardBankPanel,
+    refshare: adminRefSharePanel
   };
   Object.keys(panels).forEach((key) => {
     if (panels[key]) panels[key].hidden = state.activePanel !== key;
@@ -495,7 +504,8 @@ function updatePanelUi() {
     reviews: state.activePanel === "reviews",
     catorder: state.activePanel === "catorder",
     haibao: state.activePanel === "haibao",
-    cardbank: state.activePanel === "cardbank"
+    cardbank: state.activePanel === "cardbank",
+    refshare: state.activePanel === "refshare"
   };
   const tabEls = {
     goods: adminTabGoods,
@@ -506,7 +516,8 @@ function updatePanelUi() {
     reviews: adminTabReviews,
     catorder: adminTabCatOrder,
     haibao: adminTabHaibao,
-    cardbank: adminTabCardBank
+    cardbank: adminTabCardBank,
+    refshare: adminTabRefShare
   };
   Object.keys(tabEls).forEach((k) => {
     if (tabEls[k]) tabEls[k].classList.toggle("active", tabActive[k]);
@@ -3252,6 +3263,100 @@ adminTabCardBank?.addEventListener("click", () => {
   state.activePanel = "cardbank";
   updatePanelUi();
   loadCardBank();
+});
+
+// ===== 邀请分享卡片（referral_share；云开发 app_config + Supabase app_config 双写） =====
+const REFSHARE_DEFAULT_TITLE = "加加好物图集 · 办指定银行免费领正品好礼";
+const refShareState = { imageUrl: "", title: "", uploading: false };
+
+function setRefShareMessage(text, tone) {
+  if (!adminRefShareMessage) return;
+  adminRefShareMessage.textContent = text || "";
+  if (tone) adminRefShareMessage.dataset.tone = tone; else delete adminRefShareMessage.dataset.tone;
+}
+
+function renderRefShareThumb() {
+  if (!adminRefShareThumb || !adminRefShareThumbEmpty) return;
+  if (refShareState.imageUrl) {
+    adminRefShareThumb.src = refShareState.imageUrl;
+    adminRefShareThumb.hidden = false;
+    adminRefShareThumbEmpty.hidden = true;
+  } else {
+    adminRefShareThumb.hidden = true;
+    adminRefShareThumbEmpty.hidden = false;
+    adminRefShareThumbEmpty.textContent = refShareState.uploading ? "上传中…" : "未设置";
+  }
+}
+
+async function loadRefShare() {
+  if (!adminRefSharePanel) return;
+  if (!activeSession()) { setRefShareMessage("请先登录管理员账号。", "error"); return; }
+  setRefShareMessage("加载中…");
+  try {
+    const data = await callAdminOrders("get-referral-share", {});
+    refShareState.imageUrl = (data && data.imageUrl) || "";
+    refShareState.title = (data && data.title) || "";
+    if (adminRefShareTitle) adminRefShareTitle.value = refShareState.title || "";
+    renderRefShareThumb();
+    setRefShareMessage("");
+  } catch (err) {
+    setRefShareMessage("加载失败：" + (err.message || ""), "error");
+  }
+}
+
+adminRefShareFile?.addEventListener("change", async (event) => {
+  const f = event.target.files && event.target.files[0];
+  if (!f) return;
+  refShareState.uploading = true;
+  renderRefShareThumb();
+  setRefShareMessage("正在上传图片…");
+  try {
+    const url = await uploadFile(f);
+    refShareState.imageUrl = url;
+    refShareState.uploading = false;
+    renderRefShareThumb();
+    setRefShareMessage("图片已上传，别忘了点「保存」。", "success");
+  } catch (err) {
+    refShareState.uploading = false;
+    renderRefShareThumb();
+    setRefShareMessage("图片上传失败：" + (err.message || ""), "error");
+  } finally {
+    event.target.value = "";
+  }
+});
+
+adminRefShareSave?.addEventListener("click", async () => {
+  if (!activeSession()) { setRefShareMessage("请先登录管理员账号。", "error"); return; }
+  if (refShareState.uploading) { setRefShareMessage("图片还在上传，请稍候。", "error"); return; }
+  const title = (adminRefShareTitle ? adminRefShareTitle.value : "").trim().slice(0, 40) || REFSHARE_DEFAULT_TITLE;
+  const payload = { imageUrl: refShareState.imageUrl || "", title };
+  setRefShareMessage("保存中…");
+  try {
+    const saved = await callAdminOrders("save-referral-share", payload);
+    refShareState.title = (saved && saved.title) || title;
+    refShareState.imageUrl = (saved && saved.imageUrl) || payload.imageUrl;
+    if (adminRefShareTitle) adminRefShareTitle.value = refShareState.title;
+    renderRefShareThumb();
+    // 同时写 Supabase，保持与首页海报/积分档银行一致（H5 暂不读，失败不影响小程序）。
+    try {
+      await authedFetch(
+        `${config.supabaseUrl}/rest/v1/app_config`,
+        { method: "POST", body: JSON.stringify({ key: "referral_share", value: payload, updated_at: new Date().toISOString() }) },
+        { "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }
+      );
+      setRefShareMessage("已保存，小程序下拉刷新 / 重进邀请页生效。", "success");
+    } catch (e2) {
+      setRefShareMessage("小程序已更新；网页端同步失败：" + (e2.message || ""), "error");
+    }
+  } catch (err) {
+    setRefShareMessage(err.message, "error");
+  }
+});
+
+adminTabRefShare?.addEventListener("click", () => {
+  state.activePanel = "refshare";
+  updatePanelUi();
+  loadRefShare();
 });
 
 fillCategoryOptions();

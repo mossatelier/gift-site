@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>加加好物图集 · 商品录入后台</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="assets/site.css?v=58">
+  <link rel="stylesheet" href="assets/site.css?v=59">
 </head>
 <body class="admin-page">
   <main class="admin-shell">
@@ -70,6 +70,7 @@
         <!-- 第三行：首页海报 -->
         <button class="admin-panel-tab" id="adminTabHaibao" type="button"><span class="tab-ico">🖼️</span>首页海报</button>
         <button class="admin-panel-tab" id="adminTabCardBank" type="button"><span class="tab-ico">💳</span>积分档银行</button>
+        <button class="admin-panel-tab" id="adminTabRefShare" type="button"><span class="tab-ico">🎁</span>邀请分享</button>
         <!-- 晒图审核暂时下线（晒图未在收集）；恢复：去掉 hidden 即可。隐藏项不占格 -->
         <button class="admin-panel-tab" id="adminTabReviews" type="button" hidden><span class="tab-ico">🖼️</span>晒图审核</button>
       </section>
@@ -360,6 +361,23 @@
         <p class="admin-inline-message" id="adminCardBankMessage"></p>
       </section>
 
+      <section class="admin-card" id="adminRefSharePanel" hidden>
+        <div class="admin-status-head">
+          <h2 class="admin-section-title">邀请分享卡片</h2>
+          <button class="admin-submit" id="adminRefShareSave" type="button">保存</button>
+        </div>
+        <p class="admin-status-text">好友转发邀请页时，微信卡片显示的图与标题。建议图片比例 5:4（如 500×400）。邀请码仍自动带在链接里，换图不影响返利，也不像“拉人头”。保存后小程序下拉刷新 / 重进邀请页生效。</p>
+        <div class="admin-refshare-body">
+          <div class="admin-refshare-thumb-wrap">
+            <img class="admin-refshare-thumb" id="adminRefShareThumb" src="" alt="" hidden>
+            <span class="admin-refshare-thumb admin-refshare-thumb-empty" id="adminRefShareThumbEmpty">未设置</span>
+          </div>
+          <label class="admin-haibao-file">选图片<input type="file" accept="image/*" id="adminRefShareFile"></label>
+          <input class="admin-cardbank-input" id="adminRefShareTitle" type="text" maxlength="40" placeholder="加加好物图集 · 办指定银行免费领正品好礼">
+        </div>
+        <p class="admin-inline-message" id="adminRefShareMessage"></p>
+      </section>
+
       <section class="admin-card" id="adminStatsPanel" hidden>
         <div class="admin-status-head">
           <h2 class="admin-section-title">数据看板</h2>
@@ -392,6 +410,6 @@
   </main>
 
   <script src="assets/config.js?v=13"></script>
-  <script src="assets/admin.js?v=53"></script>
+  <script src="assets/admin.js?v=54"></script>
 </body>
 </html>

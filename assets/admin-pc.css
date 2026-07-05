@@ -3195,6 +3195,10 @@ body.pc-admin {
 .pc-cardbank-points { flex: 0 0 84px; font-weight: 800; color: #6b441a; }
 .pc-cardbank-input { flex: 1; }
 
+/* 配置 · 邀请分享卡片（复用 .pc-haibao-* 布局，仅缩略图按 5:4 覆写） */
+.pc-refshare-thumb { width: 150px; height: 120px; }
+.pc-refshare-title { width: 100%; }
+
 /* 订单抽屉 · 物流轨迹时间线 */
 .pc-orders-timeline { margin-top: 6px; }
 .pc-orders-tl-node { position: relative; padding: 0 0 14px 18px; border-left: 2px solid #e8ddca; }
