@@ -83,8 +83,8 @@ Page({
     this.setData({ loading: true });
     try {
       const results = await Promise.all([
-        listHotByOrders(6).catch(() => listHotProducts(6)),  // 下单排名；云函数失败则回退浏览量
-        listNewProducts(6),
+        listHotByOrders(10).catch(() => listHotProducts(10)),  // 下单排名；云函数失败则回退浏览量
+        listNewProducts(10),
         getHomeBanners().catch(() => []),
         getCardsBankLabels().catch(() => ({}))
       ]);

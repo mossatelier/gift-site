@@ -468,7 +468,7 @@ function renderHomeSections() {
         if (diff !== 0) return diff;
         return left.sortOrder - right.sortOrder;
       })
-      .slice(0, 6);
+      .slice(0, 10);
     productHotGrid.innerHTML = hot.map(productCard).join("")
       || "<p class=\"product-empty\">暂时没有热门兑换礼品。</p>";
   }
@@ -477,7 +477,7 @@ function renderHomeSections() {
     const fresh = state.products
       .slice()
       .sort((left, right) => parseDate(right.createdAt) - parseDate(left.createdAt))
-      .slice(0, 6);
+      .slice(0, 10);
     productNewGrid.innerHTML = fresh.map(productCard).join("")
       || "<p class=\"product-empty\">还没有新品上架。</p>";
   }

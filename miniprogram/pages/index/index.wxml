@@ -96,22 +96,22 @@
     </view>
   </view>
 
-  <!-- 热门兑换 -->
+  <!-- 新品速递（放热门前面：客户一进来先看到新货） -->
   <view class="section">
     <view class="section-banner">
-      <text class="banner-title-text">热门兑换</text>
-      <text class="banner-more" bindtap="goList">更多 ›</text>
+      <text class="banner-title-text">新品速递</text>
+      <text class="banner-more" bindtap="goListNewest">更多 ›</text>
     </view>
     <block wx:if="{{loading}}">
       <view class="loading-state">加载中…</view>
     </block>
-    <block wx:elif="{{hotList.length === 0}}">
-      <view class="empty-state">还没有商品，请到后台录入</view>
+    <block wx:elif="{{newList.length === 0}}">
+      <view class="empty-state">暂无新品</view>
     </block>
     <view wx:else class="product-grid product-grid-2">
       <view
         class="product-card"
-        wx:for="{{hotList}}"
+        wx:for="{{newList}}"
         wx:key="_id"
         data-id="{{item._id}}"
         bindtap="goProduct"
@@ -130,22 +130,22 @@
     </view>
   </view>
 
-  <!-- 新品速递 -->
+  <!-- 热门兑换 -->
   <view class="section">
     <view class="section-banner">
-      <text class="banner-title-text">新品速递</text>
-      <text class="banner-more" bindtap="goListNewest">更多 ›</text>
+      <text class="banner-title-text">热门兑换</text>
+      <text class="banner-more" bindtap="goList">更多 ›</text>
     </view>
     <block wx:if="{{loading}}">
       <view class="loading-state">加载中…</view>
     </block>
-    <block wx:elif="{{newList.length === 0}}">
-      <view class="empty-state">暂无新品</view>
+    <block wx:elif="{{hotList.length === 0}}">
+      <view class="empty-state">还没有商品，请到后台录入</view>
     </block>
     <view wx:else class="product-grid product-grid-2">
       <view
         class="product-card"
-        wx:for="{{newList}}"
+        wx:for="{{hotList}}"
         wx:key="_id"
         data-id="{{item._id}}"
         bindtap="goProduct"
