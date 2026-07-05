@@ -123,6 +123,9 @@
 
       <text class="submit-note">提交后信息会自动复制，请粘贴发给客服微信核验，核验后发货。</text>
 
+      <!-- 隐私同意：提交含手机号/地址的申请前须取得用户同意（审核要求） -->
+      <consent-bar />
+
       <view class="submit-actions">
         <button class="submit-cancel" bindtap="closeSubmit">取消</button>
         <button class="submit-ok" loading="{{submitting}}" bindtap="confirmSubmit">提交并复制给客服</button>

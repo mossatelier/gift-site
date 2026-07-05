@@ -1,5 +1,6 @@
 const auth = require('../../utils/auth.js');
 const { addAddress, updateAddress } = require('../../utils/db.js');
+const consent = require('../../utils/consent.js');
 
 // 省级名称标准化（识别到的关键词 → picker 用的全称）
 const PROVINCE_MAP = {
@@ -161,6 +162,7 @@ Page({
 
   async onSubmit() {
     if (this.data.submitting) return;
+    if (!consent.requireConsent()) return; // 未同意隐私政策不收集
     const user = auth.getCurrentUser();
     if (!user) {
       auth.ensureLogin('/pages/address-edit/address-edit');

@@ -1,4 +1,7 @@
 {
   "navigationBarTitleText": "心愿单",
-  "enablePullDownRefresh": true
+  "enablePullDownRefresh": true,
+  "usingComponents": {
+    "consent-bar": "/components/consent-bar/consent-bar"
+  }
 }

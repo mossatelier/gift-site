@@ -1,0 +1,36 @@
+.consent-bar {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+  padding: 16rpx 4rpx;
+}
+.consent-check {
+  width: 34rpx;
+  height: 34rpx;
+  border-radius: 50%;
+  border: 3rpx solid #c9bda9;
+  background: #fff;
+  flex-shrink: 0;
+  margin-top: 2rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.consent-check.checked {
+  background: #e8722e;
+  border-color: #e8722e;
+}
+.consent-tick {
+  color: #fff;
+  font-size: 22rpx;
+  font-weight: 700;
+  line-height: 1;
+}
+.consent-text {
+  font-size: 24rpx;
+  color: #72695c;
+  line-height: 1.5;
+}
+.consent-link {
+  color: #e8722e;
+}

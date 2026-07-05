@@ -91,3 +91,6 @@
   text-align: center;
   line-height: 1.5;
 }
+.login-fineprint-link {
+  color: #e8722e;
+}

@@ -1,0 +1,64 @@
+.agree-page {
+  min-height: 100vh;
+  background: #f4f1ea;
+  padding: 24rpx 32rpx 60rpx;
+  box-sizing: border-box;
+}
+
+/* 顶部切换 */
+.agree-tabs {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 24rpx;
+}
+.agree-tab {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx 0;
+  font-size: 28rpx;
+  color: #72695c;
+  background: #fffaf3;
+  border-radius: 16rpx;
+  border: 2rpx solid #eadfce;
+}
+.agree-tab.active {
+  color: #fff;
+  background: #e8722e;
+  border-color: #e8722e;
+  font-weight: 600;
+}
+
+/* 正文卡片 */
+.agree-doc {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 36rpx 32rpx;
+  display: flex;
+  flex-direction: column;
+}
+.doc-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #3a332c;
+  margin-bottom: 12rpx;
+}
+.doc-meta {
+  font-size: 22rpx;
+  color: #a89e8f;
+  margin-bottom: 28rpx;
+}
+.doc-h {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #3a332c;
+  margin: 28rpx 0 10rpx;
+}
+.doc-p {
+  font-size: 26rpx;
+  line-height: 1.75;
+  color: #5c5348;
+  margin-bottom: 10rpx;
+}
+.doc-bottom-spacer {
+  height: 60rpx;
+}

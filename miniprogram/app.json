@@ -17,7 +17,8 @@
     "pages/bank-new-user/bank-new-user",
     "pages/earn/earn",
     "pages/progress/progress",
-    "pages/promo/promo"
+    "pages/promo/promo",
+    "pages/agreement/agreement"
   ],
   "window": {
     "navigationBarTitleText": "加加好物图集",

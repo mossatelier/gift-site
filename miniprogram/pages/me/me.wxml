@@ -64,6 +64,11 @@
       <text class="me-menu-text">联系客服</text>
       <text class="me-menu-chevron">›</text>
     </view>
+    <view class="me-menu-item" bindtap="goAgreement">
+      <text class="me-menu-icon">📄</text>
+      <text class="me-menu-text">用户协议与隐私政策</text>
+      <text class="me-menu-chevron">›</text>
+    </view>
   </view>
 
   <button

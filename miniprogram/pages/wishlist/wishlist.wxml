@@ -61,6 +61,9 @@
         auto-height
       />
 
+      <!-- 隐私同意：提交含手机号/地址的申请前须取得用户同意（审核要求） -->
+      <consent-bar />
+
       <button
         class="primary-btn submit-cta {{submitting ? 'disabled' : ''}}"
         bindtap="submitOrder"

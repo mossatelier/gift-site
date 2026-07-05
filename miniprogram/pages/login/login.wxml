@@ -34,6 +34,8 @@
       disabled="{{submitting}}"
     >{{submitting ? '提交中…' : '确认登录'}}</button>
 
-    <text class="login-fineprint">登录即表示同意将昵称、头像与微信号关联，用于礼品申请与发放沟通</text>
+    <view class="login-fineprint">
+      <text>登录即表示同意</text><text class="login-fineprint-link" bindtap="goTerms">《用户服务协议》</text><text>和</text><text class="login-fineprint-link" bindtap="goPrivacy">《隐私政策》</text><text>，昵称、头像仅用于礼品申请与发放沟通</text>
+    </view>
   </view>
 </view>

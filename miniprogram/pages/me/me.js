@@ -60,6 +60,10 @@ Page({
     });
   },
 
+  goAgreement() {
+    wx.navigateTo({ url: '/pages/agreement/agreement?type=privacy' });
+  },
+
   logout() {
     wx.showModal({
       title: '退出登录',

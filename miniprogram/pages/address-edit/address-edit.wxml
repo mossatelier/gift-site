@@ -60,6 +60,9 @@
       />
     </view>
 
+    <!-- 隐私同意：收集姓名/手机号/地址前须取得用户同意（审核要求） -->
+    <consent-bar />
+
     <button
       class="primary-btn addr-submit {{submitting ? 'disabled' : ''}}"
       bindtap="onSubmit"

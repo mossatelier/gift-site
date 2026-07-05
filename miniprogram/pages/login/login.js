@@ -62,6 +62,14 @@ Page({
     }
   },
 
+  goTerms() {
+    wx.navigateTo({ url: '/pages/agreement/agreement?type=terms' });
+  },
+
+  goPrivacy() {
+    wx.navigateTo({ url: '/pages/agreement/agreement?type=privacy' });
+  },
+
   goBackOrRedirect() {
     const target = this.data.redirect;
     if (target) {

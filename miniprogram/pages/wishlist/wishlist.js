@@ -2,6 +2,7 @@ const { getProductsByIds, listMyAddresses, getDefaultAddress } = require('../../
 const wishlist = require('../../utils/wishlist.js');
 const auth = require('../../utils/auth.js');
 const config = require('../../config.js');
+const consent = require('../../utils/consent.js');
 
 Page({
   data: {
@@ -119,6 +120,7 @@ Page({
 
   async submitOrder() {
     if (this.data.submitting) return;
+    if (!consent.requireConsent()) return; // 未同意隐私政策不提交
     if (this.data.items.length === 0) {
       wx.showToast({ title: '心愿单为空', icon: 'none' });
       return;

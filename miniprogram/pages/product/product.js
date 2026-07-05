@@ -3,6 +3,7 @@ const config = require('../../config.js');
 const { labelOfCategory } = config;
 const auth = require('../../utils/auth.js');
 const wishlist = require('../../utils/wishlist.js');
+const consent = require('../../utils/consent.js');
 
 // 推荐有礼按推荐人数换，不显示积分
 function buildPointsText(product) {
@@ -183,6 +184,7 @@ Page({
 
   confirmSubmit() {
     if (this.data.submitting) return;
+    if (!consent.requireConsent()) return; // 未同意隐私政策不提交
     if (!this.data.submitAddress) {
       wx.showToast({ title: '请先填写收货地址', icon: 'none' });
       return;

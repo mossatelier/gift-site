@@ -1,4 +1,6 @@
 {
   "navigationBarTitleText": "收货地址",
-  "usingComponents": {}
+  "usingComponents": {
+    "consent-bar": "/components/consent-bar/consent-bar"
+  }
 }
