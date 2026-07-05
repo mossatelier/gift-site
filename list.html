@@ -22,15 +22,14 @@
       <div class="search-box">
         <input id="productSearchInput" type="text" placeholder="搜索礼品、活动、办卡专区">
         <button id="productSearchButton" type="button">搜索</button>
-        <button class="cards-filter-toggle" id="cardsFilterToggle" type="button">筛选 ▾</button>
+        <button class="cards-filter-toggle" id="cardsFilterToggle" type="button">积分筛选 ▾</button>
       </div>
-      <!-- 积分筛选下拉面板：选 chip 为待选，点「确认」才应用 -->
+      <!-- 积分筛选下拉面板：点档位立即筛选并收起（免确认） -->
       <div class="cards-filter-panel" id="cardsFilterPanel" hidden>
         <p class="cards-filter-panel-title">积分区间</p>
         <div class="cards-filter" id="cardsFilter"></div>
         <div class="cards-filter-panel-actions">
           <button class="cards-panel-btn cards-panel-btn-reset" type="button" data-cards-reset>重置</button>
-          <button class="cards-panel-btn cards-panel-btn-apply" type="button" data-cards-apply>确认</button>
         </div>
       </div>
     </section>
@@ -93,6 +92,6 @@
   </nav>
 
   <script src="assets/config.js"></script>
-  <script src="assets/site.js?v=33"></script>
+  <script src="assets/site.js?v=34"></script>
 </body>
 </html>

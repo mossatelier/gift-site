@@ -25,6 +25,7 @@ const MORE_CATS = [
 
 // 积分区间分档（无空档，覆盖全部商品）；15+ 的 max 为 null = 单边
 const CARDS_BUCKETS = [
+  { key: '5',    label: '5分',     min: 5,  max: 5 },
   { key: '6',    label: '6分',     min: 6,  max: 6 },
   { key: '7',    label: '7分',     min: 7,  max: 7 },
   { key: '8',    label: '8分',     min: 8,  max: 8 },
@@ -78,8 +79,7 @@ Page({
     keyword: '',
     cardsBuckets: CARDS_BUCKETS,
     cards: '',                  // 选中的积分档 key（空 = 全部）
-    showCardsPanel: false,      // 积分筛选下拉面板（默认收起，省一行常驻 chips）
-    pendingCards: '',           // 面板内待选档（点「确认」才写入 cards）
+    showCardsPanel: false,      // 积分筛选下拉面板（默认收起，省一行常驻 chips；点档位立即筛选）
     items: [],
     wishlistMap: {},
     totalCount: 0,
@@ -197,36 +197,23 @@ Page({
     return { category: currentCategory, subcategory: currentSub || null };
   },
 
-  // ===== 积分档位筛选（下拉面板；点「确认」才应用） =====
+  // ===== 积分档位筛选（下拉面板；点档位立即筛选并收起，免确认） =====
   toggleCardsPanel() {
-    const open = !this.data.showCardsPanel;
-    // 打开时把当前生效档带入待选，避免面板显示与实际不符
-    this.setData({ showCardsPanel: open, pendingCards: open ? this.data.cards : this.data.pendingCards });
+    this.setData({ showCardsPanel: !this.data.showCardsPanel });
   },
 
   onPanelCardsTap(e) {
     const key = e.currentTarget.dataset.key || '';
-    this.setData({ pendingCards: this.data.pendingCards === key ? '' : key });
-  },
-
-  confirmCards() {
-    const next = this.data.pendingCards;
-    if (next === this.data.cards) {
-      this.setData({ showCardsPanel: false });
-      return;
-    }
+    const next = this.data.cards === key ? '' : key; // 点同档再点=取消
     this.setData({ cards: next, showCardsPanel: false }, () => this.reload());
   },
 
   resetCards() {
-    if (!this.data.cards && !this.data.pendingCards) {
+    if (!this.data.cards) {
       this.setData({ showCardsPanel: false });
       return;
     }
-    const changed = !!this.data.cards;
-    this.setData({ cards: '', pendingCards: '', showCardsPanel: false }, () => {
-      if (changed) this.reload();
-    });
+    this.setData({ cards: '', showCardsPanel: false }, () => this.reload());
   },
 
   onPullDownRefresh() {

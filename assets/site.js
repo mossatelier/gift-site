@@ -172,6 +172,7 @@ function displayCatLabel(value) {
 // 列表页分类匹配：all / mombaby(整组或单细类) / 普通分类(+二级)
 // 积分区间分档（无空档，覆盖全部商品）；15+ 的 max 为 null = 单边
 const CARDS_BUCKETS = [
+  { key: "5", label: "5分", min: 5, max: 5 },
   { key: "6", label: "6分", min: 6, max: 6 },
   { key: "7", label: "7分", min: 7, max: 7 },
   { key: "8", label: "8分", min: 8, max: 8 },
@@ -191,15 +192,14 @@ function cardsMatch(item) {
   if (b.max != null && n > b.max) return false;
   return true;
 }
-// 积分筛选下拉：chip 只是待选(pendingCards)，点「确认」才写回 state.cards
-let pendingCards = state.cards;
+// 积分筛选下拉：点档位立即筛选并收起（免确认）
 const cardsFilterToggle = document.getElementById("cardsFilterToggle");
 const cardsFilterPanel = document.getElementById("cardsFilterPanel");
 function renderCardsFilter() {
   const el = document.getElementById("cardsFilter");
   if (!el) return;
   el.innerHTML = CARDS_BUCKETS.map((b) =>
-    `<button class="cards-chip ${pendingCards === b.key ? "active" : ""}" type="button" data-cards-filter="${escapeHtml(b.key)}">${b.label}</button>`
+    `<button class="cards-chip ${state.cards === b.key ? "active" : ""}" type="button" data-cards-filter="${escapeHtml(b.key)}">${b.label}</button>`
   ).join("");
 }
 function closeCardsFilterPanel() {
@@ -1140,7 +1140,7 @@ function bindEvents() {
     state.sub = "";
     state.showMore = false;
     // 推荐有礼按「推荐人数」换，无积分概念 → 切过去时重置积分筛选
-    if (state.category === "referral") { state.cards = ""; pendingCards = ""; }
+    if (state.category === "referral") { state.cards = ""; }
 
     if (categoryFilter) {
       categoryFilter.value = state.category;
@@ -1203,12 +1203,11 @@ function bindEvents() {
   track?.addEventListener("touchend", startAutoplay, { passive: true });
 
   document.addEventListener("click", (event) => {
-    // 「筛选 ▾」按钮：开合下拉面板（打开时以当前生效值初始化待选）
+    // 「积分筛选 ▾」按钮：开合下拉面板
     if (cardsFilterToggle && event.target.closest("#cardsFilterToggle")) {
       event.preventDefault();
       if (cardsFilterPanel) {
         if (cardsFilterPanel.hidden) {
-          pendingCards = state.cards;
           renderCardsFilter();
           cardsFilterPanel.hidden = false;
         } else {
@@ -1218,20 +1217,12 @@ function bindEvents() {
       return;
     }
 
-    // 积分档 chip：只改待选（再点同档取消），不立即筛
+    // 积分档 chip：点击立即筛选并收起（再点同档取消）
     const cardsChip = event.target.closest("[data-cards-filter]");
     if (cardsChip) {
       event.preventDefault();
       const key = cardsChip.dataset.cardsFilter || "";
-      pendingCards = pendingCards === key ? "" : key;
-      renderCardsFilter();
-      return;
-    }
-
-    // 「确认」：应用待选并收起
-    if (event.target.closest("[data-cards-apply]")) {
-      event.preventDefault();
-      state.cards = pendingCards;
+      state.cards = state.cards === key ? "" : key;
       closeCardsFilterPanel();
       renderProducts();
       return;
@@ -1240,7 +1231,6 @@ function bindEvents() {
     // 「重置」：清空筛选并收起
     if (event.target.closest("[data-cards-reset]")) {
       event.preventDefault();
-      pendingCards = "";
       state.cards = "";
       closeCardsFilterPanel();
       renderProducts();
@@ -1335,7 +1325,7 @@ if (catRail) {
   state.category = resolved.display;
   state.sub = resolved.sub;
   // 推荐有礼无积分概念，落地即清掉可能从 URL 带进来的积分筛选
-  if (state.category === "referral") { state.cards = ""; pendingCards = ""; }
+  if (state.category === "referral") { state.cards = ""; }
 }
 
 if (categoryFilter && categoryLabelMap.has(state.category)) {
