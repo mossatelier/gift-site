@@ -1430,6 +1430,7 @@ function renderRefAdminList() {
         <span class="admin-ref-friend">${refEsc(r.alias || r.realName || r.refereeNick || "客户")}</span>
         <span class="admin-ref-phone">${refEsc(r.realPhone || r.refereePhone || "")}</span>
         ${r.orderCount > 0 ? `<span class="admin-ref-ordered">已下单${r.orderCount}</span>` : `<span class="admin-ref-noorder">未下单</span>`}
+        ${!r.refereeOpenid ? `<span class="admin-ref-pending" title="手动录入，还没关联到微信账号；TA 下单填这个手机号时会自动对账">⏳ 待对账</span>` : ""}
       </div>
       ${(r.realName && r.refereeNick && r.realName !== r.refereeNick) ? `<div class="admin-ref-card-sub">微信昵称：${refEsc(r.refereeNick)}</div>` : ""}
       <div class="admin-ref-card-mid">推荐人：<b>${refEsc(r.referrerCode || "-")}</b> ${refEsc(r.referrerNick || "")}</div>

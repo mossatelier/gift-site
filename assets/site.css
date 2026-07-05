@@ -4232,6 +4232,8 @@ body.admin-logged-in #adminLogoutButtonLogged {
 .admin-tree-phone { font-size: 11px; color: #8a7c66; }
 .admin-ref-ordered { font-size: 10px; font-weight: 700; color: #1a7f4b; background: #e6f6ec; border-radius: 5px; padding: 1px 6px; }
 .admin-ref-noorder { font-size: 10px; color: #b08; background: #fbeef4; border-radius: 5px; padding: 1px 6px; }
+/* 手动录入未关联 openid：等 TA 下单自动对账 */
+.admin-ref-pending { font-size: 10px; color: #8a6d2b; background: #f6efdd; border: 1px dashed #d9c48f; border-radius: 5px; padding: 1px 6px; }
 .admin-ref-card-sub { font-size: 11px; color: #8a7c66; margin-top: 2px; }
 .admin-order-referby { color: #b5651d; font-weight: 600; }
 .admin-tree-unbind { margin-left: 8px; height: 24px; padding: 0 9px; border: 1px solid #e3b4a6; border-radius: 6px; background: #fff; color: #c0392b; font-size: 11px; font-weight: 700; }

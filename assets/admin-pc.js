@@ -4628,6 +4628,7 @@
             '</span><span class="pc-ref-nick">' + esc(r.referrerNick || "") + "</span></div>" +
           '<div class="pc-ref-cell pc-ref-friend"><span class="pc-ref-fnick">' + esc(r.alias || r.realName || r.refereeNick || "-") +
             (r.orderCount > 0 ? ' <span class="pc-ref-ordered">已下单' + r.orderCount + '</span>' : ' <span class="pc-ref-noorder">未下单</span>') +
+            (!r.refereeOpenid ? ' <span class="pc-ref-pending" title="手动录入，还没关联到微信账号；TA 下单填这个手机号时会自动对账">⏳ 待对账</span>' : "") +
             '</span><span class="pc-ref-phone">' + esc(r.realPhone || r.refereePhone || "") +
             ((r.realName && r.refereeNick && r.realName !== r.refereeNick) ? '　微信：' + esc(r.refereeNick) : "") + "</span></div>" +
           '<div class="pc-ref-cell"><select class="pc-ref-status-sel" data-ref-id="' + esc(r._id) +
