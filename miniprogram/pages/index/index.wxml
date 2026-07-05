@@ -31,7 +31,7 @@
           ></image>
         </swiper-item>
       </block>
-      <block wx:else>
+      <block wx:elif="{{bannersReady}}">
         <swiper-item>
           <image class="banner-image" src="/images/banners/promo-1.jpg" mode="aspectFill" bindtap="goWishlist"></image>
         </swiper-item>

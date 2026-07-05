@@ -10,7 +10,9 @@ Page({
 
   data: {
     loading: true,
-    banners: [],
+    // 首帧直接用上次缓存的海报，避免闪那两张本地旧默认图（promo-1/2）
+    banners: (function () { try { return wx.getStorageSync('homeBanners') || []; } catch (e) { return []; } })(),
+    bannersReady: false, // 海报是否已拉取完成；未完成前不显示默认回退图
     hotList: [],
     newList: [],
     wishlistMap: {},
@@ -91,10 +93,18 @@ Page({
         ...it,
         bank: labels[it.key] != null ? labels[it.key] : CARDS_BANK_DEFAULT[it.key]
       }));
+      // 海报：拉到就用并写入缓存；拉到空（未配置/网络失败）则保留上次缓存，别回退闪旧图
+      const fresh = results[2] || [];
+      let banners = this.data.banners;
+      if (fresh.length) {
+        banners = fresh;
+        try { wx.setStorageSync('homeBanners', fresh); } catch (e) {}
+      }
       this.setData({
         hotList: results[0],
         newList: results[1],
-        banners: results[2] || [],
+        banners,
+        bannersReady: true,
         cardsQuick,
         loading: false
       });
