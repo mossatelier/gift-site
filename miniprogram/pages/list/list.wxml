@@ -1,3 +1,14 @@
+<wxs module="fmt">
+/* 积分档 key → 档位名（按钮显示当前档，如「6分」） */
+function cardsLabel(key, buckets) {
+  if (!key) return '';
+  for (var i = 0; i < buckets.length; i++) {
+    if (buckets[i].key === key) return buckets[i].label;
+  }
+  return '';
+}
+module.exports = { cardsLabel: cardsLabel };
+</wxs>
 <view class="page-shell">
  <view class="list-sticky">
   <!-- 搜索条 -->
@@ -13,7 +24,7 @@
     />
     <view class="search-button" bindtap="onSearch">搜索</view>
     <!-- 积分筛选入口：默认收起，点开下拉；筛选生效时高亮（省一整行常驻 chips） -->
-    <view class="filter-toggle {{cards ? 'active' : ''}}" bindtap="toggleCardsPanel">积分筛选 {{showCardsPanel ? '▴' : '▾'}}</view>
+    <view class="filter-toggle {{cards ? 'active' : ''}}" bindtap="toggleCardsPanel">{{cards ? fmt.cardsLabel(cards, cardsBuckets) : '积分筛选'}} {{showCardsPanel ? '▴' : '▾'}}</view>
   </view>
 
   <!-- 积分筛选下拉面板：点档位立即筛选并收起（免确认，少一步） -->

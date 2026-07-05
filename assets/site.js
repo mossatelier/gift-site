@@ -205,10 +205,12 @@ function renderCardsFilter() {
 function closeCardsFilterPanel() {
   if (cardsFilterPanel) cardsFilterPanel.hidden = true;
 }
-// 「筛选」按钮：有筛选生效时高亮；推荐有礼分类无积分概念 → 隐藏入口并收起面板
+// 「积分筛选」按钮：生效时高亮且文字显示当前档位（如「6分 ▾」）；推荐有礼分类无积分概念 → 隐藏入口并收起面板
 function updateCardsFilterUI() {
   renderCardsFilter();
   if (cardsFilterToggle) {
+    const b = cardsBucket(state.cards);
+    cardsFilterToggle.textContent = (b ? b.label : "积分筛选") + " ▾";
     cardsFilterToggle.classList.toggle("active", Boolean(state.cards));
     cardsFilterToggle.hidden = state.category === "referral";
   }
