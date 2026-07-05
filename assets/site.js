@@ -565,7 +565,7 @@ function updateChipRow() {
   ];
   const sortHtml = quickCatHtml + sortChips.map((item) => {
     return `<button class="chip-item chip-sort ${item.active ? "active" : ""}" type="button" data-chip-sort="${escapeHtml(item.value)}">${escapeHtml(item.label)}</button>`;
-  }).join("");
+  }).join("") + '<button class="chip-item chip-reset" type="button" data-chip-reset>重置</button>';
 
   // 大类 chips
   const mainHtml = DISPLAY_CATS.map((item) => {
@@ -1241,6 +1241,21 @@ function bindEvents() {
     if (event.target.closest("[data-cards-reset]")) {
       event.preventDefault();
       state.cards = "";
+      closeCardsFilterPanel();
+      renderProducts();
+      return;
+    }
+
+    // 快捷行「重置」：一键清掉所有筛选（分类/二级/积分/排序/搜索词），回到默认全量列表
+    if (event.target.closest("[data-chip-reset]")) {
+      event.preventDefault();
+      state.category = "all";
+      state.sub = "";
+      state.cards = "";
+      state.sort = "default";
+      state.query = "";
+      state.showMore = false;
+      if (productSearchInput) productSearchInput.value = "";
       closeCardsFilterPanel();
       renderProducts();
       return;

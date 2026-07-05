@@ -3588,6 +3588,12 @@ body.admin-logged-in #adminLogoutButtonLogged {
   color: #fff;
 }
 
+/* 快捷行一键重置：灰色虚线描边，与功能 chip 区分 */
+.chip-reset {
+  color: var(--muted);
+  border-style: dashed;
+}
+
 .chip-divider {
   flex: 0 0 auto;
   width: 1px;

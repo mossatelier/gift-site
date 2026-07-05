@@ -127,6 +127,12 @@
   box-shadow: 0 8rpx 16rpx rgba(214, 75, 42, 0.22);
 }
 
+/* 一键重置：灰色描边，与功能 chip 区分 */
+.chip-reset {
+  color: var(--muted);
+  border-style: dashed;
+}
+
 .category-row {
   display: flex;
   align-items: center;

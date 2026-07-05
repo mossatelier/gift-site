@@ -91,6 +91,7 @@ module.exports = { cardsLabel: cardsLabel };
       data-sort="newest"
       bindtap="onSortChange"
     >礼品上新</view>
+    <view class="chip-item chip-reset" bindtap="resetAll">重置</view>
   </view>
 
   <!-- 二级筛选（选中有二级的分类时显示） -->

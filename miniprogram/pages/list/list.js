@@ -320,6 +320,29 @@ Page({
     this.setData({ sort: next }, () => this.reload());
   },
 
+  // 一键重置：清掉所有筛选（分类/二级/积分/排序/搜索词），回到默认全量列表
+  resetAll() {
+    const d = this.data;
+    const isDefault = d.currentCategory === 'all' && !d.currentSub && !d.cards && d.sort === 'default' && !d.keyword;
+    if (isDefault) {
+      this.setData({ showCardsPanel: false, showMore: false });
+      wx.showToast({ title: '已是全部礼品', icon: 'none' });
+      return;
+    }
+    this.setData({
+      currentCategory: 'all',
+      currentCategoryLabel: displayLabel('all'),
+      subItems: [],
+      currentSub: '',
+      cards: '',
+      showCardsPanel: false,
+      sort: 'default',
+      keyword: '',
+      moreLabel: '',
+      showMore: false
+    }, () => this.reload());
+  },
+
   onKeywordInput(e) {
     this.setData({ keyword: e.detail.value });
   },
