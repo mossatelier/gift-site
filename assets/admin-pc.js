@@ -439,7 +439,7 @@
     if (!el) return;
     var n = Number(total) || 0;
     if (n > 0) {
-      el.textContent = n > 99 ? "99+" : String(n);
+      el.textContent = String(n); // 显示真实数量，不封顶 99+
       el.hidden = false;
     } else {
       el.hidden = true;
@@ -460,7 +460,7 @@
         .then(function (data) {
           if (!job.el) return;
           var n = Number(data && data.total) || 0;
-          job.el.textContent = n > 99 ? "99+" : String(n);
+          job.el.textContent = String(n); // 显示真实数量，不封顶 99+
           job.el.hidden = false; // 四个入口都常显数量（含 0）
         })
         .catch(function () { /* 角标失败不打扰 */ });
