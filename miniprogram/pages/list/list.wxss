@@ -55,8 +55,14 @@
 }
 .cards-panel-grid {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12rpx;
+  flex-wrap: nowrap;
+  gap: 10rpx;
+}
+/* 面板内 chip 压小一号，5 个档位一行放下 */
+.cards-panel-grid .cards-chip {
+  font-size: 22rpx;
+  padding: 10rpx 16rpx;
+  white-space: nowrap;
 }
 .cards-panel-actions {
   display: flex;

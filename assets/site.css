@@ -4025,19 +4025,19 @@ body.admin-logged-in #adminLogoutButtonLogged {
 }
 .cards-filter {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-wrap: nowrap; /* 5 个档位一行放下 */
+  gap: 6px;
 }
 .cards-filter[hidden] { display: none; }
 .cards-chip {
   flex: 0 0 auto;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text);
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(234, 223, 206, 0.9);
   border-radius: 999px;
-  padding: 7px 16px;
+  padding: 7px 11px;
   cursor: pointer;
   white-space: nowrap;
 }
