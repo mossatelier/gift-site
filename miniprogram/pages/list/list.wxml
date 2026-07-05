@@ -35,6 +35,7 @@ module.exports = { cardsLabel: cardsLabel };
         class="cards-chip {{cards === item.key ? 'active' : ''}}"
         wx:for="{{cardsBuckets}}"
         wx:key="key"
+        wx:if="{{!item.hidden}}"
         data-key="{{item.key}}"
         bindtap="onPanelCardsTap"
       >{{item.label}}</view>

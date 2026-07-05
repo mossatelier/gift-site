@@ -3546,7 +3546,7 @@ body.admin-logged-in #adminLogoutButtonLogged {
 /* List page extras */
 .chip-row {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   margin: 0 12px 8px;
   padding: 2px 0;
   overflow-x: auto;
@@ -3559,7 +3559,7 @@ body.admin-logged-in #adminLogoutButtonLogged {
 
 .chip-item {
   flex: 0 0 auto;
-  padding: 7px 13px;
+  padding: 7px 10px;
   min-height: 32px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.9);
@@ -3567,6 +3567,7 @@ body.admin-logged-in #adminLogoutButtonLogged {
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
+  letter-spacing: 0;
   cursor: pointer;
 }
 

@@ -23,14 +23,14 @@ const MORE_CATS = [
   { value: 'appliance', label: '家用电器' }
 ];
 
-// 积分区间分档（无空档，覆盖全部商品）；15+ 的 max 为 null = 单边
+// 积分区间分档；11+ 面板不显示(hidden)但保留匹配——首页「按积分快速兑换」的 11分以上 跳转仍生效
 const CARDS_BUCKETS = [
-  { key: '5',    label: '5分',     min: 5,  max: 5 },
-  { key: '6',    label: '6分',     min: 6,  max: 6 },
-  { key: '7',    label: '7分',     min: 7,  max: 7 },
-  { key: '8',    label: '8分',     min: 8,  max: 8 },
-  { key: '9-10', label: '9–10分',  min: 9,  max: 10 },
-  { key: '11+',  label: '11分以上', min: 11, max: null }
+  { key: '5',    label: '5积分',    min: 5,  max: 5 },
+  { key: '6',    label: '6积分',    min: 6,  max: 6 },
+  { key: '7',    label: '7积分',    min: 7,  max: 7 },
+  { key: '8',    label: '8积分',    min: 8,  max: 8 },
+  { key: '9-10', label: '9-10积分', min: 9,  max: 10 },
+  { key: '11+',  label: '11分以上', min: 11, max: null, hidden: true }
 ];
 function cardsRangeOf(key) {
   const b = CARDS_BUCKETS.find(x => x.key === key);
