@@ -165,6 +165,18 @@ async function getCardsBankLabels() {
   }
 }
 
+// 关键词搜索走云函数（同义词扩展+字级打分，「小米风扇」能搜到「小米智能塔扇」）。
+// 返回 { items, total }；失败抛错由调用方回退到普通正则搜索。
+async function searchProducts({ keyword, category = null, subcategory = null, cardsMin = null, cardsMax = null, limit = 100 } = {}) {
+  const r = await wx.cloud.callFunction({
+    name: 'search-products',
+    data: { keyword, category, subcategory, cardsMin, cardsMax, limit }
+  });
+  const res = r && r.result;
+  if (!res || !res.success) throw new Error((res && res.error) || '搜索失败');
+  return { items: (res.products || []).map(normalize), total: res.total || 0 };
+}
+
 // 邀请页分享卡片（app_config key=referral_share）：好友转发邀请页时显示的图+标题。
 // 邀请码仍藏在分享 path 的 ?ref= 里，换图不影响返利。
 const REFERRAL_SHARE_DEFAULT = {
@@ -387,6 +399,7 @@ async function getMyOrder(openid, id) {
 module.exports = {
   listProducts,
   countProducts,
+  searchProducts,
   getProductById,
   getProductsByIds,
   listHotProducts,

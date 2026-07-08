@@ -383,8 +383,70 @@ function updateSortButtons() {
   });
 }
 
+// ===== 智能搜索：同义词扩展 + 字级打分（与云函数 search-products 同款逻辑）=====
+// ⚠️ 小程序端 cloudfunctions/search-products/index.js 有一份同款表，改这里记得同步改那边
+const SYNONYM_GROUPS = [
+  ["风扇", "塔扇", "循环扇", "落地扇", "台扇", "电扇"],
+  ["遛娃", "溜娃"],
+  ["婴儿车", "推车", "口袋车"],
+  ["餐椅", "成长椅"],
+  ["电饭锅", "电饭煲"],
+  ["高压锅", "压力锅"],
+  ["吹风机", "电吹风"],
+  ["爬行垫", "爬爬垫"],
+  ["摇摇马", "木马"],
+  ["消毒柜", "消毒器"],
+  ["豆浆机", "破壁机"],
+  ["调奶器", "恒温壶"],
+  ["摄像头", "监控"],
+  ["书架", "绘本架", "收纳架"]
+];
+
+function searchNorm(s) {
+  return String(s || "").toLowerCase().replace(/\s+/g, "");
+}
+
+function searchVariantsOf(q) {
+  const vs = [q];
+  SYNONYM_GROUPS.forEach((g) => {
+    g.forEach((w) => {
+      if (q.indexOf(w) >= 0) {
+        g.forEach((w2) => {
+          if (w2 !== w) {
+            const v = q.split(w).join(w2);
+            if (vs.indexOf(v) < 0) vs.push(v);
+          }
+        });
+      }
+    });
+  });
+  return vs.slice(0, 12);
+}
+
+// 整串命中标题=100，命中子类/描述=80；否则去重字符命中率≥60% 按比例给分（封顶70）
+function searchScore(item, variants) {
+  const t = searchNorm(item.title);
+  const s = searchNorm(item.subcategory);
+  const d = searchNorm(item.description);
+  let best = 0;
+  for (const v of variants) {
+    if (!v) continue;
+    if (t.indexOf(v) >= 0) { best = Math.max(best, 100); continue; }
+    if (s.indexOf(v) >= 0 || d.indexOf(v) >= 0) { best = Math.max(best, 80); continue; }
+    const chars = Array.from(new Set(v.split("")));
+    if (chars.length < 2) continue; // 单字不做模糊，噪声太大
+    let hit = 0;
+    chars.forEach((c) => { if (t.indexOf(c) >= 0 || s.indexOf(c) >= 0) hit++; });
+    const ratio = hit / chars.length;
+    if (ratio >= 0.6) best = Math.max(best, Math.round(ratio * 70));
+  }
+  return best;
+}
+
 function filteredProducts(items = state.products) {
-  const keyword = state.query.trim().toLowerCase();
+  const keyword = searchNorm(state.query);
+  const variants = keyword ? searchVariantsOf(keyword) : null;
+  const scoreMap = new Map();
 
   const filtered = items.filter((item) => {
     if (!categoryMatch(item)) {
@@ -399,9 +461,16 @@ function filteredProducts(items = state.products) {
       return true;
     }
 
-    const haystack = `${item.title} ${item.description} ${item.subcategory} ${categoryLabel(item.category)}`.toLowerCase();
-    return haystack.includes(keyword);
+    const sc = searchScore(item, variants);
+    if (sc <= 0) return false;
+    scoreMap.set(item, sc);
+    return true;
   });
+
+  // 有关键词且未指定排序时按相关度排（最像的在前）
+  if (keyword && state.sort === "default") {
+    return filtered.sort((a, b) => (scoreMap.get(b) || 0) - (scoreMap.get(a) || 0));
+  }
 
   return filtered.sort((left, right) => {
     if (state.sort === "price") {

@@ -1,4 +1,4 @@
-const { listProducts, countProducts } = require('../../utils/db.js');
+const { listProducts, countProducts, searchProducts } = require('../../utils/db.js');
 const { subcategories, labelOfCategory } = require('../../config.js');
 const wishlist = require('../../utils/wishlist.js');
 const floatBtn = require('../../utils/floatBtn.js');
@@ -230,6 +230,11 @@ Page({
       totalCount: 0,
       currentCategoryLabel: displayLabel(this.data.currentCategory)
     });
+    // 有关键词 → 走云函数智能搜索（同义词+字级打分）；失败回退普通正则搜索
+    if ((this.data.keyword || '').trim()) {
+      const ok = await this._searchByKeyword();
+      if (ok) return;
+    }
     const f = this._filter();
     const { cardsMin, cardsMax } = cardsRangeOf(this.data.cards);
     try {
@@ -239,6 +244,32 @@ Page({
       console.warn('countProducts 失败', err);
     }
     await this._loadPage();
+  },
+
+  // 关键词搜索：云函数一次返回按相关度排序的结果（不分页）；返回 false 表示失败需回退
+  async _searchByKeyword() {
+    const f = this._filter();
+    const { cardsMin, cardsMax } = cardsRangeOf(this.data.cards);
+    try {
+      const { items, total } = await searchProducts({
+        keyword: this.data.keyword,
+        category: f.category,
+        subcategory: f.subcategory,
+        cardsMin,
+        cardsMax,
+        limit: 100
+      });
+      this.setData({
+        items: items.map(it => ({ ...it, _metaText: buildMetaText(it) })),
+        totalCount: total,
+        noMore: true, // 搜索模式一次给全，不分页
+        loading: false
+      });
+      return true;
+    } catch (err) {
+      console.warn('智能搜索失败，回退普通搜索', err);
+      return false;
+    }
   },
 
   async loadMore() {
