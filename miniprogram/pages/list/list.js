@@ -259,6 +259,15 @@ Page({
         cardsMax,
         limit: 100
       });
+      // 云函数按相关度返回；用户选了排序时在结果内重排（否则积分/最新排序在搜索模式下失效）
+      const sort = this.data.sort;
+      if (sort === 'cards-asc') {
+        items.sort((a, b) => (a.cardsNeeded || 0) - (b.cardsNeeded || 0));
+      } else if (sort === 'cards-desc') {
+        items.sort((a, b) => (b.cardsNeeded || 0) - (a.cardsNeeded || 0));
+      } else if (sort === 'newest') {
+        items.sort((a, b) => (new Date(b.createdAt || 0).getTime() || 0) - (new Date(a.createdAt || 0).getTime() || 0));
+      }
       this.setData({
         items: items.map(it => ({ ...it, _metaText: buildMetaText(it) })),
         totalCount: total,
