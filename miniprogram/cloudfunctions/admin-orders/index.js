@@ -789,8 +789,8 @@ async function saveHomeBanners({ banners }) {
 
 // 首页「按积分快速兑换」每个档位显示的银行名（存 app_config，key=cards_bank_labels）
 // 档位 key 与全部礼品页积分筛选一致；value 为展示用银行名（可空）。
-const CARDS_BANK_KEYS = ['6', '7', '8', '9-10', '11+'];
-const CARDS_BANK_DEFAULT = { '6': '交通银行', '7': '浦发银行', '8': '平安/中信银行', '9-10': '', '11+': '全' };
+const CARDS_BANK_KEYS = ['5', '6', '7', '8', '9-10'];
+const CARDS_BANK_DEFAULT = { '5': '', '6': '交通银行', '7': '浦发银行', '8': '平安/中信银行', '9-10': '' };
 
 function normalizeBankLabels(input) {
   const src = (input && typeof input === 'object') ? input : {};

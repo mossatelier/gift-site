@@ -2027,13 +2027,13 @@
 
   // ============ 积分档银行（cards_bank_labels；云开发 app_config + Supabase app_config 双写） ============
   var CARDBANK_BUCKETS = [
+    { key: "5", label: "5分" },
     { key: "6", label: "6分" },
     { key: "7", label: "7分" },
     { key: "8", label: "8分" },
-    { key: "9-10", label: "9-10分" },
-    { key: "11+", label: "11分以上" }
+    { key: "9-10", label: "9-10分" }
   ];
-  var CARDBANK_DEFAULT = { "6": "交通银行", "7": "浦发银行", "8": "平安/中信银行", "9-10": "", "11+": "全" };
+  var CARDBANK_DEFAULT = { "5": "", "6": "交通银行", "7": "浦发银行", "8": "平安/中信银行", "9-10": "" };
   state.cardbankLoaded = false;
   state.cardbankSaving = false;
 

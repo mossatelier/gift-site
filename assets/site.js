@@ -167,7 +167,7 @@ function displayCatLabel(value) {
   return f ? f.label : categoryLabel(value);
 }
 // 列表页分类匹配：all / mombaby(整组或单细类) / 普通分类(+二级)
-// 积分区间分档；11+ 面板不显示(hidden)但保留匹配——首页「按积分快速兑换」的 11分以上 跳转仍生效
+// 积分区间分档；11+ 已从首页/面板下线，bucket 保留 hidden 仅为兼容旧分享链接 ?cards=11+
 const CARDS_BUCKETS = [
   { key: "5", label: "5积分", min: 5, max: 5 },
   { key: "6", label: "6积分", min: 6, max: 6 },
