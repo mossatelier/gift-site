@@ -113,9 +113,11 @@ const subcategoriesMap = config.subcategories || {};
 const TITLE_HISTORY_KEY = "gift-site-admin-title-history";
 const TITLE_HISTORY_LIMIT = 30;
 const MAX_PRODUCT_IMAGES = 5;
-const IMAGE_COMPRESS_MAX_EDGE = 1600;
-const IMAGE_COMPRESS_QUALITY = 0.84;
-const IMAGE_COMPRESS_MIN_BYTES = 650 * 1024;
+// ⚠️ 2026-07-30 收紧（原 1600px/0.84/650KB）：图太大导致月出站 8GB 撑爆 Supabase 免费版 5GB。
+// 与 admin-core.js 保持一致，两处都要改。
+const IMAGE_COMPRESS_MAX_EDGE = 900;
+const IMAGE_COMPRESS_QUALITY = 0.78;
+const IMAGE_COMPRESS_MIN_BYTES = 80 * 1024;
 
 const PRICE_PER_CARD = 40;
 const LAST_CATEGORY_KEY = "gift-site-admin-last-category";

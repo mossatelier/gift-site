@@ -21,10 +21,13 @@
   var SESSION_STORAGE_KEY = "gift-site-admin-session";
 
   // 图片压缩参数（与 admin.js 保持一致）。
+  // ⚠️ 2026-07-30 收紧：原为 1600px/q0.84/仅>650KB才压，导致 910 张图共 150MB、
+  // 月出站流量 8GB 撑爆 Supabase 免费版 5GB（服务被 402 停,图片全白）。
+  // 现改为 900px/q0.78/>80KB就压 —— 小程序列表每张图实际只显示约 170pt 宽，900px 足够。
   var MAX_PRODUCT_IMAGES = 5;
-  var IMAGE_COMPRESS_MAX_EDGE = 1600;
-  var IMAGE_COMPRESS_QUALITY = 0.84;
-  var IMAGE_COMPRESS_MIN_BYTES = 650 * 1024;
+  var IMAGE_COMPRESS_MAX_EDGE = 900;
+  var IMAGE_COMPRESS_QUALITY = 0.78;
+  var IMAGE_COMPRESS_MIN_BYTES = 80 * 1024;
 
   // 内存里的会话镜像。saveSession 时同步写 localStorage。
   var sessionRef = { session: null };
