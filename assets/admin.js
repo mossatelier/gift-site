@@ -115,11 +115,11 @@ const TITLE_HISTORY_LIMIT = 30;
 const MAX_PRODUCT_IMAGES = 5;
 // ⚠️ 2026-07-30 收紧（原 1600px/0.84/650KB）：图太大导致月出站 8GB 撑爆 Supabase 免费版 5GB。
 // 与 admin-core.js 保持一致，两处都要改。
-const IMAGE_COMPRESS_MAX_EDGE = 900;
+const IMAGE_COMPRESS_MAX_EDGE = 800;
 const IMAGE_COMPRESS_QUALITY = 0.78;
 const IMAGE_COMPRESS_MIN_BYTES = 80 * 1024;
 // 上传体积硬上限：base64 传给云函数会膨胀 33%，超过 HTTP 网关请求体上限就 413
-const IMAGE_UPLOAD_MAX_BYTES = 220 * 1024;
+const IMAGE_UPLOAD_MAX_BYTES = 65 * 1024;
 
 const PRICE_PER_CARD = 40;
 const LAST_CATEGORY_KEY = "gift-site-admin-last-category";
@@ -914,27 +914,28 @@ async function compressImageFile(file) {
   }
 }
 
-// 图片存云开发存储：云函数签发凭证 → 前端直传 COS。
-// ⚠️ 不能走 base64 中转：HTTP 网关请求体上限实测仅 50–100KB，商品图必然 413。
+// 读成 base64（经云函数中转写入云存储）
+function fileToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("图片读取失败"));
+    reader.readAsDataURL(blob);
+  });
+}
+
+// 图片存云开发存储，经 admin-orders 云函数中转。
+// ⚠️ HTTP 网关请求体上限约 96KB，base64 膨胀 33%
+//    → compressImageFile 会把图压到 IMAGE_UPLOAD_MAX_BYTES(65KB) 以内。
 async function uploadFile(file) {
   const uploadTarget = await compressImageFile(file);
-  const sign = await callAdminOrders("upload-sign", {
+  const base64 = await fileToBase64(uploadTarget);
+  const data = await callAdminOrders("upload-image", {
+    base64,
     name: sanitizeFileName(uploadTarget.name || "image.jpg")
   });
-  if (!sign || !sign.uploadUrl) throw new Error("获取上传凭证失败");
-
-  const form = new FormData();
-  form.append("key", sign.cloudPath);
-  form.append("Signature", sign.authorization);
-  form.append("x-cos-security-token", sign.token);
-  form.append("x-cos-meta-fileid", sign.cosFileId);
-  form.append("file", uploadTarget);
-
-  const res = await fetch(sign.uploadUrl, { method: "POST", body: form });
-  if (!res.ok && res.status !== 204) {
-    throw new Error(`图片上传失败：${res.status}`);
-  }
-  return sign.publicUrl;
+  if (!data || !data.url) throw new Error("图片上传失败：云端未返回地址");
+  return data.url;
 }
 
 async function insertProduct(row) {

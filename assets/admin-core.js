@@ -23,14 +23,16 @@
   // 图片压缩参数（与 admin.js 保持一致）。
   // ⚠️ 2026-07-30 收紧：原为 1600px/q0.84/仅>650KB才压，导致 910 张图共 150MB、
   // 月出站流量 8GB 撑爆 Supabase 免费版 5GB（服务被 402 停,图片全白）。
-  // 现改为 900px/q0.78/>80KB就压 —— 小程序列表每张图实际只显示约 170pt 宽，900px 足够。
+  // 现改为 800px/q0.78/>80KB就压 —— 小程序列表每张图实际只显示约 170pt 宽，800px 足够。
+  // ⚠️ 2026-08-01 再收紧到 800px + 65KB 上限：后台上传经 HTTP 网关中转，网关请求体上限约 96KB，
+  // base64 编码膨胀 33%，因此图片本体必须 ≤65KB，否则 413。
   var MAX_PRODUCT_IMAGES = 5;
-  var IMAGE_COMPRESS_MAX_EDGE = 900;
+  var IMAGE_COMPRESS_MAX_EDGE = 800;
   var IMAGE_COMPRESS_QUALITY = 0.78;
   var IMAGE_COMPRESS_MIN_BYTES = 80 * 1024;
   // 上传体积硬上限：图片经 base64 传给云函数会膨胀 33%，超过 HTTP 网关请求体上限就 413。
   // 压缩流程会逐级降质量确保产出不超过这个值。
-  var IMAGE_UPLOAD_MAX_BYTES = 220 * 1024;
+  var IMAGE_UPLOAD_MAX_BYTES = 65 * 1024;
 
   // 内存里的会话镜像。saveSession 时同步写 localStorage。
   var sessionRef = { session: null };
@@ -522,30 +524,31 @@
    * 压缩并上传一张图片到 Supabase Storage，返回其公开 URL。
    * 文件名 = 时间戳-清洗后的原名；目录 = config.storageFolder（默认 products）。
    */
+  // 读成 base64（云函数中转要求文本传输）
+  function fileToBase64(blob) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () { resolve(String(reader.result || "")); };
+      reader.onerror = function () { reject(new Error("图片读取失败")); };
+      reader.readAsDataURL(blob);
+    });
+  }
+
   /**
    * 压缩并上传一张图片到「云开发存储」，返回公开 URL。
-   * 流程：云函数签发上传凭证 → 前端直传 COS。
-   * ⚠️ 不能走 base64 中转：HTTP 网关请求体上限实测仅 50–100KB，商品图必然 413。
+   * 经 admin-orders 云函数中转（wx-server-sdk 无法签发前端直传凭证）。
+   * ⚠️ HTTP 网关请求体上限约 96KB，base64 膨胀 33%
+   *    → compressImageFile 会把图压到 IMAGE_UPLOAD_MAX_BYTES(65KB) 以内。
    */
   async function uploadImage(file) {
     var uploadTarget = await compressImageFile(file);
-    var sign = await callAdminOrders("upload-sign", {
+    var base64 = await fileToBase64(uploadTarget);
+    var data = await callAdminOrders("upload-image", {
+      base64: base64,
       name: sanitizeFileName(uploadTarget.name || "image.jpg")
     });
-    if (!sign || !sign.uploadUrl) throw new Error("获取上传凭证失败");
-
-    var form = new FormData();
-    form.append("key", sign.cloudPath);
-    form.append("Signature", sign.authorization);
-    form.append("x-cos-security-token", sign.token);
-    form.append("x-cos-meta-fileid", sign.cosFileId);
-    form.append("file", uploadTarget);
-
-    var res = await fetch(sign.uploadUrl, { method: "POST", body: form });
-    if (!res.ok && res.status !== 204) {
-      throw new Error("图片上传失败：" + res.status);
-    }
-    return sign.publicUrl;
+    if (!data || !data.url) throw new Error("图片上传失败：云端未返回地址");
+    return data.url;
   }
 
   // ============ 银行（云开发 banks_earn 集合） ============
