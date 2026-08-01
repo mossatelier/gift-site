@@ -310,114 +310,47 @@
     return callAdminOrders("delete-orders-bulk", { orderIds: orderIds });
   }
 
-  // ============ 商品（Supabase REST） ============
-
-  function productsEndpoint() {
-    return config.supabaseUrl + "/rest/v1/" + config.productsTable;
-  }
+  // ============ 商品（云开发 admin-orders 云函数；已不走 Supabase） ============
+  // B 步改造：商品读写全部转到云开发 products 集合，字段仍用下划线风格与上层代码兼容。
 
   /**
-   * 读取商品列表，含原 admin.js 的 400 降级逻辑：
-   * 首选包含 subcategory/images/description 等列；若库表缺列返回 400，
-   * 降级到只取基础列再试一次。
+   * 读取商品列表（含已软删的，回收站要用）。
+   * 原 Supabase 版本的 400 列降级逻辑已不需要——云开发无固定表结构。
    */
   async function listProducts(opts) {
     opts = opts || {};
-    var limit = opts.limit != null ? String(opts.limit) : "1000";
-
-    var fullCols = "id,title,category,subcategory,price,cards_needed,description,image_url,images,sort_order,created_at,is_active";
-    // 优先带 deleted 列（软删标记）；列不存在 → 退回不带 deleted 的完整列；再退回精简列。
-    var tiers = [
-      { select: fullCols + ",deleted", order: "updated_at.desc" },
-      { select: fullCols, order: "updated_at.desc" },
-      { select: "id,title,category,price,image_url,sort_order,created_at,is_active", order: "created_at.desc" }
-    ];
-
-    var response;
-    for (var i = 0; i < tiers.length; i += 1) {
-      var params = new URLSearchParams({ select: tiers[i].select, order: tiers[i].order, limit: limit });
-      response = await authedFetch(productsEndpoint() + "?" + params.toString());
-      if (response.ok) {
-        var data = await response.json();
-        return Array.isArray(data) ? data : [];
-      }
-      if (response.status !== 400) break; // 非 400（列缺失）不再降级重试
-    }
-
-    throw new Error("读取最近商品失败：" + (response ? response.status : "?"));
+    var data = await callAdminOrders("products-list", { limit: opts.limit != null ? Number(opts.limit) : 1000 });
+    return (data && Array.isArray(data.products)) ? data.products : [];
   }
 
   async function createProduct(payload) {
-    var response = await authedFetch(
-      productsEndpoint(),
-      { method: "POST", body: JSON.stringify(payload) },
-      {
-        "Content-Type": "application/json",
-        Prefer: "return=representation"
-      }
-    );
-
-    if (!response.ok) {
-      var errorText = await response.text();
-      throw new Error("商品写入失败：" + response.status + " " + errorText);
-    }
-
-    var data = await response.json();
-    return Array.isArray(data) ? data[0] : data;
+    var data = await callAdminOrders("products-create", { payload: payload });
+    return (data && data.product) || data;
   }
 
-  // 写 Supabase app_config（upsert，key 为主键）。供 H5 直读（如首页海报 home_banners）。
+  // 写配置到云开发 app_config（供 H5 的 web-api 和小程序共同读取）
   async function saveAppConfig(key, value) {
-    var response = await authedFetch(
-      config.supabaseUrl + "/rest/v1/app_config",
-      { method: "POST", body: JSON.stringify({ key: key, value: value, updated_at: new Date().toISOString() }) },
-      { "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }
-    );
-    if (!response.ok) {
-      var errorText = await response.text();
-      throw new Error("Supabase 配置写入失败：" + response.status + " " + errorText);
-    }
+    var actionMap = {
+      home_banners: "save-home-banners",
+      cards_bank_labels: "save-cards-bank-labels",
+      referral_share: "save-referral-share"
+    };
+    var action = actionMap[key];
+    if (!action) throw new Error("未知配置项：" + key);
+    if (key === "home_banners") return callAdminOrders(action, { banners: value });
+    if (key === "cards_bank_labels") return callAdminOrders(action, { labels: value });
+    return callAdminOrders(action, value || {});
   }
 
   async function updateProduct(productId, payload) {
-    var response = await authedFetch(
-      productsEndpoint() + "?id=eq." + encodeURIComponent(productId),
-      { method: "PATCH", body: JSON.stringify(payload) },
-      {
-        "Content-Type": "application/json",
-        Prefer: "return=representation"
-      }
-    );
-
-    if (!response.ok) {
-      var errorText = await response.text();
-      throw new Error("商品更新失败：" + response.status + " " + errorText);
-    }
-
-    var data = await response.json();
-    return Array.isArray(data) ? data[0] : data;
+    var data = await callAdminOrders("products-update", { id: productId, payload: payload });
+    return data || {};
   }
 
-  // 软删除：置 deleted=true + 下架（is_active=false），保留行 → 可在「回收站」找回。
-  // 同步层已按 is_active 同步，下架后约 5 分钟内小程序端不再展示。
+  // 软删除：置 deleted=true + 下架（isActive=false），保留文档 → 可在「回收站」找回。
   async function deleteProduct(productId) {
-    var response = await authedFetch(
-      productsEndpoint() + "?id=eq." + encodeURIComponent(productId),
-      { method: "PATCH", body: JSON.stringify({ deleted: true, is_active: false }) },
-      { "Content-Type": "application/json", Prefer: "return=representation" }
-    );
-
-    if (!response.ok) {
-      var errorText = await response.text();
-      // deleted 列尚未在 Supabase 建好时给出明确指引（避免误以为删除坏了）。
-      if (/deleted/i.test(errorText) && (response.status === 400 || response.status === 404)) {
-        throw new Error('删除失败：商品表还没有 deleted 列。请先在 Supabase SQL Editor 执行：\nALTER TABLE products ADD COLUMN deleted boolean NOT NULL DEFAULT false;');
-      }
-      throw new Error("商品删除失败：" + response.status + " " + errorText);
-    }
-
-    var data = await response.json();
-    return Array.isArray(data) ? data[0] : data;
+    var data = await callAdminOrders("products-delete", { id: productId });
+    return data || {};
   }
 
   // 找回：清除 deleted 标记并重新上架。
@@ -562,78 +495,45 @@
     }
   }
 
-  // Storage 公开访问 URL。
-  function publicUrl(filePath) {
-    return config.supabaseUrl + "/storage/v1/object/public/" + config.storageBucket + "/" + filePath;
-  }
-
-  // Storage 上传端点（路径段逐个 encodeURIComponent）。
-  function encodedPath(filePath) {
-    var encoded = filePath.split("/").map(function (segment) {
-      return encodeURIComponent(segment);
-    }).join("/");
-    return config.supabaseUrl + "/storage/v1/object/" + config.storageBucket + "/" + encoded;
-  }
-
   /**
    * 压缩并上传一张图片到 Supabase Storage，返回其公开 URL。
    * 文件名 = 时间戳-清洗后的原名；目录 = config.storageFolder（默认 products）。
    */
-  async function uploadImage(file) {
-    var uploadTarget = await compressImageFile(file);
-    var fileName = Date.now() + "-" + sanitizeFileName(uploadTarget.name);
-    var folder = config.storageFolder || "products";
-    var filePath = folder + "/" + fileName;
-
-    var response = await authedFetch(
-      encodedPath(filePath),
-      { method: "POST", body: uploadTarget },
-      {
-        "Content-Type": uploadTarget.type || "application/octet-stream",
-        "x-upsert": "true",
-        "cache-control": "max-age=31536000"  // 缓存1年：图内容不变，让浏览器缓存，省 Supabase 出站流量
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error("图片上传失败：" + response.status);
-    }
-
-    return publicUrl(filePath);
+  // 读成 base64（云函数上传要求文本传输）
+  function fileToBase64(blob) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () { resolve(String(reader.result || "")); };
+      reader.onerror = function () { reject(new Error("图片读取失败")); };
+      reader.readAsDataURL(blob);
+    });
   }
 
-  // ============ 银行（banks_earn） ============
+  /**
+   * 压缩并上传一张图片到「云开发存储」，返回公开 URL。
+   * B 步改造：不再传 Supabase Storage；经 admin-orders 云函数中转写入云存储。
+   * 压缩参数在 compressImageFile 里（900px / q0.78 / >80KB 才压）。
+   */
+  async function uploadImage(file) {
+    var uploadTarget = await compressImageFile(file);
+    var base64 = await fileToBase64(uploadTarget);
+    var data = await callAdminOrders("upload-image", {
+      base64: base64,
+      name: sanitizeFileName(uploadTarget.name || "image.jpg")
+    });
+    if (!data || !data.url) throw new Error("图片上传失败：云端未返回地址");
+    return data.url;
+  }
+
+  // ============ 银行（云开发 banks_earn 集合） ============
 
   async function listBanks() {
-    var params = new URLSearchParams({
-      select: "id,name,points,sort_order",
-      order: "points.desc.nullslast,sort_order.asc"
-    });
-
-    var response = await authedFetch(config.supabaseUrl + "/rest/v1/banks_earn?" + params.toString());
-
-    if (!response.ok) {
-      var text = await response.text();
-      throw new Error("读取失败：" + response.status + " " + text);
-    }
-
-    return await response.json();
+    var data = await callAdminOrders("banks-list", {});
+    return (data && Array.isArray(data.banks)) ? data.banks : [];
   }
 
   async function saveBankPoints(id, points) {
-    var response = await authedFetch(
-      config.supabaseUrl + "/rest/v1/banks_earn?id=eq." + encodeURIComponent(id),
-      { method: "PATCH", body: JSON.stringify({ points: points }) },
-      {
-        "Content-Type": "application/json",
-        Prefer: "return=minimal"
-      }
-    );
-
-    if (!response.ok) {
-      var text = await response.text();
-      throw new Error("保存失败：" + response.status + " " + text);
-    }
+    return callAdminOrders("banks-save-points", { id: id, points: Number(points) });
   }
 
   // ============ 导出 ============
@@ -675,8 +575,6 @@
     // 图片
     compressImageFile: compressImageFile,
     uploadImage: uploadImage,
-    publicUrl: publicUrl,
-    encodedPath: encodedPath,
 
     // 银行
     listBanks: listBanks,

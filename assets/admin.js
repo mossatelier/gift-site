@@ -894,89 +894,39 @@ async function compressImageFile(file) {
   }
 }
 
-function storagePublicUrl(filePath) {
-  return `${config.supabaseUrl}/storage/v1/object/public/${config.storageBucket}/${filePath}`;
+// 读成 base64（经云函数中转写入云存储）
+function fileToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("图片读取失败"));
+    reader.readAsDataURL(blob);
+  });
 }
 
-function storageUploadEndpoint(filePath) {
-  const encodedPath = filePath.split("/").map((segment) => encodeURIComponent(segment)).join("/");
-  return `${config.supabaseUrl}/storage/v1/object/${config.storageBucket}/${encodedPath}`;
-}
-
+// B 步改造：图片改存云开发存储（不再传 Supabase Storage）
 async function uploadFile(file) {
   const uploadTarget = await compressImageFile(file);
-  const fileName = `${Date.now()}-${sanitizeFileName(uploadTarget.name)}`;
-  const folder = config.storageFolder || "products";
-  const filePath = `${folder}/${fileName}`;
-  const response = await authedFetch(
-    storageUploadEndpoint(filePath),
-    { method: "POST", body: uploadTarget },
-    {
-      "Content-Type": uploadTarget.type || "application/octet-stream",
-      "x-upsert": "true",
-      "cache-control": "max-age=31536000"  // 缓存1年：图内容不变，让浏览器缓存，省 Supabase 出站流量
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`图片上传失败：${response.status}`);
-  }
-
-  return storagePublicUrl(filePath);
+  const base64 = await fileToBase64(uploadTarget);
+  const data = await callAdminOrders("upload-image", {
+    base64,
+    name: sanitizeFileName(uploadTarget.name || "image.jpg")
+  });
+  if (!data || !data.url) throw new Error("图片上传失败：云端未返回地址");
+  return data.url;
 }
 
 async function insertProduct(row) {
-  const response = await authedFetch(
-    `${config.supabaseUrl}/rest/v1/${config.productsTable}`,
-    { method: "POST", body: JSON.stringify(row) },
-    {
-      "Content-Type": "application/json",
-      Prefer: "return=representation"
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`商品写入失败：${response.status} ${errorText}`);
-  }
-
-  const data = await response.json();
-  return Array.isArray(data) ? data[0] : data;
+  const data = await callAdminOrders("products-create", { payload: row });
+  return (data && data.product) || data;
 }
 
 async function updateProduct(productId, row) {
-  const response = await authedFetch(
-    `${config.supabaseUrl}/rest/v1/${config.productsTable}?id=eq.${encodeURIComponent(productId)}`,
-    { method: "PATCH", body: JSON.stringify(row) },
-    {
-      "Content-Type": "application/json",
-      Prefer: "return=representation"
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`商品更新失败：${response.status} ${errorText}`);
-  }
-
-  const data = await response.json();
-  return Array.isArray(data) ? data[0] : data;
+  return callAdminOrders("products-update", { id: productId, payload: row });
 }
 
 async function deleteProduct(productId) {
-  const response = await authedFetch(
-    `${config.supabaseUrl}/rest/v1/${config.productsTable}?id=eq.${encodeURIComponent(productId)}`,
-    { method: "DELETE" },
-    { Prefer: "return=representation" }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`商品删除失败：${response.status} ${errorText}`);
-  }
-
-  const data = await response.json();
-  return Array.isArray(data) ? data[0] : data;
+  return callAdminOrders("products-delete", { id: productId });
 }
 
 async function loadRecentProducts() {
@@ -987,40 +937,9 @@ async function loadRecentProducts() {
     return;
   }
 
-  if (!isSupabaseConfigured()) {
-    adminRecentList.innerHTML = "<p class=\"admin-status-text\">当前后台暂时不可用，请联系网站维护人员。</p>";
-    return;
-  }
-
   try {
-    const primaryParams = new URLSearchParams({
-      select: "id,title,category,subcategory,price,cards_needed,description,image_url,images,sort_order,created_at,is_active",
-      order: "updated_at.desc",
-      limit: "1000"
-    });
-
-    let response = await authedFetch(
-      `${config.supabaseUrl}/rest/v1/${config.productsTable}?${primaryParams.toString()}`
-    );
-
-    if (!response.ok && response.status === 400) {
-      const fallbackParams = new URLSearchParams({
-        select: "id,title,category,price,image_url,sort_order,created_at,is_active",
-        order: "created_at.desc",
-        limit: "1000"
-      });
-
-      response = await authedFetch(
-        `${config.supabaseUrl}/rest/v1/${config.productsTable}?${fallbackParams.toString()}`
-      );
-    }
-
-    if (!response.ok) {
-      throw new Error(`读取最近商品失败：${response.status}`);
-    }
-
-    const data = await response.json();
-    state.recentProducts = Array.isArray(data) ? data : [];
+    const data = await callAdminOrders("products-list", { limit: 1000 });
+    state.recentProducts = (data && Array.isArray(data.products)) ? data.products : [];
     state.pendingProductId = "";
 
     if (state.recentProducts.length === 0) {
@@ -1650,21 +1569,8 @@ async function loadBanksEarn() {
   }
 
   try {
-    const params = new URLSearchParams({
-      select: "id,name,points,sort_order",
-      order: "points.desc.nullslast,sort_order.asc"
-    });
-
-    const response = await authedFetch(
-      `${config.supabaseUrl}/rest/v1/banks_earn?${params.toString()}`
-    );
-
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`读取失败：${response.status} ${text}`);
-    }
-
-    state.banks = await response.json();
+    const data = await callAdminOrders("banks-list", {});
+    state.banks = (data && Array.isArray(data.banks)) ? data.banks : [];
     renderBanksList();
   } catch (error) {
     adminBanksList.innerHTML = `<p class="admin-status-text">${escapeHtml(error.message)}</p>`;
@@ -1700,19 +1606,7 @@ async function handleBankPointsChange(input) {
   setBanksMessage("正在保存…");
 
   try {
-    const response = await authedFetch(
-      `${config.supabaseUrl}/rest/v1/banks_earn?id=eq.${encodeURIComponent(id)}`,
-      { method: "PATCH", body: JSON.stringify({ points: value }) },
-      {
-        "Content-Type": "application/json",
-        Prefer: "return=minimal"
-      }
-    );
-
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`保存失败：${response.status} ${text}`);
-    }
+    await callAdminOrders("banks-save-points", { id, points: value });
 
     setBanksMessage("已保存。", "success");
     const idx = state.banks.findIndex((b) => b.id === id);
@@ -3174,18 +3068,9 @@ adminHaibaoSave?.addEventListener("click", async () => {
     const banners = state.haibanners
       .filter((s) => s.imageUrl)
       .map((s) => ({ imageUrl: s.imageUrl, linkType: s.linkType || "none", linkValue: s.linkValue || "", title: s.title || "" }));
+    // 只写云开发；H5 现在也经 web-api 读同一份，不再需要 Supabase 双写
     await callAdminOrders("save-home-banners", { banners });
-    // 同时写 Supabase，供 H5 网页端读取（失败不影响小程序）。
-    try {
-      await authedFetch(
-        `${config.supabaseUrl}/rest/v1/app_config`,
-        { method: "POST", body: JSON.stringify({ key: "home_banners", value: banners, updated_at: new Date().toISOString() }) },
-        { "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }
-      );
-      setHaibaoMessage("已保存，小程序下拉刷新 / H5 刷新生效。", "success");
-    } catch (e2) {
-      setHaibaoMessage("小程序已更新；网页端同步失败：" + (e2.message || ""), "error");
-    }
+    setHaibaoMessage("已保存，小程序下拉刷新 / H5 刷新生效。", "success");
   } catch (err) {
     setHaibaoMessage(err.message, "error");
   }
@@ -3245,18 +3130,9 @@ adminCardBankSave?.addEventListener("click", async () => {
   inputs.forEach((inp) => { labels[inp.getAttribute("data-cardbank-key")] = (inp.value || "").trim().slice(0, 30); });
   setCardBankMessage("保存中…");
   try {
+    // 只写云开发；H5 现在也经 web-api 读同一份，不再需要 Supabase 双写
     await callAdminOrders("save-cards-bank-labels", { labels });
-    // 同时写 Supabase，供 H5 网页端读取（失败不影响小程序）。
-    try {
-      await authedFetch(
-        `${config.supabaseUrl}/rest/v1/app_config`,
-        { method: "POST", body: JSON.stringify({ key: "cards_bank_labels", value: labels, updated_at: new Date().toISOString() }) },
-        { "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }
-      );
-      setCardBankMessage("已保存，小程序下拉刷新 / H5 刷新生效。", "success");
-    } catch (e2) {
-      setCardBankMessage("小程序已更新；网页端同步失败：" + (e2.message || ""), "error");
-    }
+    setCardBankMessage("已保存，小程序下拉刷新 / H5 刷新生效。", "success");
   } catch (err) {
     setCardBankMessage(err.message, "error");
   }
@@ -3340,17 +3216,8 @@ adminRefShareSave?.addEventListener("click", async () => {
     refShareState.imageUrl = (saved && saved.imageUrl) || payload.imageUrl;
     if (adminRefShareTitle) adminRefShareTitle.value = refShareState.title;
     renderRefShareThumb();
-    // 同时写 Supabase，保持与首页海报/积分档银行一致（H5 暂不读，失败不影响小程序）。
-    try {
-      await authedFetch(
-        `${config.supabaseUrl}/rest/v1/app_config`,
-        { method: "POST", body: JSON.stringify({ key: "referral_share", value: payload, updated_at: new Date().toISOString() }) },
-        { "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }
-      );
-      setRefShareMessage("已保存，小程序下拉刷新 / 重进邀请页生效。", "success");
-    } catch (e2) {
-      setRefShareMessage("小程序已更新；网页端同步失败：" + (e2.message || ""), "error");
-    }
+    // 只写云开发；不再 Supabase 双写
+    setRefShareMessage("已保存，小程序下拉刷新 / 重进邀请页生效。", "success");
   } catch (err) {
     setRefShareMessage(err.message, "error");
   }

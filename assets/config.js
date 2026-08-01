@@ -7,9 +7,13 @@ window.APP_CONFIG = {
   productsTable: "products",
   storageBucket: "product-images",
   storageFolder: "products",
-  // 云开发 admin-orders 云函数的 HTTP 访问 URL
-  // 在云开发控制台 → 环境管理 → HTTP 访问服务 → 添加路由 /admin-orders 关联 admin-orders 函数
+  // 云开发云函数的 HTTP 访问 URL
+  // 配置位置：腾讯云 CloudBase 控制台 → HTTP 网关 → 路由管理 → 添加路由
+  //   /admin-orders → admin-orders 函数（后台用，需登录态）
+  //   /web-api      → web-api 函数（H5 前台只读：商品/配置/银行/浏览量）
+  // ⚠️ 跨域设置里要把 mossatelier.github.io 加进授权域名（不带 https:// 前缀）
   adminOrdersUrl: "https://cloud1-d0gtch1v896d24828-1436264391.ap-shanghai.app.tcloudbase.com/admin-orders",
+  webApiUrl: "https://cloud1-d0gtch1v896d24828-1436264391.ap-shanghai.app.tcloudbase.com/web-api",
   categories: [
     { value: "all", label: "全部礼品" },
     { value: "referral", label: "推荐有礼" },

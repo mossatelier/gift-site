@@ -850,6 +850,152 @@ async function saveReferralShare({ imageUrl, title }) {
   return clean;
 }
 
+// ============ 商品 CRUD（B 步：后台改走云开发，不再写 Supabase） ============
+// 字段用下划线风格与后台原有代码对齐（admin-core 传什么就存什么的映射在下面做）。
+const PRODUCT_WEB_FIELDS = ['title', 'category', 'subcategory', 'price', 'cardsNeeded',
+  'description', 'imageUrl', 'images', 'sortOrder', 'isActive', 'deleted'];
+
+// 后台下划线 payload → 云开发驼峰文档
+function toCloudProduct(p) {
+  const out = {};
+  if (p.title != null) out.title = String(p.title);
+  if (p.category != null) out.category = String(p.category);
+  if (p.subcategory != null) out.subcategory = String(p.subcategory || '');
+  if (p.price != null) out.price = Number(p.price) || 0;
+  if (p.cards_needed != null) out.cardsNeeded = Number(p.cards_needed) || 0;
+  if (p.description != null) out.description = String(p.description || '');
+  if (p.images != null) {
+    const imgs = Array.isArray(p.images) ? p.images.filter(Boolean) : [];
+    out.images = imgs;
+    out.imageUrl = imgs[0] || '';
+  } else if (p.image_url != null) {
+    out.imageUrl = String(p.image_url || '');
+  }
+  if (p.sort_order != null) out.sortOrder = Number(p.sort_order) || 10;
+  if (p.is_active != null) out.isActive = p.is_active !== false;
+  if (p.deleted != null) out.deleted = !!p.deleted;
+  return out;
+}
+
+// 云开发文档 → 后台期望的下划线结构
+function toAdminProduct(d) {
+  const images = Array.isArray(d.images) && d.images.length ? d.images : (d.imageUrl ? [d.imageUrl] : []);
+  return {
+    id: d._id,
+    title: d.title || '',
+    category: d.category || '',
+    subcategory: d.subcategory || '',
+    price: Number(d.price) || 0,
+    cards_needed: Number(d.cardsNeeded) || 0,
+    description: d.description || '',
+    image_url: images[0] || '',
+    images,
+    sort_order: Number(d.sortOrder) || 10,
+    is_active: d.isActive !== false,
+    deleted: !!d.deleted,
+    created_at: d.createdAt || '',
+    updated_at: d.updatedAt || ''
+  };
+}
+
+async function adminListProducts(body) {
+  const limit = Math.min(Math.max(Number(body && body.limit) || 1000, 1), 1000);
+  const r = await db.collection('products').orderBy('updatedAt', 'desc').limit(limit).get();
+  return { products: (r.data || []).map(toAdminProduct) };
+}
+
+async function adminCreateProduct(body) {
+  const payload = (body && body.payload) || {};
+  if (!payload.title) throw new Error('缺少商品标题');
+  const now = new Date();
+  const doc = { ...toCloudProduct(payload), createdAt: now, updatedAt: now, viewCount: 0 };
+  if (doc.isActive == null) doc.isActive = true;
+  if (doc.sortOrder == null) doc.sortOrder = 10;
+  const r = await db.collection('products').add({ data: doc });
+  return { id: r._id, product: toAdminProduct({ ...doc, _id: r._id }) };
+}
+
+async function adminUpdateProduct(body) {
+  const id = String((body && body.id) || '');
+  if (!id) throw new Error('缺少商品 id');
+  const patch = toCloudProduct((body && body.payload) || {});
+  patch.updatedAt = new Date();
+  await db.collection('products').doc(id).update({ data: patch });
+  return { id, updated: Object.keys(patch).length };
+}
+
+async function adminDeleteProduct(body) {
+  const id = String((body && body.id) || '');
+  if (!id) throw new Error('缺少商品 id');
+  const hard = !!(body && body.hard);
+  if (hard) {
+    await db.collection('products').doc(id).remove();
+    return { id, hardDeleted: true };
+  }
+  // 软删：下架 + 标记，前台不再展示，可恢复
+  await db.collection('products').doc(id).update({ data: { deleted: true, isActive: false, updatedAt: new Date() } });
+  return { id, softDeleted: true };
+}
+
+async function adminDeleteProductsBulk(body) {
+  const ids = Array.isArray(body && body.ids) ? body.ids.filter(Boolean).map(String) : [];
+  if (!ids.length) throw new Error('缺少 ids');
+  let ok = 0;
+  const errors = [];
+  for (const id of ids) {
+    try {
+      await db.collection('products').doc(id).update({ data: { deleted: true, isActive: false, updatedAt: new Date() } });
+      ok++;
+    } catch (e) { errors.push({ id, err: e.message }); }
+  }
+  return { deleted: ok, errors };
+}
+
+// ============ 图片上传（B 步：后台图片改存云开发存储） ============
+// 后台把压缩后的图片 base64 传进来，云函数写入云存储并返回公开 URL。
+// 走云函数而非前端直传，是因为前端没有云开发上传凭证（后台是纯静态页 + Supabase 登录态）。
+const CLOUD_STORAGE_HOST = 'https://636c-cloud1-d0gtch1v896d24828-1436264391.tcb.qcloud.la/';
+
+async function adminUploadImage(body) {
+  const base64 = String((body && body.base64) || '');
+  const name = String((body && body.name) || 'image.jpg');
+  if (!base64) throw new Error('缺少图片数据');
+  // 去掉可能的 data:image/jpeg;base64, 前缀
+  const raw = base64.indexOf(',') >= 0 ? base64.slice(base64.indexOf(',') + 1) : base64;
+  const buf = Buffer.from(raw, 'base64');
+  if (!buf.length) throw new Error('图片数据为空');
+  if (buf.length > 8 * 1024 * 1024) throw new Error('图片超过 8MB');
+
+  const safe = name.replace(/[^\w.\-]/g, '_').slice(-80);
+  const cloudPath = `products/${Date.now()}-${safe}`;
+  const up = await cloud.uploadFile({ cloudPath, fileContent: buf });
+  if (!up || !up.fileID) throw new Error('上传失败：无 fileID');
+  return { url: CLOUD_STORAGE_HOST + cloudPath, fileID: up.fileID, bytes: buf.length };
+}
+
+// ============ 银行积分表（B 步：改走云开发 banks_earn 集合） ============
+async function adminListBanks() {
+  const r = await db.collection('banks_earn')
+    .orderBy('points', 'desc').orderBy('sortOrder', 'asc').limit(200).get();
+  return {
+    banks: (r.data || []).map((b) => ({
+      id: b._id,
+      name: b.name || '',
+      points: Number(b.points) || 0,
+      sort_order: Number(b.sortOrder) || 100
+    }))
+  };
+}
+
+async function adminSaveBankPoints(body) {
+  const id = String((body && body.id) || '');
+  if (!id) throw new Error('缺少银行 id');
+  const points = Number(body && body.points);
+  if (!Number.isFinite(points)) throw new Error('积分值无效');
+  await db.collection('banks_earn').doc(id).update({ data: { points, updatedAt: new Date() } });
+  return { id, points };
+}
+
 // 商家内部备注（客户端不可见）
 async function updateNote({ orderId, adminNote }) {
   if (!orderId) throw new Error('缺少 orderId');
@@ -1513,6 +1659,30 @@ exports.main = async (event) => {
         break;
       case 'save-referral-share':
         data = await saveReferralShare(body);
+        break;
+      case 'products-list':
+        data = await adminListProducts(body);
+        break;
+      case 'products-create':
+        data = await adminCreateProduct(body);
+        break;
+      case 'products-update':
+        data = await adminUpdateProduct(body);
+        break;
+      case 'products-delete':
+        data = await adminDeleteProduct(body);
+        break;
+      case 'products-delete-bulk':
+        data = await adminDeleteProductsBulk(body);
+        break;
+      case 'banks-list':
+        data = await adminListBanks(body);
+        break;
+      case 'banks-save-points':
+        data = await adminSaveBankPoints(body);
+        break;
+      case 'upload-image':
+        data = await adminUploadImage(body);
         break;
       case 'stats':
         data = await getStats(body);

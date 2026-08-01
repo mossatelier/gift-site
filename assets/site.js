@@ -116,10 +116,6 @@ function getRefCode() {
   try { return localStorage.getItem(REF_KEY) || ""; } catch (e) { return ""; }
 }
 
-function isSupabaseConfigured() {
-  return Boolean(config.supabaseUrl && config.supabaseAnonKey && config.productsTable);
-}
-
 function categoryLabel(categoryValue) {
   return categoryLabelMap.get(categoryValue) || "其他分类";
 }
@@ -294,31 +290,41 @@ function kefuWechatId() {
   return (typeof config !== "undefined" && config.kefuWechat) || "L1916959";
 }
 
-async function fetchProductsFromSupabase() {
-  const params = new URLSearchParams({
-    select: "id,title,category,subcategory,price,cards_needed,description,image_url,images,sort_order,is_active,created_at,view_count",
-    is_active: "eq.true",
-    order: "sort_order.asc.nullslast,created_at.desc"
-  });
+// ===== 云开发 web-api：H5 的数据来源（已彻底不走 Supabase）=====
+// 配置见 config.js 的 webApiUrl；云端返回下划线字段，normalizeProduct 无需改动。
+function isWebApiConfigured() {
+  return Boolean(config.webApiUrl);
+}
 
-  const endpoint = `${config.supabaseUrl}/rest/v1/${config.productsTable}?${params.toString()}`;
-  const response = await fetch(endpoint, {
-    headers: {
-      apikey: config.supabaseAnonKey,
-      Authorization: `Bearer ${config.supabaseAnonKey}`
-    }
-  });
+async function callWebApi(action, params = {}) {
+  const qs = new URLSearchParams({ action, ...params });
+  const res = await fetch(`${config.webApiUrl}?${qs.toString()}`);
+  if (!res.ok) throw new Error(`接口请求失败：${res.status}`);
+  const data = await res.json();
+  if (!data || data.success !== true) throw new Error((data && data.error) || "接口返回异常");
+  return data;
+}
 
-  if (!response.ok) {
-    throw new Error(`读取商品失败：${response.status}`);
+// 首屏配置缓存：products 与 config 一次取回，避免重复往返
+let webConfigPromise = null;
+function getWebConfig() {
+  if (!webConfigPromise) {
+    webConfigPromise = callWebApi("config")
+      .then((d) => d.config || {})
+      .catch(() => ({}));
   }
+  return webConfigPromise;
+}
 
-  const data = await response.json();
-  return Array.isArray(data) ? data.map(normalizeProduct) : [];
+async function fetchProductsFromSupabase() {
+  if (!isWebApiConfigured()) return [];
+  const data = await callWebApi("products");
+  const list = Array.isArray(data.products) ? data.products : [];
+  return list.map(normalizeProduct);
 }
 
 async function loadProducts() {
-  if (!isSupabaseConfigured()) {
+  if (!isWebApiConfigured()) {
     state.products = (config.fallbackProducts || []).map(normalizeProduct).filter((item) => item.isActive);
     renderAll();
     return;
@@ -965,20 +971,12 @@ function submitWebOrder() {
 const viewedProductIds = new Set();
 
 async function incrementProductView(productId) {
-  if (!isSupabaseConfigured()) {
+  if (!isWebApiConfigured()) {
     return null;
   }
 
   try {
-    const response = await fetch(`${config.supabaseUrl}/rest/v1/rpc/increment_product_views`, {
-      method: "POST",
-      headers: {
-        apikey: config.supabaseAnonKey,
-        Authorization: `Bearer ${config.supabaseAnonKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ p_id: productId })
-    });
+    const response = await fetch(`${config.webApiUrl}?action=inc-view&id=${encodeURIComponent(productId)}`);
 
     if (!response.ok) {
       return null;
@@ -1449,17 +1447,12 @@ function bannerHref(b) {
   return "";
 }
 
-// 读后台配置的首页海报(Supabase app_config)，有则替换静态轮播，无则保留兜底两张图
+// 读后台配置的首页海报(云开发 app_config)，有则替换静态轮播，无则保留兜底两张图
 async function fetchHomeBanners() {
-  if (!track || !isSupabaseConfigured()) return;
+  if (!track || !isWebApiConfigured()) return;
   try {
-    const url = `${config.supabaseUrl}/rest/v1/app_config?key=eq.home_banners&select=value&limit=1`;
-    const res = await fetch(url, {
-      headers: { apikey: config.supabaseAnonKey, Authorization: `Bearer ${config.supabaseAnonKey}` }
-    });
-    if (!res.ok) return;
-    const rows = await res.json();
-    const list = (rows && rows[0] && Array.isArray(rows[0].value)) ? rows[0].value : [];
+    const cfg = await getWebConfig();
+    const list = Array.isArray(cfg.home_banners) ? cfg.home_banners : [];
     const valid = list.filter((b) => b && b.imageUrl);
     if (valid.length === 0) return; // 后台未配置 → 保留静态兜底
 
@@ -1488,19 +1481,14 @@ async function fetchHomeBanners() {
   }
 }
 
-// 首页「按积分快速兑换」各档位银行名（后台 Supabase app_config 配置）。
+// 首页「按积分快速兑换」各档位银行名（后台云开发 app_config 配置）。
 // HTML 内已写默认值，配置存在时整体覆盖（含被清空的项），读不到则保留默认，绝不空白。
 async function fetchCardsBankLabels() {
   const row = document.getElementById("pointsQuickRow");
-  if (!row || !isSupabaseConfigured()) return;
+  if (!row || !isWebApiConfigured()) return;
   try {
-    const url = `${config.supabaseUrl}/rest/v1/app_config?key=eq.cards_bank_labels&select=value&limit=1`;
-    const res = await fetch(url, {
-      headers: { apikey: config.supabaseAnonKey, Authorization: `Bearer ${config.supabaseAnonKey}` }
-    });
-    if (!res.ok) return;
-    const rows = await res.json();
-    const labels = (rows && rows[0] && rows[0].value && typeof rows[0].value === "object") ? rows[0].value : null;
+    const cfg = await getWebConfig();
+    const labels = (cfg.cards_bank_labels && typeof cfg.cards_bank_labels === "object") ? cfg.cards_bank_labels : null;
     if (!labels) return; // 后台未配置 → 保留 HTML 默认
     row.querySelectorAll("[data-pq-bank]").forEach((el) => {
       const key = el.getAttribute("data-pq-bank");
@@ -1518,31 +1506,22 @@ async function loadEarnBanks() {
     return;
   }
 
-  if (!isSupabaseConfigured()) {
+  if (!isWebApiConfigured()) {
     earnBankList.innerHTML = "<li class=\"bank-item\"><span class=\"bank-name\">暂无数据</span></li>";
     return;
   }
 
   try {
-    const params = new URLSearchParams({
-      select: "name,points",
-      order: "points.desc.nullslast"
-    });
-
-    const response = await fetch(`${config.supabaseUrl}/rest/v1/banks_earn?${params.toString()}`, {
-      headers: {
-        apikey: config.supabaseAnonKey,
-        Authorization: `Bearer ${config.supabaseAnonKey}`
-      }
-    });
+    const response = await fetch(`${config.webApiUrl}?action=banks`);
 
     if (!response.ok) {
       throw new Error(`读取失败：${response.status}`);
     }
 
-    const banks = await response.json();
+    const payload = await response.json();
+    const banks = (payload && Array.isArray(payload.banks)) ? payload.banks : [];
 
-    if (!Array.isArray(banks) || banks.length === 0) {
+    if (banks.length === 0) {
       earnBankList.innerHTML = "<li class=\"bank-item\"><span class=\"bank-name\">暂无数据</span></li>";
       return;
     }
@@ -1560,22 +1539,11 @@ async function loadEarnBanks() {
   }
 }
 
-// ===== 晒图广场（读 Supabase reviews 镜像表，只读已通过） =====
+// ===== 晒图广场：功能已下线（个人主体「社交-笔记」类目未开放），数据表为空 =====
+// 保留函数签名，直接返回空数组，调用方会自动隐藏相关区块。
+// 若将来恢复：在 web-api 云函数加 reviews action，这里改调 callWebApi("reviews", opts)。
 async function fetchApprovedReviews(opts) {
-  opts = opts || {};
-  if (!isSupabaseConfigured()) return [];
-  let qs = `select=*&order=created_at.desc&limit=${Number(opts.limit) || 30}`;
-  if (opts.productId) qs += `&product_id=eq.${encodeURIComponent(opts.productId)}`;
-  try {
-    const res = await fetch(`${config.supabaseUrl}/rest/v1/reviews?${qs}`, {
-      headers: { apikey: config.supabaseAnonKey, Authorization: `Bearer ${config.supabaseAnonKey}` }
-    });
-    if (!res.ok) return [];
-    const rows = await res.json();
-    return Array.isArray(rows) ? rows : [];
-  } catch (err) {
-    return [];
-  }
+  return [];
 }
 
 function reviewCard(r) {
