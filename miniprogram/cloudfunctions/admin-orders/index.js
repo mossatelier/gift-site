@@ -956,23 +956,29 @@ async function adminDeleteProductsBulk(body) {
 // 走云函数而非前端直传，是因为前端没有云开发上传凭证（后台是纯静态页 + Supabase 登录态）。
 const CLOUD_STORAGE_HOST = 'https://636c-cloud1-d0gtch1v896d24828-1436264391.tcb.qcloud.la/';
 
-// 图片经 base64 中转写入云存储。
-// ⚠️ base64 体积比原文件大 33%，HTTP 网关请求体有上限（实测 1.5MB 原图会 413），
-// 所以前端 compressImageFile 必须把图压到 ~200KB 以内再调这里。
-async function adminUploadImage(body) {
-  const base64 = String((body && body.base64) || '');
+// 签发云存储上传凭证，前端拿到后直传 COS。
+// ⚠️ 不能走 base64 中转：实测 HTTP 网关请求体上限在 50–100KB 之间，
+//    base64 还会再膨胀 33%，商品图根本传不过去（会 413）。
+// getUploadMetadata 返回 COS 直传所需的 url + token + authorization 等字段。
+async function adminUploadSign(body) {
   const name = String((body && body.name) || 'image.jpg');
-  if (!base64) throw new Error('缺少图片数据');
-  const raw = base64.indexOf(',') >= 0 ? base64.slice(base64.indexOf(',') + 1) : base64;
-  const buf = Buffer.from(raw, 'base64');
-  if (!buf.length) throw new Error('图片数据为空');
-  if (buf.length > 3 * 1024 * 1024) throw new Error('图片过大，请压缩后再传');
-
   const safe = name.replace(/[^\w.\-]/g, '_').slice(-80);
   const cloudPath = `products/${Date.now()}-${safe}`;
-  const up = await cloud.uploadFile({ cloudPath, fileContent: buf });
-  if (!up || !up.fileID) throw new Error('上传失败：无 fileID');
-  return { url: CLOUD_STORAGE_HOST + cloudPath, fileID: up.fileID, bytes: buf.length };
+
+  const meta = await cloud.getUploadMetadata({ cloudPath });
+  if (!meta || !meta.url) throw new Error('获取上传凭证失败');
+
+  return {
+    cloudPath,
+    // 前端 POST 到这个 url（multipart/form-data），字段见下
+    uploadUrl: meta.url,
+    token: meta.token,
+    authorization: meta.authorization,
+    fileId: meta.fileId,
+    cosFileId: meta.cosFileId,
+    // 上传成功后图片的公开访问地址
+    publicUrl: CLOUD_STORAGE_HOST + cloudPath
+  };
 }
 
 // ============ 银行积分表（B 步：改走云开发 banks_earn 集合） ============
@@ -1683,8 +1689,8 @@ exports.main = async (event) => {
       case 'banks-save-points':
         data = await adminSaveBankPoints(body);
         break;
-      case 'upload-image':
-        data = await adminUploadImage(body);
+      case 'upload-sign':
+        data = await adminUploadSign(body);
         break;
       case 'stats':
         data = await getStats(body);

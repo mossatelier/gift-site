@@ -914,26 +914,27 @@ async function compressImageFile(file) {
   }
 }
 
-// 读成 base64（经云函数中转写入云存储）
-function fileToBase64(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = () => reject(new Error("图片读取失败"));
-    reader.readAsDataURL(blob);
-  });
-}
-
-// B 步改造：图片改存云开发存储（不再传 Supabase Storage）
+// 图片存云开发存储：云函数签发凭证 → 前端直传 COS。
+// ⚠️ 不能走 base64 中转：HTTP 网关请求体上限实测仅 50–100KB，商品图必然 413。
 async function uploadFile(file) {
   const uploadTarget = await compressImageFile(file);
-  const base64 = await fileToBase64(uploadTarget);
-  const data = await callAdminOrders("upload-image", {
-    base64,
+  const sign = await callAdminOrders("upload-sign", {
     name: sanitizeFileName(uploadTarget.name || "image.jpg")
   });
-  if (!data || !data.url) throw new Error("图片上传失败：云端未返回地址");
-  return data.url;
+  if (!sign || !sign.uploadUrl) throw new Error("获取上传凭证失败");
+
+  const form = new FormData();
+  form.append("key", sign.cloudPath);
+  form.append("Signature", sign.authorization);
+  form.append("x-cos-security-token", sign.token);
+  form.append("x-cos-meta-fileid", sign.cosFileId);
+  form.append("file", uploadTarget);
+
+  const res = await fetch(sign.uploadUrl, { method: "POST", body: form });
+  if (!res.ok && res.status !== 204) {
+    throw new Error(`图片上传失败：${res.status}`);
+  }
+  return sign.publicUrl;
 }
 
 async function insertProduct(row) {
