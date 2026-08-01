@@ -118,6 +118,8 @@ const MAX_PRODUCT_IMAGES = 5;
 const IMAGE_COMPRESS_MAX_EDGE = 900;
 const IMAGE_COMPRESS_QUALITY = 0.78;
 const IMAGE_COMPRESS_MIN_BYTES = 80 * 1024;
+// 上传体积硬上限：base64 传给云函数会膨胀 33%，超过 HTTP 网关请求体上限就 413
+const IMAGE_UPLOAD_MAX_BYTES = 220 * 1024;
 
 const PRICE_PER_CARD = 40;
 const LAST_CATEGORY_KEY = "gift-site-admin-last-category";
@@ -879,9 +881,27 @@ async function compressImageFile(file) {
     ctx.fillRect(0, 0, targetWidth, targetHeight);
     ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
 
-    const blob = await canvasToBlob(canvas, "image/jpeg", IMAGE_COMPRESS_QUALITY);
+    // 逐级降质量，直到体积达标（base64 会膨胀 33%，超了会被 HTTP 网关 413 拒收）
+    let blob = null;
+    for (const q of [IMAGE_COMPRESS_QUALITY, 0.7, 0.62, 0.55, 0.45]) {
+      blob = await canvasToBlob(canvas, "image/jpeg", q);
+      if (blob && blob.size <= IMAGE_UPLOAD_MAX_BYTES) break;
+    }
+    // 仍超标就再缩边长重压一次
+    if (blob && blob.size > IMAGE_UPLOAD_MAX_BYTES) {
+      canvas.width = Math.max(1, Math.round(targetWidth * 0.7));
+      canvas.height = Math.max(1, Math.round(targetHeight * 0.7));
+      const ctx2 = canvas.getContext("2d", { alpha: false });
+      ctx2.fillStyle = "#ffffff";
+      ctx2.fillRect(0, 0, canvas.width, canvas.height);
+      ctx2.drawImage(image, 0, 0, canvas.width, canvas.height);
+      blob = await canvasToBlob(canvas, "image/jpeg", 0.6);
+    }
 
-    if (!blob || blob.size >= file.size) {
+    if (!blob) {
+      return file;
+    }
+    if (blob.size >= file.size && file.size <= IMAGE_UPLOAD_MAX_BYTES) {
       return file;
     }
 

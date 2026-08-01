@@ -956,15 +956,17 @@ async function adminDeleteProductsBulk(body) {
 // 走云函数而非前端直传，是因为前端没有云开发上传凭证（后台是纯静态页 + Supabase 登录态）。
 const CLOUD_STORAGE_HOST = 'https://636c-cloud1-d0gtch1v896d24828-1436264391.tcb.qcloud.la/';
 
+// 图片经 base64 中转写入云存储。
+// ⚠️ base64 体积比原文件大 33%，HTTP 网关请求体有上限（实测 1.5MB 原图会 413），
+// 所以前端 compressImageFile 必须把图压到 ~200KB 以内再调这里。
 async function adminUploadImage(body) {
   const base64 = String((body && body.base64) || '');
   const name = String((body && body.name) || 'image.jpg');
   if (!base64) throw new Error('缺少图片数据');
-  // 去掉可能的 data:image/jpeg;base64, 前缀
   const raw = base64.indexOf(',') >= 0 ? base64.slice(base64.indexOf(',') + 1) : base64;
   const buf = Buffer.from(raw, 'base64');
   if (!buf.length) throw new Error('图片数据为空');
-  if (buf.length > 8 * 1024 * 1024) throw new Error('图片超过 8MB');
+  if (buf.length > 3 * 1024 * 1024) throw new Error('图片过大，请压缩后再传');
 
   const safe = name.replace(/[^\w.\-]/g, '_').slice(-80);
   const cloudPath = `products/${Date.now()}-${safe}`;

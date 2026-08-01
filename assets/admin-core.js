@@ -28,6 +28,9 @@
   var IMAGE_COMPRESS_MAX_EDGE = 900;
   var IMAGE_COMPRESS_QUALITY = 0.78;
   var IMAGE_COMPRESS_MIN_BYTES = 80 * 1024;
+  // 上传体积硬上限：图片经 base64 传给云函数会膨胀 33%，超过 HTTP 网关请求体上限就 413。
+  // 压缩流程会逐级降质量确保产出不超过这个值。
+  var IMAGE_UPLOAD_MAX_BYTES = 220 * 1024;
 
   // 内存里的会话镜像。saveSession 时同步写 localStorage。
   var sessionRef = { session: null };
@@ -480,9 +483,29 @@
       ctx.fillRect(0, 0, targetWidth, targetHeight);
       ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
 
-      var blob = await canvasToBlob(canvas, "image/jpeg", IMAGE_COMPRESS_QUALITY);
+      // 逐级降质量，直到体积达标（base64 会膨胀 33%，超了会被 HTTP 网关 413 拒收）
+      var blob = null;
+      var qualities = [IMAGE_COMPRESS_QUALITY, 0.7, 0.62, 0.55, 0.45];
+      for (var qi = 0; qi < qualities.length; qi += 1) {
+        blob = await canvasToBlob(canvas, "image/jpeg", qualities[qi]);
+        if (blob && blob.size <= IMAGE_UPLOAD_MAX_BYTES) break;
+      }
+      // 仍超标就再缩一半边长重压一次
+      if (blob && blob.size > IMAGE_UPLOAD_MAX_BYTES) {
+        canvas.width = Math.max(1, Math.round(targetWidth * 0.7));
+        canvas.height = Math.max(1, Math.round(targetHeight * 0.7));
+        var ctx2 = canvas.getContext("2d", { alpha: false });
+        ctx2.fillStyle = "#ffffff";
+        ctx2.fillRect(0, 0, canvas.width, canvas.height);
+        ctx2.drawImage(image, 0, 0, canvas.width, canvas.height);
+        blob = await canvasToBlob(canvas, "image/jpeg", 0.6);
+      }
 
-      if (!blob || blob.size >= file.size) {
+      if (!blob) {
+        return file;
+      }
+      // 压完反而更大：原图小于上限就用原图，否则仍用压缩结果（必须保证能传上去）
+      if (blob.size >= file.size && file.size <= IMAGE_UPLOAD_MAX_BYTES) {
         return file;
       }
 
