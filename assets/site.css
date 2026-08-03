@@ -4374,3 +4374,9 @@ body.admin-logged-in #adminLogoutButtonLogged {
 
 /* 手机后台 · 物流查询手机号输入（顺丰用，独占一行） */
 .admin-tracking-phone { flex: 1 1 100%; min-width: 0; }
+
+/* 物流异常标签（手机版后台；自动刷新会跳过这些单，需人工处理） */
+.admin-logi-badge { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 6px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+.admin-logi-badge-info { color: #8a6d2b; background: #fdf3dc; border: 1px solid #e8d19a; }
+.admin-logi-badge-warn { color: #b3372b; background: #fdecea; border: 1px solid #f0b4ac; }
+.admin-orders-onlyfail { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); white-space: nowrap; }

@@ -3568,6 +3568,7 @@
   state.orders = [];                 // 当前页订单
   state.ordersStatus = "pending";    // 状态筛选（pending/processing/done/cancelled/all）
   state.ordersSearch = "";           // 搜索关键词
+  state.ordersOnlyFail = false;      // 「只看物流异常」筛选（前端过滤，不发请求）
   state.ordersPage = 0;              // 当前页（0-based）
   state.ordersTotal = 0;            // 当前筛选总数
   state.ordersLoaded = false;        // 防重复拉取标记
@@ -3647,6 +3648,7 @@
       '<div class="pc-orders-toolbar">'
       + '<input class="pc-orders-search" id="pcOrdersSearch" type="search" placeholder="搜索收件人 / 手机号 / 订单号…" autocomplete="off">'
       + '<span class="pc-orders-count" id="pcOrdersCount"></span>'
+      + '<label class="pc-orders-onlyfail"><input type="checkbox" id="pcOrdersOnlyFail"' + (state.ordersOnlyFail ? " checked" : "") + '> 只看物流异常</label>'
       + '<button class="pc-btn-ghost pc-orders-bulk-logistics" id="pcOrdersBulkLogisticsBtn" type="button">刷新本页物流</button>'
       + '<button class="pc-btn-ghost pc-orders-refresh" id="pcOrdersRefreshBtn" type="button">刷新</button>'
       + "</div>"
@@ -3712,6 +3714,13 @@
     var bulkLogEl = document.getElementById("pcOrdersBulkLogisticsBtn");
     if (bulkLogEl) {
       bulkLogEl.addEventListener("click", function () { batchQueryShippedLogistics(false); });
+    }
+    var onlyFailEl = document.getElementById("pcOrdersOnlyFail");
+    if (onlyFailEl) {
+      onlyFailEl.addEventListener("change", function () {
+        state.ordersOnlyFail = !!onlyFailEl.checked;
+        renderOrdersTable();
+      });
     }
 
     // 表格区交互（事件委托）：勾选框 / 行点击开抽屉 / 分页。
@@ -3875,10 +3884,18 @@
       return;
     }
 
-    if (countEl) countEl.textContent = "当前筛选 " + (state.ordersTotal || 0) + " 单";
+    // 「只看物流异常」：纯前端过滤本页，不重新请求
+    var rows = Array.isArray(state.orders) ? state.orders : [];
+    if (state.ordersOnlyFail) rows = rows.filter(function (o) { return o && o.logiFailKind; });
 
-    if (!Array.isArray(state.orders) || state.orders.length === 0) {
-      wrap.innerHTML = '<p class="pc-empty-text">没有符合条件的订单。</p>';
+    if (countEl) {
+      countEl.textContent = state.ordersOnlyFail
+        ? ("物流异常 " + rows.length + " 单（本页）")
+        : ("当前筛选 " + (state.ordersTotal || 0) + " 单");
+    }
+
+    if (rows.length === 0) {
+      wrap.innerHTML = '<p class="pc-empty-text">' + (state.ordersOnlyFail ? "本页没有物流异常的订单。" : "没有符合条件的订单。") + "</p>";
       if (pagerEl) pagerEl.innerHTML = "";
       updateOrdersBulkBar();
       return;
@@ -3894,7 +3911,7 @@
       + '<th class="pc-orders-col-view"></th>'
       + "</tr></thead>";
 
-    var body = "<tbody>" + state.orders.map(function (o) {
+    var body = "<tbody>" + rows.map(function (o) {
       var id = orderId(o);
       var idEsc = escapeHtml(id);
       var addr = o.address || {};
@@ -3908,7 +3925,7 @@
         + (addr.phone ? '<span class="pc-orders-phone">' + escapeHtml(addr.phone) + "</span>" : "") + "</td>"
         + '<td class="pc-orders-col-summary">' + escapeHtml((items[0] && items[0].title) || "礼品") + (items.length > 1 ? "等" : "") + " · " + escapeHtml(items.length) + "件</td>"
         + '<td class="pc-orders-col-status"><span class="pc-order-status ' + orderStatusCls(o.status) + '">'
-        + escapeHtml(orderStatusText(o.status)) + "</span></td>"
+        + escapeHtml(orderStatusText(o.status)) + "</span>" + logiFailBadge(o) + "</td>"
         + '<td class="pc-orders-col-date">' + escapeHtml(formatOrderDate(o.createdAt)) + "</td>"
         + '<td class="pc-orders-col-view"><button class="pc-orders-view-btn" type="button" data-orders-view="' + idEsc + '">查看</button></td>'
         + "</tr>";
@@ -4185,6 +4202,12 @@
               }).join("")
               + "</div>"
             : '<p class="pc-orders-sec-hint">暂无物流节点。点「刷新物流」立即查询；新发货的单也会自动更新。</p>')
+          // 该单实际失败原因（比通用提示精确；自动刷新已跳过它，点「刷新物流」可强制重试）
+          + (o.logiFailKind
+            ? '<p class="pc-orders-sf-tip">' + (o.logiFailKind === "need_info" ? "🔧 待补信息：" : "⚠️ 查不到轨迹：")
+              + escapeHtml(o.logiFailHint || o.logiFailMsg || "")
+              + '<br><span class="pc-orders-sec-hint">自动刷新会跳过此单，改完单号/公司/手机号会自动恢复；也可点上方「刷新物流」强制重试。</span></p>'
+            : "")
           + ((/顺丰/.test(o.trackingCompany || "") || o.courierCode === "shunfeng")
             ? '<p class="pc-orders-sf-tip">⚠️ 顺丰提示：拼多多/代发单的收件手机是隐私号，刷新会报「验证码错误」、查不到。这种情况把单号复制发给客户，让客户自己在顺丰里查即可（客户查不用验手机）。</p>'
             : '')
@@ -4437,11 +4460,28 @@
   }
 
   // 一键刷新本页所有「运输中」订单的物流（老单批量补轨迹）。顺序执行，避免高频打快递100。
+  // 物流异常小标签（自动刷新会跳过这些单，需人工处理）
+  function logiFailBadge(o) {
+    if (!o || !o.logiFailKind) return "";
+    var isNeedInfo = o.logiFailKind === "need_info";
+    var text = isNeedInfo ? "🔧 待补信息" : "⚠️ 查不到";
+    var cls = isNeedInfo ? "pc-logi-badge pc-logi-badge-info" : "pc-logi-badge pc-logi-badge-warn";
+    return '<span class="' + cls + '" title="' + escapeHtml(o.logiFailHint || o.logiFailMsg || "") + '">' + text + "</span>";
+  }
+
   function batchQueryShippedLogistics(auto) {
-    var targets = (state.orders || []).filter(function (o) {
+    var all = (state.orders || []).filter(function (o) {
       return normOrderStatus(o.status) === "shipped" && o.trackingNo;
     });
-    if (!targets.length) { if (!auto) toast("本页没有可刷新的运输中订单", "error"); return; }
+    // 自动刷新跳过已标记「注定失败」的单（缺信息 / 查不到），避免每次白等几十秒。
+    // 手动点按钮 = 管理员明确要求重试 → 全部刷，包括已标记的。
+    var targets = auto ? all.filter(function (o) { return !o.logiFailKind; }) : all;
+    var skipped = all.length - targets.length;
+    if (!targets.length) {
+      if (!auto) toast("本页没有可刷新的运输中订单", "error");
+      else if (skipped) setOrdersMsg("已跳过 " + skipped + " 单物流异常（点「刷新本页物流」可强制重试）", null);
+      return;
+    }
     var btn = document.getElementById("pcOrdersBulkLogisticsBtn");
     if (btn) btn.disabled = true;
     var ok = 0, fail = 0, i = 0, signedCount = 0;
@@ -4452,7 +4492,8 @@
         // 有签收的 + 当前在运输中视图 → 重拉以移走已签收
         if (signedCount > 0 && state.ordersStatus === "shipped") loadOrders(true);
         else renderOrdersTable();
-        setOrdersMsg("刷新完成：成功 " + ok + " 单" + (fail ? ("，失败 " + fail + " 单") : ""), "success");
+        var extra = (fail ? ("，失败 " + fail + " 单") : "") + (skipped ? ("，跳过 " + skipped + " 单已知异常") : "");
+        setOrdersMsg("刷新完成：成功 " + ok + " 单" + extra, "success");
         toast("✅ 物流刷新完成 " + ok + " 单" + (fail ? ("（" + fail + " 失败）") : ""), fail ? "error" : "success");
         return;
       }
@@ -4467,10 +4508,27 @@
             o.logisticsState = updated.logisticsState || "";
             o.status = updated.status || o.status;
             o.signedAt = updated.signedAt || o.signedAt;
+            // 查成功 → 云端已清标记，本地同步清掉
+            o.logiFailKind = ""; o.logiFailMsg = ""; o.logiFailHint = "";
           }
           ok++;
         })
-        .catch(function () { fail++; })
+        .catch(function (err) {
+          fail++;
+          // 云函数已按错误分类写库；本地同步一份，无需等重新拉列表就能看到标签
+          var msg = (err && err.message) || "";
+          var kind = /未识别快递公司|必须填手机号|还没有快递单号/.test(msg) ? "need_info"
+            : (/暂无轨迹|查询请求失败|timeout/i.test(msg) ? "" : "not_found");
+          if (kind) {
+            o.logiFailKind = kind;
+            o.logiFailMsg = msg;
+            o.logiFailHint = kind === "need_info"
+              ? msg.replace(/^[^：]*：/, "")
+              : (o.courierCode === "shunfeng" || /验证码错误/.test(msg)
+                  ? "顺丰代发多为隐私号，快递100 无法校验手机 → 查不到轨迹。请把单号发客户自查。"
+                  : "快递100 查不到该单号轨迹，请核对单号。");
+          }
+        })
         .then(function () { i++; step(); });
     }
     step();

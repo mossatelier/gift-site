@@ -652,7 +652,77 @@ async function handleLogisticsPush(param) {
 
 // 实时查询：主动拉一次当前完整轨迹（适合老单/手动刷新；订阅只推未来变化）。
 // phone：顺丰等必填收/寄件人手机号；传了用传入的，否则回退订单收件人手机。
-async function queryLogistics({ orderId, phone, courierCode, trackingCompany }) {
+// ============ 物流查询失败分类与标记 ============
+// 目的：自动刷新时跳过「注定失败」的单，不再每次白等几十秒。
+// 三类失败：
+//   need_info  缺信息，人工补全后就能查（未识别快递公司 / 顺丰缺手机号）
+//   not_found  查得到接口但拿不到轨迹，业务上无解（顺丰隐私号验证码错误 / 单号无效）
+//   ⚠️ transient 暂时性（「暂无轨迹」= 刚发货还没揽收、网络抖动）→ **不打标记**，
+//      否则刚发货的单会被永久跳过、再也不更新物流。
+function classifyLogiFailure(msg) {
+  const m = String(msg || '');
+  if (/未识别快递公司|必须填手机号|还没有快递单号|未配置快递100/.test(m)) return 'need_info';
+  // 暂时性：刚发货没轨迹、网络问题 —— 必须继续重试
+  if (/暂无轨迹|查询请求失败|timeout|ETIMEDOUT|ECONN/i.test(m)) return '';
+  // 验证码错误（顺丰隐私号）、单号错误等 → 业务上查不到
+  if (/验证码错误|单号|查询无结果|不存在|错误/.test(m)) return 'not_found';
+  return '';
+}
+
+// 顺丰隐私号是最常见的 not_found，给管理员一句可直接照做的提示
+function logiFailHint(kind, msg, courierCode) {
+  if (kind === 'need_info') return String(msg || '').replace(/^[^：]*：/, '');
+  if (kind === 'not_found') {
+    if (courierCode === 'shunfeng' || /验证码错误/.test(String(msg))) {
+      return '顺丰代发多为隐私号，快递100 无法校验收/寄件人手机 → 查不到轨迹。请把单号发给客户自行查询。';
+    }
+    return '快递100 查不到该单号轨迹，请核对单号是否正确。';
+  }
+  return String(msg || '');
+}
+
+async function markLogiFailure(orderId, kind, msg, courierCode) {
+  if (!orderId || !kind) return;
+  try {
+    await db.collection('orders').doc(orderId).update({
+      data: {
+        logiFailKind: kind,
+        logiFailMsg: String(msg || '').slice(0, 200),
+        logiFailHint: logiFailHint(kind, msg, courierCode),
+        logiFailAt: new Date()
+      }
+    });
+  } catch (e) { /* 标记失败不影响主流程 */ }
+}
+
+async function clearLogiFailure(orderId) {
+  if (!orderId) return;
+  try {
+    await db.collection('orders').doc(orderId).update({
+      data: { logiFailKind: '', logiFailMsg: '', logiFailHint: '', logiFailAt: null }
+    });
+  } catch (e) { /* ignore */ }
+}
+
+async function queryLogistics(params) {
+  const orderId = params && params.orderId;
+  try {
+    const out = await queryLogisticsInner(params);
+    await clearLogiFailure(orderId);   // 查成功 → 清掉历史标记
+    return out;
+  } catch (err) {
+    const msg = (err && err.message) || String(err);
+    let code = '';
+    try {
+      const r = await db.collection('orders').doc(orderId).get();
+      code = (r.data && r.data.courierCode) || '';
+    } catch (e) {}
+    await markLogiFailure(orderId, classifyLogiFailure(msg), msg, code);
+    throw err;
+  }
+}
+
+async function queryLogisticsInner({ orderId, phone, courierCode, trackingCompany }) {
   if (!orderId) throw new Error('缺少 orderId');
   if (!KD_KEY || !KD_CUSTOMER) throw new Error('未配置快递100 凭据（KUAIDI100_KEY / KUAIDI100_CUSTOMER）');
   const r = await db.collection('orders').doc(orderId).get();
@@ -720,6 +790,11 @@ async function updateTracking({ orderId, trackingNo, trackingCompany, courierCod
     updatedAt: new Date()
   };
   if (trimmedPhone) patch.trackingPhone = trimmedPhone; // 顺丰等查询/订阅用的手机号
+  // 改了单号/公司/手机号 = 信息变了，清掉物流失败标记，让自动刷新重新尝试这一单
+  patch.logiFailKind = '';
+  patch.logiFailMsg = '';
+  patch.logiFailHint = '';
+  patch.logiFailAt = null;
   if (trimmedNo) {
     const cur = await db.collection('orders').doc(orderId).get();
     if (cur.data && cur.data.status !== 'cancelled') patch.status = 'shipped';

@@ -59,6 +59,7 @@ const adminOrdersSearchInput = document.getElementById("adminOrdersSearchInput")
 const adminOrdersCount = document.getElementById("adminOrdersCount");
 const adminOrdersRefreshButton = document.getElementById("adminOrdersRefreshButton");
 const adminOrdersBulkLogisticsButton = document.getElementById("adminOrdersBulkLogisticsButton");
+const adminOrdersOnlyFail = document.getElementById("adminOrdersOnlyFail");
 const adminOrdersBulkBar = document.getElementById("adminOrdersBulkBar");
 const adminOrdersSelectAll = document.getElementById("adminOrdersSelectAll");
 const adminOrdersSelectedCount = document.getElementById("adminOrdersSelectedCount");
@@ -222,6 +223,7 @@ const state = {
   activeImageSlotCount: 1,
   orders: [],
   ordersTotal: 0,
+  ordersOnlyFail: false,   // 「只看物流异常」筛选（前端过滤本页）
   ordersStatus: "pending",
   ordersSearch: "",
   ordersPage: 0,
@@ -1878,16 +1880,21 @@ function renderOrdersPagination() {
 
 function renderOrdersList() {
   if (!adminOrdersList) return;
+  // 「只看物流异常」：纯前端过滤本页，不重新请求
+  const rows = state.ordersOnlyFail
+    ? (state.orders || []).filter((o) => o && o.logiFailKind)
+    : (state.orders || []);
   if (adminOrdersCount) {
-    const showing = state.orders.length;
-    adminOrdersCount.textContent = `当前筛选 ${state.ordersTotal} 单`;
+    adminOrdersCount.textContent = state.ordersOnlyFail
+      ? `物流异常 ${rows.length} 单（本页）`
+      : `当前筛选 ${state.ordersTotal} 单`;
   }
-  if (state.orders.length === 0) {
-    adminOrdersList.innerHTML = "<p class=\"admin-status-text\">没有符合条件的订单。</p>";
+  if (rows.length === 0) {
+    adminOrdersList.innerHTML = `<p class="admin-status-text">${state.ordersOnlyFail ? "本页没有物流异常的订单。" : "没有符合条件的订单。"}</p>`;
     return;
   }
 
-  const cardsHtml = state.orders.map((o) => {
+  const cardsHtml = rows.map((o) => {
     const addr = o.address || {};
     const items = Array.isArray(o.items) ? o.items : [];
     const isOpen = state.expandedOrderId === o._id;
@@ -1919,7 +1926,7 @@ function renderOrdersList() {
             <span class="admin-order-summary">${escapeHtml((items[0] && items[0].title) || "礼品")}${items.length > 1 ? "等" : ""} · ${escapeHtml(items.length)}件</span>
           </div>
           <div class="admin-order-head-right">
-            <span class="admin-order-status admin-order-status-${escapeHtml(normOrderStatus(o.status))}">${escapeHtml(orderStatusText(o.status))}</span>
+            <span class="admin-order-status admin-order-status-${escapeHtml(normOrderStatus(o.status))}">${escapeHtml(orderStatusText(o.status))}</span>${logiFailBadge(o)}
             <span class="admin-order-date">${escapeHtml(formatOrderDate(o.createdAt))}</span>
           </div>
         </div>
@@ -2121,9 +2128,25 @@ async function handleQueryLogistics(orderId) {
 }
 
 // 一键刷新本页所有「运输中」订单的物流（老单批量补轨迹）。顺序执行，避免高频打快递100。
+// 物流异常标签（自动刷新会跳过这些单，需人工处理）
+function logiFailBadge(o) {
+  if (!o || !o.logiFailKind) return "";
+  const isNeedInfo = o.logiFailKind === "need_info";
+  const text = isNeedInfo ? "🔧 待补信息" : "⚠️ 查不到";
+  const cls = isNeedInfo ? "admin-logi-badge admin-logi-badge-info" : "admin-logi-badge admin-logi-badge-warn";
+  return `<span class="${cls}" title="${escapeHtml(o.logiFailHint || o.logiFailMsg || "")}">${text}</span>`;
+}
+
 async function batchQueryShippedLogistics(auto) {
-  const targets = (state.orders || []).filter((o) => normOrderStatus(o.status) === "shipped" && o.trackingNo);
-  if (!targets.length) { if (!auto) adminToast("本页没有可刷新的运输中订单", "error"); return; }
+  const all = (state.orders || []).filter((o) => normOrderStatus(o.status) === "shipped" && o.trackingNo);
+  // 自动刷新跳过已标记「注定失败」的单；手动点按钮 = 明确要求重试，全部刷。
+  const targets = auto ? all.filter((o) => !o.logiFailKind) : all;
+  const skipped = all.length - targets.length;
+  if (!targets.length) {
+    if (!auto) adminToast("本页没有可刷新的运输中订单", "error");
+    else if (skipped) setOrdersMessage(`已跳过 ${skipped} 单物流异常（点「刷新本页物流」可强制重试）`);
+    return;
+  }
   const btn = adminOrdersBulkLogisticsButton;
   if (btn) btn.disabled = true;
   let ok = 0, fail = 0, signedCount = 0;
@@ -2139,14 +2162,33 @@ async function batchQueryShippedLogistics(auto) {
         state.orders[idx].logisticsState = updated.logisticsState || "";
         state.orders[idx].status = updated.status || state.orders[idx].status;
         state.orders[idx].signedAt = updated.signedAt || state.orders[idx].signedAt;
+        // 查成功 → 云端已清标记，本地同步清掉
+        state.orders[idx].logiFailKind = "";
+        state.orders[idx].logiFailMsg = "";
+        state.orders[idx].logiFailHint = "";
       }
       ok += 1;
     } catch (err) {
       fail += 1;
+      // 云函数已按错误分类写库；本地同步一份，立刻能看到标签
+      const msg = (err && err.message) || "";
+      const kind = /未识别快递公司|必须填手机号|还没有快递单号/.test(msg) ? "need_info"
+        : (/暂无轨迹|查询请求失败|timeout/i.test(msg) ? "" : "not_found");
+      const idx = state.orders.findIndex((o) => o._id === targets[i]._id);
+      if (kind && idx >= 0) {
+        state.orders[idx].logiFailKind = kind;
+        state.orders[idx].logiFailMsg = msg;
+        state.orders[idx].logiFailHint = kind === "need_info"
+          ? msg.replace(/^[^：]*：/, "")
+          : (state.orders[idx].courierCode === "shunfeng" || /验证码错误/.test(msg)
+              ? "顺丰代发多为隐私号，快递100 无法校验手机 → 查不到轨迹。请把单号发客户自查。"
+              : "快递100 查不到该单号轨迹，请核对单号。");
+      }
     }
   }
   if (btn) { btn.disabled = false; btn.textContent = "刷新本页物流"; }
-  setOrdersMessage(`刷新完成：成功 ${ok} 单${fail ? `，失败 ${fail} 单` : ""}`, "success");
+  const extra = (fail ? `，失败 ${fail} 单` : "") + (skipped ? `，跳过 ${skipped} 单已知异常` : "");
+  setOrdersMessage(`刷新完成：成功 ${ok} 单${extra}`, "success");
   adminToast(`✅ 物流刷新完成 ${ok} 单${fail ? `（${fail} 失败）` : ""}`, fail ? "error" : "success");
   if (signedCount > 0 && state.ordersStatus === "shipped") loadOrders();
   else renderOrdersList();
@@ -2244,6 +2286,10 @@ adminTabOrders?.addEventListener("click", () => {
 
 adminOrdersRefreshButton?.addEventListener("click", () => loadOrders());
 adminOrdersBulkLogisticsButton?.addEventListener("click", () => batchQueryShippedLogistics());
+adminOrdersOnlyFail?.addEventListener("change", () => {
+  state.ordersOnlyFail = !!adminOrdersOnlyFail.checked;
+  renderOrdersList();
+});
 
 // 状态分段 tab：待处理 / 已发货 / 已取消 / 全部订单
 const adminOrdersSegs = document.getElementById("adminOrdersSegs");
