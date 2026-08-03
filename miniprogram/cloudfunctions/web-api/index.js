@@ -88,6 +88,35 @@ async function listBanks() {
   }));
 }
 
+// 物流失败标记诊断（脱敏：不返回手机号/地址/姓名，只看标记字段本身）
+// 用于排查「打了标记为什么自动刷新还在重试」。
+async function logiDiag() {
+  const r = await db.collection('orders')
+    .where({ status: 'shipped' })
+    .orderBy('createdAt', 'desc')
+    .limit(60)
+    .get();
+  const rows = r.data || [];
+  const withNo = rows.filter((o) => o.trackingNo);
+  const marked = withNo.filter((o) => o.logiFailKind);
+  const byKind = {};
+  marked.forEach((o) => { byKind[o.logiFailKind] = (byKind[o.logiFailKind] || 0) + 1; });
+  return {
+    shippedTotal: rows.length,
+    withTrackingNo: withNo.length,
+    markedCount: marked.length,
+    byKind,
+    // 抽样看字段实际长什么样（判断是「没写」还是「写了空值」）
+    samples: withNo.slice(0, 8).map((o) => ({
+      hasField: Object.prototype.hasOwnProperty.call(o, 'logiFailKind'),
+      kind: o.logiFailKind === undefined ? '(字段不存在)' : (o.logiFailKind || '(空字符串)'),
+      msg: (o.logiFailMsg || '').slice(0, 60),
+      at: o.logiFailAt ? String(o.logiFailAt) : '',
+      courier: o.courierCode || o.trackingCompany || ''
+    }))
+  };
+}
+
 async function incView(id) {
   if (!id) return { ok: false };
   try {
@@ -107,6 +136,7 @@ exports.main = async (rawEvent) => {
     else if (action === 'config') data = { config: await getConfig() };
     else if (action === 'banks') data = { banks: await listBanks() };
     else if (action === 'inc-view') data = await incView(event.id);
+    else if (action === 'logi-diag') data = await logiDiag();
     else if (action === 'all') {
       // 首屏一次拿齐，省一次往返
       const [products, config] = await Promise.all([listProducts(), getConfig()]);
