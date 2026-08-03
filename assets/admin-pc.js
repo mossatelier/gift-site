@@ -4460,14 +4460,14 @@
   }
 
   // 一键刷新本页所有「运输中」订单的物流（老单批量补轨迹）。顺序执行，避免高频打快递100。
-  // 物流异常标记：只用一个小图标，避免整列铺满红框。悬停看原因，详情在抽屉里。
+  // 物流异常标记：与状态标签同一行（外层 .pc-orders-col-status 已设 nowrap）
   function logiFailBadge(o) {
     if (!o || !o.logiFailKind) return "";
     var isNeedInfo = o.logiFailKind === "need_info";
-    var icon = isNeedInfo ? "🔧" : "⚠️";
-    var label = isNeedInfo ? "待补信息" : "查不到轨迹";
-    var tip = label + "：" + (o.logiFailHint || o.logiFailMsg || "");
-    return '<span class="pc-logi-dot" title="' + escapeHtml(tip) + '">' + icon + "</span>";
+    var text = isNeedInfo ? "待补信息" : "查不到";
+    var cls = isNeedInfo ? "pc-logi-tag pc-logi-tag-info" : "pc-logi-tag pc-logi-tag-warn";
+    var tip = (isNeedInfo ? "待补信息：" : "查不到轨迹：") + (o.logiFailHint || o.logiFailMsg || "");
+    return '<span class="' + cls + '" title="' + escapeHtml(tip) + '">' + text + "</span>";
   }
 
   function batchQueryShippedLogistics(auto) {

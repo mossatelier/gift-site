@@ -4375,6 +4375,8 @@ body.admin-logged-in #adminLogoutButtonLogged {
 /* 手机后台 · 物流查询手机号输入（顺丰用，独占一行） */
 .admin-tracking-phone { flex: 1 1 100%; min-width: 0; }
 
-/* 物流异常标记（手机版后台）：极简图标，悬停/长按看原因 */
-.admin-logi-dot { margin-left: 5px; font-size: 12px; line-height: 1; }
+/* 物流异常标记（手机版后台）：紧跟状态标签同一行 */
+.admin-logi-tag { display: inline-block; margin-left: 5px; padding: 1px 6px; border-radius: 5px; font-size: 10px; font-weight: 700; white-space: nowrap; vertical-align: middle; }
+.admin-logi-tag-info { color: #8a6d2b; background: #fdf3dc; }
+.admin-logi-tag-warn { color: #b3372b; background: #fdecea; }
 .admin-orders-onlyfail { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); white-space: nowrap; }

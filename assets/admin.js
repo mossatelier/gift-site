@@ -2128,14 +2128,14 @@ async function handleQueryLogistics(orderId) {
 }
 
 // 一键刷新本页所有「运输中」订单的物流（老单批量补轨迹）。顺序执行，避免高频打快递100。
-// 物流异常标记：只用一个小图标，避免整列铺满红框。悬停/展开看原因。
+// 物流异常标记：与状态标签同一行
 function logiFailBadge(o) {
   if (!o || !o.logiFailKind) return "";
   const isNeedInfo = o.logiFailKind === "need_info";
-  const icon = isNeedInfo ? "🔧" : "⚠️";
-  const label = isNeedInfo ? "待补信息" : "查不到轨迹";
-  const tip = `${label}：${o.logiFailHint || o.logiFailMsg || ""}`;
-  return `<span class="admin-logi-dot" title="${escapeHtml(tip)}">${icon}</span>`;
+  const text = isNeedInfo ? "待补信息" : "查不到";
+  const cls = isNeedInfo ? "admin-logi-tag admin-logi-tag-info" : "admin-logi-tag admin-logi-tag-warn";
+  const tip = `${isNeedInfo ? "待补信息" : "查不到轨迹"}：${o.logiFailHint || o.logiFailMsg || ""}`;
+  return `<span class="${cls}" title="${escapeHtml(tip)}">${text}</span>`;
 }
 
 async function batchQueryShippedLogistics(auto) {

@@ -2904,7 +2904,7 @@ body.pc-admin {
 /* ===== 审查补充：列宽约束 + 上下架按钮专属配色 ===== */
 .pc-edit-col-title { min-width: 220px; }
 .pc-edit-col-status,
-.pc-orders-col-status { width: 92px; }
+.pc-orders-col-status { width: 168px; white-space: nowrap; }
 .pc-banks-col-name { min-width: 160px; }
 
 /* 上下架按钮(与 编辑红 / 删除红 区分,用金色系) */
@@ -3212,8 +3212,9 @@ body.pc-admin {
 .pc-orders-tl-node.latest .pc-orders-tl-ctx { color: #167a61; font-weight: 600; }
 .pc-orders-tl-time { margin: 0; font-size: 12px; color: #8a7c66; }
 
-/* 物流异常标记：极简图标，避免整列铺满色块。悬停看原因，详情在抽屉里 */
-.pc-logi-dot { margin-left: 5px; font-size: 12px; line-height: 1; cursor: help; opacity: .85; }
-.pc-logi-dot:hover { opacity: 1; }
+/* 物流异常标记：紧跟状态标签同一行（列已 nowrap + 加宽） */
+.pc-logi-tag { display: inline-block; margin-left: 5px; padding: 1px 6px; border-radius: 5px; font-size: 11px; font-weight: 700; cursor: help; vertical-align: middle; }
+.pc-logi-tag-info { color: #8a6d2b; background: #fdf3dc; }
+.pc-logi-tag-warn { color: #b3372b; background: #fdecea; }
 .pc-orders-onlyfail { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: #6b6154; white-space: nowrap; cursor: pointer; }
 .pc-orders-onlyfail input { cursor: pointer; }
