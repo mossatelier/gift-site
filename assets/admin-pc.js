@@ -4460,13 +4460,14 @@
   }
 
   // 一键刷新本页所有「运输中」订单的物流（老单批量补轨迹）。顺序执行，避免高频打快递100。
-  // 物流异常小标签（自动刷新会跳过这些单，需人工处理）
+  // 物流异常标记：只用一个小图标，避免整列铺满红框。悬停看原因，详情在抽屉里。
   function logiFailBadge(o) {
     if (!o || !o.logiFailKind) return "";
     var isNeedInfo = o.logiFailKind === "need_info";
-    var text = isNeedInfo ? "🔧 待补信息" : "⚠️ 查不到";
-    var cls = isNeedInfo ? "pc-logi-badge pc-logi-badge-info" : "pc-logi-badge pc-logi-badge-warn";
-    return '<span class="' + cls + '" title="' + escapeHtml(o.logiFailHint || o.logiFailMsg || "") + '">' + text + "</span>";
+    var icon = isNeedInfo ? "🔧" : "⚠️";
+    var label = isNeedInfo ? "待补信息" : "查不到轨迹";
+    var tip = label + "：" + (o.logiFailHint || o.logiFailMsg || "");
+    return '<span class="pc-logi-dot" title="' + escapeHtml(tip) + '">' + icon + "</span>";
   }
 
   function batchQueryShippedLogistics(auto) {
