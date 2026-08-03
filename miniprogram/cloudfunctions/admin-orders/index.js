@@ -682,9 +682,9 @@ function logiFailHint(kind, msg, courierCode) {
 }
 
 async function markLogiFailure(orderId, kind, msg, courierCode) {
-  if (!orderId || !kind) return;
+  if (!orderId || !kind) return null;
   try {
-    await db.collection('orders').doc(orderId).update({
+    const res = await db.collection('orders').doc(orderId).update({
       data: {
         logiFailKind: kind,
         logiFailMsg: String(msg || '').slice(0, 200),
@@ -692,7 +692,12 @@ async function markLogiFailure(orderId, kind, msg, courierCode) {
         logiFailAt: new Date()
       }
     });
-  } catch (e) { /* 标记失败不影响主流程 */ }
+    console.log('[logiMark]', orderId, kind, 'updated=', res && res.stats && res.stats.updated);
+    return { kind, updated: (res && res.stats && res.stats.updated) || 0 };
+  } catch (e) {
+    console.error('[logiMark] 写标记失败', orderId, e && e.message);
+    return { kind, error: (e && e.message) || String(e) };
+  }
 }
 
 async function clearLogiFailure(orderId) {
@@ -717,8 +722,13 @@ async function queryLogistics(params) {
       const r = await db.collection('orders').doc(orderId).get();
       code = (r.data && r.data.courierCode) || '';
     } catch (e) {}
-    await markLogiFailure(orderId, classifyLogiFailure(msg), msg, code);
-    throw err;
+    const kind = classifyLogiFailure(msg);
+    const mark = await markLogiFailure(orderId, kind, msg, code);
+    // 把分类/写库结果带回前端，便于排查「为什么没打上标记」
+    const e2 = new Error(msg);
+    e2.logiFailKind = kind || '';
+    e2.logiMark = mark || null;
+    throw e2;
   }
 }
 
