@@ -125,7 +125,33 @@
     return base;
   }
 
+  // C 步：登录改走云开发（admin-orders 的 auth-login，无需登录态）。
+  // 双轨期：云开发登录失败时回退 Supabase，确保切换过程中后台不会锁死。
   async function signInWithPassword(email, password) {
+    if (config.adminOrdersUrl) {
+      try {
+        var res = await fetch(config.adminOrdersUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "auth-login", email: email, password: password })
+        });
+        var json = await res.json();
+        if (res.ok && json && json.ok && json.data && json.data.access_token) {
+          return json.data;   // { access_token, expires_at, user:{email} }
+        }
+        // 密码错/锁定这类明确的业务失败：直接报错，不要回退（否则错误提示会变得莫名其妙）
+        var msg = json && json.error ? String(json.error) : "";
+        if (/密码|锁定|邮箱/.test(msg)) throw new Error(msg);
+      } catch (e) {
+        if (e && /密码|锁定|邮箱/.test(e.message || "")) throw e;
+        // 网络异常或云端尚未初始化账号 → 落到下面的 Supabase 兜底
+      }
+    }
+    return signInViaSupabase(email, password);
+  }
+
+  // 旧登录方式（双轨兜底；云开发登录稳定后可删）
+  async function signInViaSupabase(email, password) {
     var response = await fetch(config.supabaseUrl + "/auth/v1/token?grant_type=password", {
       method: "POST",
       headers: {

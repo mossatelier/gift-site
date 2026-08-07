@@ -314,7 +314,32 @@ function authHeaders(accessToken, extraHeaders = {}) {
   };
 }
 
+// C 步：登录改走云开发（admin-orders 的 auth-login）。
+// 双轨期：云开发失败时回退 Supabase，确保切换过程中后台不会锁死。
 async function signInWithPassword(email, password) {
+  if (config.adminOrdersUrl) {
+    try {
+      const res = await fetch(config.adminOrdersUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "auth-login", email, password })
+      });
+      const json = await res.json();
+      if (res.ok && json && json.ok && json.data && json.data.access_token) {
+        return json.data;
+      }
+      const msg = json && json.error ? String(json.error) : "";
+      if (/密码|锁定|邮箱/.test(msg)) throw new Error(msg);
+    } catch (e) {
+      if (e && /密码|锁定|邮箱/.test(e.message || "")) throw e;
+      // 网络异常或云端未初始化 → 落到 Supabase 兜底
+    }
+  }
+  return signInViaSupabase(email, password);
+}
+
+// 旧登录方式（双轨兜底；云开发登录稳定后可删）
+async function signInViaSupabase(email, password) {
   const response = await fetch(`${config.supabaseUrl}/auth/v1/token?grant_type=password`, {
     method: "POST",
     headers: {
@@ -1110,6 +1135,19 @@ async function restoreSession() {
   try {
     let session = stored;
 
+    // 云开发签发的会话：没有 refresh_token，用 expires_at 判活；校验交给云函数
+    if (!stored.refresh_token && stored.expires_at) {
+      if (Date.now() >= Number(stored.expires_at)) {
+        throw new Error("登录已过期，请重新登录");
+      }
+      saveSession(stored);
+      setAuthMessage("管理员登录状态已恢复。", "success");
+      updateAuthUi();
+      updateFormAccess();
+      loadRecentProducts();
+      return;
+    }
+
     try {
       const user = await fetchCurrentUser(stored.access_token);
       session = { ...stored, user };
@@ -1169,9 +1207,13 @@ adminAuthForm?.addEventListener("submit", async (event) => {
 
   try {
     const session = await signInWithPassword(email, password);
-    const user = await fetchCurrentUser(session.access_token);
-    const nextSession = { ...session, user };
-    await verifyAdminAccess(nextSession.access_token);
+    // 云开发登录已在服务端校验过身份并直接返回 user，无需再走 Supabase 的两步验证
+    let nextSession = session;
+    if (!session.user) {
+      const user = await fetchCurrentUser(session.access_token);
+      nextSession = { ...session, user };
+      await verifyAdminAccess(nextSession.access_token);
+    }
     saveSession(nextSession);
     try { localStorage.setItem("gift-site-admin-email", email); } catch (e) { /* ignore */ }
     adminPasswordInput.value = "";

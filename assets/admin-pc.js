@@ -352,6 +352,8 @@
 
     Core.signInWithPassword(email, password)
       .then(function (grant) {
+        // 云开发登录已在服务端校验身份并返回 user，无需再走 Supabase 两步验证
+        if (grant && grant.user) return grant;
         return Core.fetchCurrentUser(grant.access_token).then(function (user) {
           var session = Object.assign({}, grant, { user: user });
           return Core.verifyAdminAccess(session.access_token).then(function () {

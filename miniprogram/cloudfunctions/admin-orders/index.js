@@ -138,9 +138,159 @@ function maskNick(name) {
 
 // ---------- Supabase admin auth ----------
 
+// ============ 后台登录鉴权（C 步：从 Supabase Auth 搬到云开发） ============
+// 设计：邮箱+密码 → scrypt 校验 → 签发 HS256 JWT（7 天）。后续请求带 JWT。
+// 密钥不写进代码（仓库公开），首次用时随机生成并存 admin_auth 集合。
+// 双轨期：verifyAdmin 先验云开发 JWT，失败再回退 Supabase，确保切换不锁死后台。
+const ADMIN_USERS_COL = 'admin_users';
+const ADMIN_AUTH_COL = 'admin_auth';
+const JWT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const LOGIN_MAX_FAIL = 5;
+const LOGIN_LOCK_MS = 15 * 60 * 1000;
+
+function b64url(buf) {
+  return Buffer.from(buf).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function b64urlDecode(s) {
+  return Buffer.from(String(s).replace(/-/g, '+').replace(/_/g, '/'), 'base64');
+}
+
+// JWT 密钥：存库不入代码；并发下重复创建会读回已有值
+async function getJwtSecret() {
+  const col = db.collection(ADMIN_AUTH_COL);
+  try {
+    const r = await col.doc('jwt-secret').get();
+    if (r.data && r.data.secret) return r.data.secret;
+  } catch (e) { /* 不存在，往下创建 */ }
+  const secret = crypto.randomBytes(48).toString('hex');
+  try {
+    await col.add({ data: { _id: 'jwt-secret', secret, createdAt: new Date() } });
+    return secret;
+  } catch (e) {
+    const r2 = await col.doc('jwt-secret').get();
+    if (r2.data && r2.data.secret) return r2.data.secret;
+    throw new Error('无法初始化鉴权密钥');
+  }
+}
+
+function hashPassword(password, salt) {
+  return crypto.scryptSync(String(password), String(salt), 64).toString('hex');
+}
+
+function signJwt(payload, secret) {
+  const head = b64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const body = b64url(JSON.stringify(payload));
+  const sig = crypto.createHmac('sha256', secret).update(head + '.' + body).digest();
+  return head + '.' + body + '.' + b64url(sig);
+}
+
+function verifyJwt(token, secret) {
+  const parts = String(token || '').split('.');
+  if (parts.length !== 3) return null;
+  const expected = b64url(crypto.createHmac('sha256', secret).update(parts[0] + '.' + parts[1]).digest());
+  const a = Buffer.from(parts[2]);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;  // 定时安全比较
+  let payload;
+  try { payload = JSON.parse(b64urlDecode(parts[1]).toString('utf8')); } catch (e) { return null; }
+  if (!payload || !payload.exp || Date.now() > payload.exp) return null;
+  return payload;
+}
+
+// 登录：校验密码 + 失败锁定，成功签发 JWT
+async function authLogin({ email, password }) {
+  const mail = String(email || '').trim().toLowerCase();
+  if (!mail || !password) throw new Error('请输入邮箱和密码');
+
+  const r = await db.collection(ADMIN_USERS_COL).where({ email: mail }).limit(1).get();
+  const u = (r.data || [])[0];
+  // 账号不存在也走同样耗时的路径，避免通过响应时间探测账号是否存在
+  if (!u || !u.passwordHash) {
+    crypto.scryptSync(String(password), 'dummy-salt', 64);
+    throw new Error('邮箱或密码不正确');
+  }
+  if (u.lockedUntil && Date.now() < new Date(u.lockedUntil).getTime()) {
+    const mins = Math.ceil((new Date(u.lockedUntil).getTime() - Date.now()) / 60000);
+    throw new Error(`密码错误次数过多，请 ${mins} 分钟后再试`);
+  }
+
+  const ok = hashPassword(password, u.salt) === u.passwordHash;
+  if (!ok) {
+    const failCount = (Number(u.failCount) || 0) + 1;
+    const patch = { failCount };
+    if (failCount >= LOGIN_MAX_FAIL) {
+      patch.lockedUntil = new Date(Date.now() + LOGIN_LOCK_MS);
+      patch.failCount = 0;
+    }
+    try { await db.collection(ADMIN_USERS_COL).doc(u._id).update({ data: patch }); } catch (e) {}
+    throw new Error(failCount >= LOGIN_MAX_FAIL
+      ? '密码错误次数过多，账号已锁定 15 分钟'
+      : `邮箱或密码不正确（还可尝试 ${LOGIN_MAX_FAIL - failCount} 次）`);
+  }
+
+  try { await db.collection(ADMIN_USERS_COL).doc(u._id).update({ data: { failCount: 0, lockedUntil: null, lastLoginAt: new Date() } }); } catch (e) {}
+  const secret = await getJwtSecret();
+  const exp = Date.now() + JWT_TTL_MS;
+  const access_token = signJwt({ sub: mail, email: mail, exp, iat: Date.now() }, secret);
+  return { access_token, expires_at: exp, user: { email: mail } };
+}
+
+// 修改密码（需已登录）
+async function authChangePassword({ email, oldPassword, newPassword }) {
+  const mail = String(email || '').trim().toLowerCase();
+  if (!newPassword || String(newPassword).length < 6) throw new Error('新密码至少 6 位');
+  const r = await db.collection(ADMIN_USERS_COL).where({ email: mail }).limit(1).get();
+  const u = (r.data || [])[0];
+  if (!u) throw new Error('账号不存在');
+  if (hashPassword(oldPassword, u.salt) !== u.passwordHash) throw new Error('原密码不正确');
+  const salt = crypto.randomBytes(16).toString('hex');
+  await db.collection(ADMIN_USERS_COL).doc(u._id).update({
+    data: { salt, passwordHash: hashPassword(newPassword, salt), pwdChangedAt: new Date() }
+  });
+  return { ok: true };
+}
+
+// 一次性：创建/重置管理员账号。仅在集合内该邮箱不存在、或带正确 resetToken 时可用。
+async function authInitAdmin({ email, password, force }) {
+  const mail = String(email || '').trim().toLowerCase();
+  if (!mail || !password) throw new Error('缺少邮箱或密码');
+  if (String(password).length < 6) throw new Error('密码至少 6 位');
+  const r = await db.collection(ADMIN_USERS_COL).where({ email: mail }).limit(1).get();
+  const exists = (r.data || [])[0];
+  const salt = crypto.randomBytes(16).toString('hex');
+  const doc = { email: mail, salt, passwordHash: hashPassword(password, salt), failCount: 0, lockedUntil: null, updatedAt: new Date() };
+  if (exists) {
+    if (!force) throw new Error('该账号已存在（如需重置密码请传 force:true）');
+    await db.collection(ADMIN_USERS_COL).doc(exists._id).update({ data: doc });
+    return { ok: true, mode: 'reset', email: mail };
+  }
+  doc.createdAt = new Date();
+  await db.collection(ADMIN_USERS_COL).add({ data: doc });
+  return { ok: true, mode: 'created', email: mail };
+}
+
 async function verifyAdmin(accessToken) {
   if (!accessToken) throw new Error('未登录');
 
+  // ① 优先验云开发签发的 JWT
+  try {
+    const secret = await getJwtSecret();
+    const payload = verifyJwt(accessToken, secret);
+    if (payload && payload.email) {
+      const r = await db.collection(ADMIN_USERS_COL).where({ email: payload.email }).limit(1).get();
+      if ((r.data || []).length) return payload.email;
+      throw new Error('当前账号不在管理员名单');
+    }
+  } catch (e) {
+    if (e && e.message === '当前账号不在管理员名单') throw e;
+    // 其余情况落到 ② 兜底
+  }
+
+  // ② 双轨兜底：仍接受 Supabase 旧 token（切换期不锁死后台；确认稳定后可删本段）
+  return verifyAdminViaSupabase(accessToken);
+}
+
+async function verifyAdminViaSupabase(accessToken) {
   const userRes = await httpsReq(`${SUPABASE_URL}/auth/v1/user`, {
     headers: {
       apikey: SUPABASE_ANON_KEY,
@@ -1687,6 +1837,19 @@ exports.main = async (event) => {
     }
   }
 
+  // 登录/初始化：发生在拿到 token 之前，必须放在鉴权门之外
+  if (body.action === 'auth-login' || body.action === 'auth-init') {
+    try {
+      const data = body.action === 'auth-login'
+        ? await authLogin(body)
+        : await authInitAdmin(body);
+      return buildResponse(200, { ok: true, data });
+    } catch (err) {
+      console.error('[admin-orders]', body.action, err && err.message);
+      return buildResponse(400, { ok: false, error: err.message || '操作失败' });
+    }
+  }
+
   // 取 token
   const headers = event.headers || {};
   const authHeader = headers.Authorization || headers.authorization || '';
@@ -1770,6 +1933,9 @@ exports.main = async (event) => {
         break;
       case 'upload-image':
         data = await adminUploadImage(body);
+        break;
+      case 'auth-change-password':
+        data = await authChangePassword({ ...body, email: adminEmail });
         break;
       case 'stats':
         data = await getStats(body);
