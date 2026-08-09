@@ -167,6 +167,12 @@ async function getJwtSecret() {
     await col.add({ data: { _id: 'jwt-secret', secret, createdAt: new Date() } });
     return secret;
   } catch (e) {
+    // 集合可能不存在（server SDK 的 add 不会自动建集合）→ 建了再写一次
+    try {
+      await db.createCollection(ADMIN_AUTH_COL);
+      await col.add({ data: { _id: 'jwt-secret', secret, createdAt: new Date() } });
+      return secret;
+    } catch (e2) { /* 落到读回已有值 */ }
     const r2 = await col.doc('jwt-secret').get();
     if (r2.data && r2.data.secret) return r2.data.secret;
     throw new Error('无法初始化鉴权密钥');
