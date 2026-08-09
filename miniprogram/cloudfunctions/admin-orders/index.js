@@ -250,22 +250,24 @@ async function authChangePassword({ email, oldPassword, newPassword }) {
   return { ok: true };
 }
 
-// 一次性：创建/重置管理员账号。仅在集合内该邮箱不存在、或带正确 resetToken 时可用。
-async function authInitAdmin({ email, password, force }) {
+// 一次性初始化管理员账号。
+// ⚠️ 本动作无鉴权（首次建号时还没有登录态），因此只允许在「集合为空」时执行——
+//    否则任何知道端点的人都可重置密码把管理员锁在门外。
+//    忘记密码的恢复路径：在云开发控制台数据库手动删除 admin_users 里的记录，再跑一次本动作。
+async function authInitAdmin({ email, password }) {
   const mail = String(email || '').trim().toLowerCase();
   if (!mail || !password) throw new Error('缺少邮箱或密码');
   if (String(password).length < 6) throw new Error('密码至少 6 位');
-  const r = await db.collection(ADMIN_USERS_COL).where({ email: mail }).limit(1).get();
-  const exists = (r.data || [])[0];
-  const salt = crypto.randomBytes(16).toString('hex');
-  const doc = { email: mail, salt, passwordHash: hashPassword(password, salt), failCount: 0, lockedUntil: null, updatedAt: new Date() };
-  if (exists) {
-    if (!force) throw new Error('该账号已存在（如需重置密码请传 force:true）');
-    await db.collection(ADMIN_USERS_COL).doc(exists._id).update({ data: doc });
-    return { ok: true, mode: 'reset', email: mail };
+  let total = 0;
+  try { total = (await db.collection(ADMIN_USERS_COL).count()).total || 0; }
+  catch (e) { try { await db.createCollection(ADMIN_USERS_COL); } catch (e2) {} }
+  if (total > 0) {
+    throw new Error('已存在管理员账号。改密码请登录后台操作；忘记密码请在云开发数据库删除 admin_users 记录后重新初始化');
   }
-  doc.createdAt = new Date();
-  await db.collection(ADMIN_USERS_COL).add({ data: doc });
+  const salt = crypto.randomBytes(16).toString('hex');
+  await db.collection(ADMIN_USERS_COL).add({
+    data: { email: mail, salt, passwordHash: hashPassword(password, salt), failCount: 0, lockedUntil: null, createdAt: new Date() }
+  });
   return { ok: true, mode: 'created', email: mail };
 }
 

@@ -1807,6 +1807,14 @@ async function callAdminOrders(action, payload = {}) {
 
   let res = await doFetch(session.access_token);
 
+  // 云开发会话（无 refresh_token）过期：清会话回登录态，别停在原地报错
+  if (res.status === 401 && !session.refresh_token) {
+    saveSession(null);
+    updateAuthUi();
+    updateFormAccess();
+    throw new Error("登录已过期，请重新登录");
+  }
+
   // token 过期 → 刷新一次重试（与 authedFetch 对 Supabase 的处理一致）
   if (res.status === 401 && session.refresh_token) {
     try {

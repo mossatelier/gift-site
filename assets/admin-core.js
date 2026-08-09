@@ -303,6 +303,11 @@
 
     var res = await doFetch(session.access_token);
 
+    // 云开发会话（无 refresh_token）过期：直接清会话回登录页，别停在原地报错
+    if (res.status === 401 && !session.refresh_token) {
+      throw notifySessionExpired();
+    }
+
     // token 过期 → 刷新一次重试（与 authedFetch 对 Supabase 的处理一致）
     if (res.status === 401 && session.refresh_token) {
       try {
