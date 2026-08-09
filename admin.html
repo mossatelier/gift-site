@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>加加好物图集 · 商品录入后台</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="assets/site.css?v=67">
+  <link rel="stylesheet" href="assets/site.css?v=68">
 </head>
 <body class="admin-page">
   <main class="admin-shell">
@@ -48,8 +48,30 @@
           <p class="admin-account-label">当前登录账号</p>
           <p class="admin-account-email" id="adminAccountEmail">-</p>
         </div>
-        <button class="admin-secondary-btn" id="adminLogoutButtonLogged" type="button">退出登录</button>
+        <div class="admin-account-actions">
+          <button class="admin-secondary-btn" id="adminChangePwBtn" type="button">修改密码</button>
+          <button class="admin-secondary-btn" id="adminLogoutButtonLogged" type="button">退出登录</button>
+        </div>
       </div>
+      <form class="admin-form admin-changepw-form" id="adminChangePwForm" hidden>
+        <label class="admin-field">
+          <span>原密码</span>
+          <input id="adminOldPwInput" type="password" placeholder="当前登录密码" autocomplete="current-password" required>
+        </label>
+        <label class="admin-field">
+          <span>新密码</span>
+          <input id="adminNewPwInput" type="password" placeholder="至少 6 位" autocomplete="new-password" required minlength="6">
+        </label>
+        <label class="admin-field">
+          <span>确认新密码</span>
+          <input id="adminNewPwInput2" type="password" placeholder="再输一遍新密码" autocomplete="new-password" required minlength="6">
+        </label>
+        <div class="admin-auth-actions">
+          <button id="adminChangePwSubmit" type="submit">确认修改</button>
+          <button class="admin-secondary-btn" id="adminChangePwCancel" type="button">取消</button>
+        </div>
+        <p class="admin-inline-message" id="adminChangePwMessage"></p>
+      </form>
     </section>
 
     <section class="admin-card admin-locked-panel" id="adminLockedPanel">
@@ -411,6 +433,6 @@
   </main>
 
   <script src="assets/config.js?v=13"></script>
-  <script src="assets/admin.js?v=65"></script>
+  <script src="assets/admin.js?v=66"></script>
 </body>
 </html>

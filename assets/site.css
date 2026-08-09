@@ -1029,6 +1029,18 @@ body.admin-logged-in #adminLogoutButtonLogged {
   border: 1px solid rgba(234, 223, 206, 0.9);
 }
 
+.admin-account-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.admin-changepw-form {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed rgba(234, 223, 206, 0.9);
+}
+
 .admin-account-label {
   margin: 0 0 4px;
   color: var(--muted);

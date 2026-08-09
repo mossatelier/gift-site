@@ -1255,6 +1255,61 @@ adminLogoutButtonLogged?.addEventListener("click", () => {
   adminLogoutButton?.click();
 });
 
+// ============ 修改密码 ============
+const adminChangePwBtn = document.getElementById("adminChangePwBtn");
+const adminChangePwForm = document.getElementById("adminChangePwForm");
+const adminChangePwCancel = document.getElementById("adminChangePwCancel");
+const adminChangePwMessage = document.getElementById("adminChangePwMessage");
+
+function setChangePwMessage(text, tone) {
+  if (!adminChangePwMessage) return;
+  adminChangePwMessage.textContent = text || "";
+  if (tone) adminChangePwMessage.dataset.tone = tone;
+  else delete adminChangePwMessage.dataset.tone;
+}
+
+adminChangePwBtn?.addEventListener("click", () => {
+  if (!adminChangePwForm) return;
+  adminChangePwForm.hidden = !adminChangePwForm.hidden;
+  if (!adminChangePwForm.hidden) {
+    setChangePwMessage("");
+    document.getElementById("adminOldPwInput")?.focus();
+  }
+});
+
+adminChangePwCancel?.addEventListener("click", () => {
+  if (!adminChangePwForm) return;
+  adminChangePwForm.reset();
+  adminChangePwForm.hidden = true;
+});
+
+adminChangePwForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const oldPassword = document.getElementById("adminOldPwInput")?.value || "";
+  const newPassword = document.getElementById("adminNewPwInput")?.value || "";
+  const newPassword2 = document.getElementById("adminNewPwInput2")?.value || "";
+  if (newPassword.length < 6) {
+    setChangePwMessage("新密码至少 6 位。", "error");
+    return;
+  }
+  if (newPassword !== newPassword2) {
+    setChangePwMessage("两次输入的新密码不一致。", "error");
+    return;
+  }
+  const submitBtn = document.getElementById("adminChangePwSubmit");
+  if (submitBtn) submitBtn.disabled = true;
+  setChangePwMessage("正在修改…");
+  try {
+    await callAdminOrders("auth-change-password", { oldPassword, newPassword });
+    adminChangePwForm.reset();
+    setChangePwMessage("密码已修改，下次登录请使用新密码。", "success");
+  } catch (error) {
+    setChangePwMessage(`修改失败：${error.message}`, "error");
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
+});
+
 productForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
 

@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>加加好物图集 · Admin Console（电脑版）</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="assets/site.css?v=67">
-  <link rel="stylesheet" href="assets/admin-pc.css?v=31">
+  <link rel="stylesheet" href="assets/site.css?v=68">
+  <link rel="stylesheet" href="assets/admin-pc.css?v=32">
 </head>
 <body class="pc-admin">
 
@@ -57,6 +57,7 @@
           <span class="pc-topbar-account-dot"></span>
           <span class="pc-topbar-account-email" id="pcAccountEmail">-</span>
         </div>
+        <button class="pc-logout-btn" id="pcChangePwBtn" type="button">改密码</button>
         <button class="pc-logout-btn" id="pcLogoutBtn" type="button">退出</button>
       </div>
     </header>
@@ -287,8 +288,34 @@
     </div>
   </div>
 
-  <script src="assets/config.js?v=13"></script>
+  <!-- 修改密码弹窗 -->
+  <div class="pc-modal-mask" id="pcChangePwMask" hidden>
+    <div class="pc-modal" role="dialog" aria-labelledby="pcChangePwTitle">
+      <h3 class="pc-modal-title" id="pcChangePwTitle">修改密码</h3>
+      <form id="pcChangePwForm">
+        <label class="pc-modal-field">
+          <span>原密码</span>
+          <input id="pcOldPwInput" type="password" autocomplete="current-password" required>
+        </label>
+        <label class="pc-modal-field">
+          <span>新密码（至少 6 位）</span>
+          <input id="pcNewPwInput" type="password" autocomplete="new-password" required minlength="6">
+        </label>
+        <label class="pc-modal-field">
+          <span>确认新密码</span>
+          <input id="pcNewPwInput2" type="password" autocomplete="new-password" required minlength="6">
+        </label>
+        <p class="pc-modal-msg" id="pcChangePwMsg"></p>
+        <div class="pc-modal-actions">
+          <button type="button" class="pc-modal-cancel" id="pcChangePwCancel">取消</button>
+          <button type="submit" class="pc-modal-submit" id="pcChangePwSubmit">确认修改</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="assets/config.js?v=13"</script>
   <script src="assets/admin-core.js?v=12"></script>
-  <script src="assets/admin-pc.js?v=49"></script>
+  <script src="assets/admin-pc.js?v=50"></script>
 </body>
 </html>

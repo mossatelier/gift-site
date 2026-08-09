@@ -272,6 +272,64 @@
       pcLogoutBtn.addEventListener("click", handleLogout);
     }
 
+    // ===== 修改密码弹窗 =====
+    var pwMask = document.getElementById("pcChangePwMask");
+    var pwForm = document.getElementById("pcChangePwForm");
+    var pwMsg = document.getElementById("pcChangePwMsg");
+    function setPwMsg(text, tone) {
+      if (!pwMsg) return;
+      pwMsg.textContent = text || "";
+      if (tone) pwMsg.setAttribute("data-tone", tone);
+      else pwMsg.removeAttribute("data-tone");
+    }
+    function closePwModal() {
+      if (!pwMask) return;
+      pwMask.hidden = true;
+      if (pwForm) pwForm.reset();
+      setPwMsg("");
+    }
+    var pcChangePwBtn = document.getElementById("pcChangePwBtn");
+    if (pcChangePwBtn && pwMask) {
+      pcChangePwBtn.addEventListener("click", function () {
+        pwMask.hidden = false;
+        setPwMsg("");
+        var first = document.getElementById("pcOldPwInput");
+        if (first) first.focus();
+      });
+    }
+    var pwCancel = document.getElementById("pcChangePwCancel");
+    if (pwCancel) pwCancel.addEventListener("click", closePwModal);
+    if (pwMask) {
+      pwMask.addEventListener("click", function (event) {
+        if (event.target === pwMask) closePwModal();
+      });
+    }
+    if (pwForm) {
+      pwForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        var oldPassword = (document.getElementById("pcOldPwInput") || {}).value || "";
+        var newPassword = (document.getElementById("pcNewPwInput") || {}).value || "";
+        var newPassword2 = (document.getElementById("pcNewPwInput2") || {}).value || "";
+        if (newPassword.length < 6) { setPwMsg("新密码至少 6 位。", "error"); return; }
+        if (newPassword !== newPassword2) { setPwMsg("两次输入的新密码不一致。", "error"); return; }
+        var submitBtn = document.getElementById("pcChangePwSubmit");
+        if (submitBtn) submitBtn.disabled = true;
+        setPwMsg("正在修改…");
+        Core.callAdminOrders("auth-change-password", { oldPassword: oldPassword, newPassword: newPassword })
+          .then(function () {
+            setPwMsg("密码已修改，下次登录请使用新密码。", "success");
+            if (pwForm) pwForm.reset();
+            toast("密码已修改", "success");
+          })
+          .catch(function (error) {
+            setPwMsg("修改失败：" + error.message, "error");
+          })
+          .then(function () {
+            if (submitBtn) submitBtn.disabled = false;
+          });
+      });
+    }
+
     // 导航点击（事件委托到每个 nav item）
     pcNavItems.forEach(function (item) {
       item.addEventListener("click", function (event) {
