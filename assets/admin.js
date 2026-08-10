@@ -1182,9 +1182,13 @@ try {
 
 // 显示密码开关
 const adminShowPw = document.getElementById("adminShowPw");
-adminShowPw?.addEventListener("change", () => {
-  if (adminPasswordInput) adminPasswordInput.type = adminShowPw.checked ? "text" : "password";
-});
+const syncAdminShowPw = () => {
+  if (adminShowPw && adminPasswordInput) adminPasswordInput.type = adminShowPw.checked ? "text" : "password";
+};
+adminShowPw?.addEventListener("change", syncAdminShowPw);
+// 刷新/后退时浏览器会恢复勾选状态但不触发 change → 加载时也同步一次
+syncAdminShowPw();
+window.addEventListener("pageshow", syncAdminShowPw);
 
 adminAuthForm?.addEventListener("submit", async (event) => {
   event.preventDefault();

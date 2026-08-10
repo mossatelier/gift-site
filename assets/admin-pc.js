@@ -264,9 +264,13 @@
     // 显示密码开关
     var pcShowPw = document.getElementById("pcShowPw");
     if (pcShowPw && pcLoginPassword) {
-      pcShowPw.addEventListener("change", function () {
+      var syncShowPw = function () {
         pcLoginPassword.type = pcShowPw.checked ? "text" : "password";
-      });
+      };
+      pcShowPw.addEventListener("change", syncShowPw);
+      // 刷新/后退时浏览器会恢复勾选状态但不触发 change → 加载时也同步一次
+      syncShowPw();
+      window.addEventListener("pageshow", syncShowPw);
     }
     if (pcLogoutBtn) {
       pcLogoutBtn.addEventListener("click", handleLogout);
