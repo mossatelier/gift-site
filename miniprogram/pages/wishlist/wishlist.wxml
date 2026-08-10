@@ -69,15 +69,6 @@
         bindtap="submitOrder"
         disabled="{{submitting}}"
       >{{submitting ? '提交中…' : '提交申请 (' + items.length + ' 件)'}}</button>
-
-      <!-- 提交结果横幅：不依赖系统弹窗（wx.showModal 在部分设备/环境下有渲染不出来的问题），
-           直接写在页面里，肯定看得见 -->
-      <view class="submit-result-banner {{submitError ? 'is-error' : ''}}" wx:if="{{submitError}}">
-        <text>{{submitError}}</text>
-        <view class="submit-result-actions" wx:if="{{submitErrorInsufficientPoints}}">
-          <text class="submit-result-link" bindtap="goReferralFromError">去邀友赚积分 ›</text>
-        </view>
-      </view>
     </view>
   </view>
 
@@ -136,4 +127,20 @@
   </view>
 
   <view class="bottom-spacer"></view>
+
+  <!-- 提交失败弹层：自己画的，不用系统 wx.showModal（在部分设备/环境下有渲染不出来的问题，实测过） -->
+  <view class="fail-modal-mask" wx:if="{{submitError}}" catchtap="dismissSubmitError">
+    <view class="fail-modal" catchtap="noop">
+      <text class="fail-modal-title">提交失败</text>
+      <text class="fail-modal-content">{{submitError}}</text>
+      <view class="fail-modal-actions">
+        <button class="fail-modal-btn fail-modal-btn-secondary" bindtap="dismissSubmitError">知道了</button>
+        <button
+          wx:if="{{submitErrorInsufficientPoints}}"
+          class="fail-modal-btn fail-modal-btn-primary"
+          bindtap="goPointsFromError"
+        >查看我的积分</button>
+      </view>
+    </view>
+  </view>
 </view>

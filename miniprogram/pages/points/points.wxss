@@ -26,6 +26,44 @@
 }
 .points-hero-arrow { font-size: 24rpx; }
 
+.points-howto {
+  margin-top: 20rpx;
+  padding: 24rpx;
+  border-radius: 20rpx;
+  background: #fff;
+}
+.points-howto-title { font-size: 26rpx; font-weight: 800; color: #3a2f22; }
+.points-howto-step {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  color: #5d5140;
+}
+.points-howto-num {
+  flex: 0 0 auto;
+  width: 32rpx; height: 32rpx; line-height: 32rpx; text-align: center;
+  border-radius: 50%;
+  background: rgba(232, 83, 31, 0.12);
+  color: #e8531f;
+  font-weight: 800;
+  font-size: 20rpx;
+}
+.points-howto-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
+  margin-top: 20rpx;
+  padding: 16rpx;
+  border-radius: 999rpx;
+  background: rgba(232, 83, 31, 0.1);
+  color: #e8531f;
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
 .points-list-head {
   margin: 32rpx 4rpx 12rpx;
   font-size: 26rpx;

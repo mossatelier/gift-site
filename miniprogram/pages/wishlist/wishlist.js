@@ -18,8 +18,15 @@ Page({
     submitErrorInsufficientPoints: false
   },
 
-  goReferralFromError() {
-    wx.navigateTo({ url: '/pages/referral/referral' });
+  noop() {},
+
+  dismissSubmitError() {
+    this.setData({ submitError: '', submitErrorInsufficientPoints: false });
+  },
+
+  goPointsFromError() {
+    this.setData({ submitError: '', submitErrorInsufficientPoints: false });
+    wx.navigateTo({ url: '/pages/points/points' });
   },
 
   onShow() {
