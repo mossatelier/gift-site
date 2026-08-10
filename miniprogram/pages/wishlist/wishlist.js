@@ -175,57 +175,58 @@ Page({
     }
   },
 
-  doSubmitOrder(items, remark) {
-    wx.showModal({
-      title: '确认提交',
-      content: `共 ${items.length} 件礼品，提交后客服会主动联系你`,
-      confirmText: '提交',
-      confirmColor: '#d64b2a',
-      success: async (res) => {
-        if (!res.confirm) { this.setData({ submitting: false }); return; }
-        wx.showLoading({ title: '提交中…', mask: true });
-        try {
-          const cf = await wx.cloud.callFunction({
-            name: 'submit-order',
-            data: {
-              items,
-              addressId: this.data.address._id,
-              remark
-            }
-          });
-          wx.hideLoading();
-          const r = cf && cf.result;
-          if (!r || !r.success) {
-            throw new Error((r && r.error) || '提交失败');
-          }
-          wishlist.saveList([]);
-          this.setData({ items: [], remark: '' });
-          this._pickedAddressId = null;
-          wx.showToast({ title: '提交成功', icon: 'success' });
-          setTimeout(() => {
-            wx.navigateTo({ url: `/pages/order-detail/order-detail?id=${r.orderId}` });
-          }, 600);
-        } catch (err) {
-          wx.hideLoading();
-          console.error('submit failed', err);
-          if (err.message && err.message.indexOf('积分不足') >= 0) {
-            wx.showModal({
-              title: '积分不够啦',
-              content: err.message,
-              confirmText: '去邀友赚积分',
-              cancelText: '知道了',
-              confirmColor: '#d64b2a',
-              success: (res) => { if (res.confirm) wx.navigateTo({ url: '/pages/referral/referral' }); }
-            });
-          } else {
-            wx.showToast({ title: err.message || '提交失败', icon: 'none' });
-          }
-        } finally {
-          this.setData({ submitting: false });
+  // 点「提交申请」按钮本身已经是一次明确确认，这里不再弹「确认提交」二次弹窗——
+  // 之前这里紧跟在「接收通知」订阅授权弹窗后面连续弹第二个系统弹窗，微信有概率因为两个
+  // 原生弹窗背靠背弹而让第二个直接 fail（且 fail 分支原来什么反馈都没有），导致用户点了
+  // 提交、按钮转一下就消失，实际请求根本没发出去。去掉这层多余确认，问题从根上不会再出现。
+  async doSubmitOrder(items, remark) {
+    wx.showLoading({ title: '提交中…', mask: true });
+    try {
+      const cf = await wx.cloud.callFunction({
+        name: 'submit-order',
+        data: {
+          items,
+          addressId: this.data.address._id,
+          remark
         }
-      },
-      fail: () => { this.setData({ submitting: false }); }
-    });
+      });
+      wx.hideLoading();
+      const r = cf && cf.result;
+      if (!r || !r.success) {
+        throw new Error((r && r.error) || '提交失败');
+      }
+      wishlist.saveList([]);
+      this.setData({ items: [], remark: '' });
+      this._pickedAddressId = null;
+      wx.showToast({ title: '提交成功', icon: 'success' });
+      setTimeout(() => {
+        wx.navigateTo({ url: `/pages/order-detail/order-detail?id=${r.orderId}` });
+      }, 600);
+    } catch (err) {
+      wx.hideLoading();
+      console.error('submit failed', err);
+      if (err.message && err.message.indexOf('积分不足') >= 0) {
+        wx.showModal({
+          title: '积分不够啦',
+          content: err.message,
+          confirmText: '去邀友赚积分',
+          cancelText: '知道了',
+          confirmColor: '#d64b2a',
+          success: (res) => { if (res.confirm) wx.navigateTo({ url: '/pages/referral/referral' }); }
+        });
+      } else {
+        // 兜底：不管是云函数报错还是 wx API 本身调用失败（比如上面提到的弹窗冲突），
+        // 都要有肉眼可见的反馈，不能静默消失
+        wx.showModal({
+          title: '提交失败',
+          content: (err && err.errMsg) || (err && err.message) || '未知错误，请重试；如果重试还是不行，请截图这个提示联系客服',
+          showCancel: false,
+          confirmText: '知道了'
+        });
+      }
+    } finally {
+      this.setData({ submitting: false });
+    }
   },
 
   onShareAppMessage() {
