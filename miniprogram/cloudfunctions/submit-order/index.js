@@ -249,36 +249,38 @@ exports.main = async (event, context) => {
     updatedAt: now
   };
 
-  // 5. 积分校验 + 扣减 + 建单：放进一个事务里，保证「余额够才建单、建单就一定扣了分」，不会出现半吊子状态
+  // 5. 积分校验 + 扣减 + 建单：不用 db.runTransaction（云函数事务里能不能查询不确定，用不熟的
+  //    API 有卡死风险），改用这个项目里到处都在用、确定好使的写法——
+  //    「条件更新」做原子扣分（where 里带 rewardPoints >= totalCards，更新条数为 0 说明没扣成，绝不会扣超），
+  //    扣成功之后再建单；万一建单失败就把刚扣的分退回去，避免「扣了分却没有单」。
+  if (needPoints) {
+    const dec = await db.collection('users')
+      .where({ openid: OPENID, rewardPoints: _.gte(totalCards) })
+      .update({ data: { rewardPoints: _.inc(-totalCards), updatedAt: now } });
+    if (!dec || !dec.stats || dec.stats.updated === 0) {
+      const ur = await db.collection('users').where({ openid: OPENID }).limit(1).get();
+      const balance = (ur.data[0] && Number(ur.data[0].rewardPoints)) || 0;
+      return { success: false, error: `积分不足，还差 ${totalCards - balance} 分才能兑换该礼品`, insufficientPoints: true };
+    }
+  }
+
   let add;
   try {
-    add = await db.runTransaction(async transaction => {
-      if (needPoints) {
-        const ur = await transaction.collection('users').where({ openid: OPENID }).limit(1).get();
-        const user = ur.data[0];
-        const balance = (user && Number(user.rewardPoints)) || 0;
-        if (!user || balance < totalCards) {
-          const err = new Error(`积分不足，还差 ${totalCards - balance} 分才能兑换该礼品`);
-          err.code = 'INSUFFICIENT_POINTS';
-          throw err;
-        }
-        await transaction.collection('users').doc(user._id).update({
-          data: { rewardPoints: _.inc(-totalCards), updatedAt: now }
-        });
-      }
-      const r = await transaction.collection('orders').add({ data: order });
-      if (needPoints) {
-        await transaction.collection('points_ledger').add({
-          data: { openid: OPENID, delta: -totalCards, reason: '礼品兑换', refId: r._id, createdAt: now }
-        });
-      }
-      return r;
-    });
+    add = await db.collection('orders').add({ data: order });
   } catch (err) {
-    if (err && err.code === 'INSUFFICIENT_POINTS') {
-      return { success: false, error: err.message, insufficientPoints: true };
+    if (needPoints) {
+      // 建单失败，把刚扣的分退回去，别让用户莫名其妙少了分却没订单
+      await db.collection('users').where({ openid: OPENID })
+        .update({ data: { rewardPoints: _.inc(totalCards), updatedAt: new Date() } })
+        .catch(e2 => console.error('[points] refund after order-create failure also failed', OPENID, e2));
     }
     throw err;
+  }
+  if (needPoints) {
+    // 流水记录失败不影响订单（余额已经扣对了，只是这笔明细以后查不到），记日志方便排查
+    await db.collection('points_ledger').add({
+      data: { openid: OPENID, delta: -totalCards, reason: '礼品兑换', refId: add._id, createdAt: now }
+    }).catch(e => console.error('[points] ledger write failed', add._id, e));
   }
 
   // 下单成功 → 立即推一条「下单成功通知」（用户在下单时已授权；失败不阻断）
