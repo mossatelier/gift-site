@@ -232,6 +232,7 @@ exports.main = async (event, context) => {
   }
 
   const now = new Date();
+  const needPoints = totalCards > 0;
   const order = {
     // 显式写 _openid：云函数（管理员身份）add 不会自动塞这个字段，
     // 不塞的话用户用 SDK 读时（自动按 _openid 过滤）会读不到
@@ -243,11 +244,43 @@ exports.main = async (event, context) => {
     totalCards,
     itemCount: itemSnapshots.length,
     status: 'pending',
+    pointsDeducted: needPoints,
     createdAt: now,
     updatedAt: now
   };
 
-  const add = await db.collection('orders').add({ data: order });
+  // 5. 积分校验 + 扣减 + 建单：放进一个事务里，保证「余额够才建单、建单就一定扣了分」，不会出现半吊子状态
+  let add;
+  try {
+    add = await db.runTransaction(async transaction => {
+      if (needPoints) {
+        const ur = await transaction.collection('users').where({ openid: OPENID }).limit(1).get();
+        const user = ur.data[0];
+        const balance = (user && Number(user.rewardPoints)) || 0;
+        if (!user || balance < totalCards) {
+          const err = new Error(`积分不足，还差 ${totalCards - balance} 分才能兑换该礼品`);
+          err.code = 'INSUFFICIENT_POINTS';
+          throw err;
+        }
+        await transaction.collection('users').doc(user._id).update({
+          data: { rewardPoints: _.inc(-totalCards), updatedAt: now }
+        });
+      }
+      const r = await transaction.collection('orders').add({ data: order });
+      if (needPoints) {
+        await transaction.collection('points_ledger').add({
+          data: { openid: OPENID, delta: -totalCards, reason: '礼品兑换', refId: r._id, createdAt: now }
+        });
+      }
+      return r;
+    });
+  } catch (err) {
+    if (err && err.code === 'INSUFFICIENT_POINTS') {
+      return { success: false, error: err.message, insufficientPoints: true };
+    }
+    throw err;
+  }
+
   // 下单成功 → 立即推一条「下单成功通知」（用户在下单时已授权；失败不阻断）
   await sendOrderPlacedNotify(OPENID, add._id, order);
   // 按手机号对账推荐关系（把手动录入的记录关联到本人 openid + 补上线 + 去重；失败不阻断）

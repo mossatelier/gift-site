@@ -1,0 +1,32 @@
+<view class="page-shell points-page">
+
+  <view class="points-hero">
+    <text class="points-hero-label">当前可用积分</text>
+    <text class="points-hero-value">{{rewardPoints}}</text>
+    <view class="points-hero-tip" bindtap="goReferral">
+      <text>邀好友办卡赚积分</text>
+      <text class="points-hero-arrow">›</text>
+    </view>
+  </view>
+
+  <view class="points-list-head">积分明细</view>
+
+  <view class="points-list" wx:if="{{items.length}}">
+    <view class="points-row" wx:for="{{items}}" wx:key="index">
+      <view class="points-row-main">
+        <text class="points-row-reason">{{item.reason || '积分变动'}}</text>
+        <text class="points-row-time">{{item.timeText}}</text>
+      </view>
+      <view class="points-row-side">
+        <text class="points-row-delta {{item.isIncome ? 'income' : 'expense'}}">{{item.isIncome ? '+' : ''}}{{item.delta}}</text>
+        <text class="points-row-balance">余额 {{item.balanceAfter}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="points-empty" wx:elif="{{!loading}}">
+    <text>还没有积分记录，邀好友办卡就能赚积分~</text>
+  </view>
+
+  <view class="bottom-spacer"></view>
+</view>

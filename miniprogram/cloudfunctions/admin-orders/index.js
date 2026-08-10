@@ -404,6 +404,28 @@ async function getOrder({ orderId }) {
   return o;
 }
 
+// 取消/驳回时，若本单曾真实扣过积分、订单还没发货、且没退过分 → 自动退还（仅未发货订单退分，
+// 已发货/已签收后取消不退，避免「先拿货再申请取消」薅积分）
+async function maybeRefundPointsOnCancel(cur, orderId) {
+  if (!cur || cur.status !== 'pending') return null;
+  if (!cur.pointsDeducted || cur.pointsRefundedAt) return null;
+  const points = Number(cur.totalCards) || 0;
+  if (points <= 0 || !cur.openid) return null;
+  const now = new Date();
+  try {
+    await db.collection(USERS).where({ openid: cur.openid }).update({
+      data: { rewardPoints: _.inc(points), updatedAt: now }
+    });
+    await db.collection(LEDGER).add({
+      data: { openid: cur.openid, delta: points, reason: '订单取消退还', refId: orderId, createdAt: now }
+    });
+    return { pointsRefundedAt: now };
+  } catch (e) {
+    console.error('[points] refund on cancel failed', orderId, e);
+    return null;
+  }
+}
+
 async function updateOrderStatus({ orderId, status, adminNote }) {
   if (!orderId) throw new Error('缺少 orderId');
   const next = normStatus(status);
@@ -414,6 +436,10 @@ async function updateOrderStatus({ orderId, status, adminNote }) {
   // 进入「已签收」且尚无签收时间 → 盖手动签收时间（快递接口自动签收会另填，不覆盖）
   if (next === 'signed' && !cur.signedAt) patch.signedAt = new Date();
   if (typeof adminNote === 'string') patch.adminNote = adminNote.slice(0, 1000);
+  if (next === 'cancelled') {
+    const refundPatch = await maybeRefundPointsOnCancel(cur, orderId);
+    if (refundPatch) Object.assign(patch, refundPatch);
+  }
   await db.collection('orders').doc(orderId).update({ data: patch });
   const r = await db.collection('orders').doc(orderId).get();
   return r.data;
@@ -670,17 +696,21 @@ async function updateOrderStatusBulk({ orderIds, status }) {
   const now = new Date();
   const bulkData = { status: next, updatedAt: now };
   if (next === 'signed') bulkData.signedAt = now; // 批量改已签收时盖签收时间
-  // 并发 20 一批
+  // 批量取消需要逐单核对是否要退积分，所以先读一批再写一批；并发 20 一批
   const BATCH = 20;
   let updated = 0;
   let failed = 0;
   for (let i = 0; i < orderIds.length; i += BATCH) {
     const slice = orderIds.slice(i, i + BATCH);
-    const results = await Promise.allSettled(slice.map(id =>
-      db.collection('orders').doc(id).update({
-        data: bulkData
-      })
-    ));
+    const results = await Promise.allSettled(slice.map(async id => {
+      const data = { ...bulkData };
+      if (next === 'cancelled') {
+        const curRes = await db.collection('orders').doc(id).get();
+        const refundPatch = await maybeRefundPointsOnCancel((curRes && curRes.data) || {}, id);
+        if (refundPatch) Object.assign(data, refundPatch);
+      }
+      return db.collection('orders').doc(id).update({ data });
+    }));
     results.forEach(r => {
       if (r.status === 'fulfilled') updated++;
       else failed++;
@@ -1463,6 +1493,13 @@ async function webSubmitOrder({ items, address, remark, referrerCode }) {
     totalCards += cards * qty;
   }
 
+  // H5 端没有登录身份，无法可靠核对「正在下单的人」是不是积分真正的所有者
+  // （referrerCode 只是 localStorage 里的字符串，谁都能改）。需要积分的礼品一律拒绝网页下单，
+  // 引导去小程序（微信登录环境本身可信，openid 才是真实身份）。
+  if (totalCards > 0) {
+    throw new Error('该礼品需要积分兑换，请打开「加加好物图集」小程序完成兑换（网页端暂不支持积分核验）');
+  }
+
   // 防重复：同一手机号 30s 内提交「完全相同的商品组合」→ 视为连点，返回原单（幂等）
   try {
     const dedupSince = new Date(Date.now() - 30 * 1000);
@@ -1778,6 +1815,70 @@ async function referralRanking() {
   return Object.values(map).sort((a, b) => (b.opened - a.opened) || (b.total - a.total));
 }
 
+// ---------- 积分：后台手动发放 / 撤销 / 明细 ----------
+// 设计上只允许「加」，不给后台自由扣减用户余额：
+// - 手动发放一律是正数，留 ledger 记录（manual:true）
+// - 发错了不能直接倒扣，只能「撤销那一笔」——生成一条等额反向流水冲正，原记录标 reversedAt 防止重复撤销
+// 这样后台操作永远有据可查，不会出现「用户余额突然变少但查不到原因」的纠纷。
+async function adminPointsGrant({ openid, amount, note }) {
+  const oid = String(openid || '').trim();
+  if (!oid) throw new Error('缺少 openid');
+  const amt = Math.floor(Number(amount));
+  if (!Number.isFinite(amt) || amt <= 0) throw new Error('积分数额必须是正整数');
+  const now = new Date();
+  const ur = await db.collection(USERS).where({ openid: oid }).limit(1).get();
+  let user = ur.data[0];
+  if (!user) {
+    const add = await db.collection(USERS).add({
+      data: { openid: oid, nickName: '微信用户', avatarUrl: '', rewardPoints: 0, createdAt: now, updatedAt: now }
+    });
+    user = { _id: add._id, rewardPoints: 0 };
+  }
+  await db.collection(USERS).doc(user._id).update({ data: { rewardPoints: _.inc(amt), updatedAt: now } });
+  const ledgerAdd = await db.collection(LEDGER).add({
+    data: {
+      openid: oid, delta: amt, reason: '客服手动发放' + (note ? '：' + String(note).trim().slice(0, 100) : ''),
+      refId: '', manual: true, reversedAt: null, createdAt: now
+    }
+  });
+  return { ledgerId: ledgerAdd._id, openid: oid, delta: amt };
+}
+
+async function adminPointsRevoke({ ledgerId }) {
+  const id = String(ledgerId || '').trim();
+  if (!id) throw new Error('缺少 ledgerId');
+  const r = await db.collection(LEDGER).doc(id).get();
+  const entry = r.data;
+  if (!entry) throw new Error('流水记录不存在');
+  if (!entry.manual) throw new Error('只能撤销「客服手动发放」的记录，其它类型（兑换/退还/推荐奖励）不能在这里撤销');
+  if (entry.reversedAt) throw new Error('这笔记录已经撤销过了');
+  const now = new Date();
+  await db.collection(USERS).where({ openid: entry.openid }).update({
+    data: { rewardPoints: _.inc(-entry.delta), updatedAt: now }
+  });
+  await db.collection(LEDGER).add({
+    data: { openid: entry.openid, delta: -entry.delta, reason: '撤销手动发放', refId: id, manual: false, reversedAt: null, createdAt: now }
+  });
+  await db.collection(LEDGER).doc(id).update({ data: { reversedAt: now } });
+  return { ok: true };
+}
+
+// 某用户的积分流水（后台查看用），带「变动后余额」——按时间正序累加算出每笔的余额，再倒序返回给前端看
+async function adminPointsLedger({ openid, limit = 100 }) {
+  const oid = String(openid || '').trim();
+  if (!oid) throw new Error('缺少 openid');
+  const lim = Math.max(1, Math.min(500, Number(limit) || 100));
+  const res = await db.collection(LEDGER).where({ openid: oid }).orderBy('createdAt', 'asc').limit(lim).get();
+  const rows = res.data || [];
+  let running = 0;
+  const withBalance = rows.map(r => {
+    running += Number(r.delta) || 0;
+    return { ...r, balanceAfter: running };
+  });
+  withBalance.reverse();
+  return { items: withBalance };
+}
+
 // ---------- Entry ----------
 
 function buildResponse(statusCode, payload) {
@@ -1974,6 +2075,15 @@ exports.main = async (event) => {
         break;
       case 'referral-ranking':
         data = await referralRanking(body);
+        break;
+      case 'points-grant':
+        data = await adminPointsGrant(body);
+        break;
+      case 'points-revoke':
+        data = await adminPointsRevoke(body);
+        break;
+      case 'points-ledger':
+        data = await adminPointsLedger(body);
         break;
       default:
         return buildResponse(400, { ok: false, error: '未知 action' });

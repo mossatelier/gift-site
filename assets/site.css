@@ -4261,7 +4261,7 @@ body.admin-logged-in #adminLogoutButtonLogged {
 .admin-ref-ranking { margin-top: 22px; }
 .admin-ref-sub { font-size: 15px; font-weight: 800; margin: 0 0 10px; color: #2e2318; }
 .admin-ref-rank-row {
-  display: flex; align-items: center; gap: 12px;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   background: #fff; border: 1px solid rgba(236,230,218,0.95);
   border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;
 }
@@ -4272,6 +4272,35 @@ body.admin-logged-in #adminLogoutButtonLogged {
 .admin-ref-rank-name { flex: 1; font-weight: 700; color: #2e2318; font-size: 14px; }
 .admin-ref-rank-name em { color: #8a7c66; font-style: normal; font-size: 12px; }
 .admin-ref-rank-stat { font-size: 12px; color: #5d5140; }
+.admin-ref-rank-ops { display: flex; gap: 6px; flex: 0 0 auto; width: 100%; justify-content: flex-end; }
+.admin-ref-rank-btn {
+  border: 1px solid rgba(236,230,218,0.95); background: #fffaf3; color: #2e2318;
+  border-radius: 999px; padding: 3px 12px; font-size: 12px; font-weight: 700;
+}
+.admin-ref-rank-btn:active { border-color: rgba(214,75,42,0.4); color: #d64b2a; }
+
+.admin-points-panel {
+  margin-top: 22px; padding: 14px; border-radius: 14px;
+  background: #fffaf3; border: 1px solid rgba(236,230,218,0.95);
+}
+.admin-points-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid rgba(236,230,218,0.95);
+}
+.admin-points-row:last-child { border-bottom: none; }
+.admin-points-row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.admin-points-row-reason { font-weight: 700; color: #2e2318; font-size: 13px; }
+.admin-points-row-time { font-size: 11px; color: #8a7c66; }
+.admin-points-row-side { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.admin-points-row-delta { font-weight: 800; font-size: 14px; }
+.admin-points-row-delta.income { color: #2f8a4c; }
+.admin-points-row-delta.expense { color: #d64b2a; }
+.admin-points-row-balance { font-size: 11px; color: #8a7c66; }
+.admin-points-revoke {
+  border: 1px solid rgba(236,230,218,0.95); background: #fff; color: #8a7c66;
+  border-radius: 999px; padding: 2px 10px; font-size: 11px;
+}
+.admin-points-revoke:active { border-color: rgba(214,75,42,0.4); color: #d64b2a; }
 
 /* ===== 图文须知页（文字版·海报风，H5） ===== */
 .guide-page-shell {

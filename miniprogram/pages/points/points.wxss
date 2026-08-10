@@ -1,0 +1,68 @@
+.points-page {
+  padding: 24rpx 24rpx 0;
+}
+
+.points-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  padding: 48rpx 24rpx 36rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(135deg, #ff8a3d 0%, #e8531f 100%);
+  box-shadow: 0 10rpx 24rpx rgba(232, 83, 31, 0.28);
+}
+.points-hero-label { font-size: 24rpx; color: rgba(255,255,255,0.9); }
+.points-hero-value { font-size: 72rpx; font-weight: 800; color: #fff; margin: 8rpx 0 16rpx; }
+.points-hero-tip {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  padding: 8rpx 20rpx;
+  border-radius: 999rpx;
+  background: rgba(255,255,255,0.18);
+  font-size: 22rpx;
+  color: #fff;
+}
+.points-hero-arrow { font-size: 24rpx; }
+
+.points-list-head {
+  margin: 32rpx 4rpx 12rpx;
+  font-size: 26rpx;
+  font-weight: 800;
+  color: #3a2f22;
+}
+
+.points-list {
+  border-radius: 20rpx;
+  background: #fff;
+  overflow: hidden;
+}
+
+.points-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 24rpx;
+  border-bottom: 1rpx solid #f4ede0;
+}
+.points-row:last-child { border-bottom: none; }
+
+.points-row-main { display: flex; flex-direction: column; gap: 6rpx; }
+.points-row-reason { font-size: 27rpx; color: #3a2f22; font-weight: 600; }
+.points-row-time { font-size: 22rpx; color: #a08f79; }
+
+.points-row-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6rpx; }
+.points-row-delta { font-size: 30rpx; font-weight: 800; }
+.points-row-delta.income { color: #2f8a4c; }
+.points-row-delta.expense { color: #d64b2a; }
+.points-row-balance { font-size: 20rpx; color: #a08f79; }
+
+.points-empty {
+  padding: 80rpx 40rpx;
+  text-align: center;
+  font-size: 24rpx;
+  color: #a08f79;
+}
+
+.bottom-spacer { height: 40rpx; }

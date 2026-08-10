@@ -139,6 +139,36 @@ async function bindReferrer(openid, code) {
   return { success: true };
 }
 
+// 我的积分流水（本人查看，openid 取自可信的 wx 上下文）
+// 带「变动后余额」：按时间正序累加算出每笔的余额，再倒序返回给前端看
+async function getMyPointsLedger(openid) {
+  const me = await ensureMyUser(openid);
+  let rows = [];
+  try {
+    const res = await db.collection('points_ledger')
+      .where({ openid })
+      .orderBy('createdAt', 'asc')
+      .limit(200)
+      .get();
+    rows = res.data || [];
+  } catch (e) {
+    console.warn('[referral] points_ledger read failed', e);
+    rows = [];
+  }
+  let running = 0;
+  const items = rows.map(r => {
+    running += Number(r.delta) || 0;
+    return {
+      delta: r.delta || 0,
+      reason: r.reason || '',
+      balanceAfter: running,
+      createdAt: r.createdAt
+    };
+  });
+  items.reverse();
+  return { success: true, rewardPoints: me.rewardPoints || 0, items };
+}
+
 // 生成带参小程序码（scene = 6位推荐码），返回 base64 供小程序画到海报上。
 // 未发布时 release 版可能报错——前端据 success=false 走"无码海报"降级。
 async function getQr(openid) {
@@ -167,6 +197,7 @@ exports.main = async (event) => {
     if (action === 'get-my-referral') return await getMyReferral(OPENID);
     if (action === 'bind-referrer') return await bindReferrer(OPENID, event.code);
     if (action === 'get-qr') return await getQr(OPENID);
+    if (action === 'get-my-points') return await getMyPointsLedger(OPENID);
     return { success: false, error: '未知操作' };
   } catch (err) {
     console.error('[referral]', action, err);

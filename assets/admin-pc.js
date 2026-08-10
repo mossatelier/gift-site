@@ -4830,7 +4830,11 @@
           el.innerHTML = rows.map(function (r, i) {
             return '<div class="pc-ref-rank-row"><span class="pc-ref-rank-no">' + (i + 1) + "</span>" +
               '<span class="pc-ref-rank-name">' + esc(r.nick || "微信用户") + " <em>" + esc(r.code || "") + "</em></span>" +
-              '<span class="pc-ref-rank-stat">有效 ' + (r.opened || 0) + " / 累计 " + (r.total || 0) + " · " + (r.rewardPoints || 0) + "分</span></div>";
+              '<span class="pc-ref-rank-stat">有效 ' + (r.opened || 0) + " / 累计 " + (r.total || 0) + " · " + (r.rewardPoints || 0) + "分</span>" +
+              '<span class="pc-ref-rank-ops">' +
+                '<button class="pc-ref-rank-btn" type="button" data-points-grant="' + esc(r.openid) + '" data-points-name="' + esc(r.nick || "微信用户") + '">+积分</button>' +
+                '<button class="pc-ref-rank-btn" type="button" data-points-ledger="' + esc(r.openid) + '" data-points-name="' + esc(r.nick || "微信用户") + '">明细</button>' +
+              "</span></div>";
           }).join("");
         })
         .catch(function () { el.innerHTML = '<p class="pc-ref-empty">排行加载失败</p>'; });
@@ -4889,6 +4893,79 @@
         .catch(function (e) { window.alert(e.message); });
     }
 
+    function doPointsGrant(openid, name) {
+      if (!openid) { window.alert("这个用户还没有微信身份（可能只是手动录入的推荐记录，还没关联到本人），暂时没法发积分"); return; }
+      var amountStr = window.prompt("给「" + (name || "该用户") + "」手动发放积分（正整数）：", "");
+      if (amountStr === null) return;
+      var amount = parseInt(amountStr, 10);
+      if (!Number.isFinite(amount) || amount <= 0) { window.alert("积分数额必须是正整数"); return; }
+      var note = window.prompt("备注一下原因（可留空，方便以后查账）：", "") || "";
+      Core.callAdminOrders("points-grant", { openid: openid, amount: amount, note: note })
+        .then(function () { toast("已发放 " + amount + " 分"); loadRanking(); })
+        .catch(function (e) { window.alert(e.message); });
+    }
+
+    function renderPointsList(items) {
+      var listEl = $("pcPointsList");
+      if (!listEl) return;
+      if (!items || !items.length) { listEl.innerHTML = '<p class="pc-points-empty">还没有积分流水</p>'; return; }
+      listEl.innerHTML = items.map(function (it) {
+        var income = it.delta > 0;
+        var canRevoke = it.manual && !it.reversedAt;
+        return '<div class="pc-points-row">' +
+          '<div class="pc-points-row-main">' +
+            '<span class="pc-points-row-reason">' + esc(it.reason || "积分变动") + (it.reversedAt ? "（已撤销）" : "") + '</span>' +
+            '<span class="pc-points-row-time">' + esc(fmtDate(it.createdAt)) + '</span>' +
+          '</div>' +
+          '<div class="pc-points-row-side">' +
+            '<span class="pc-points-row-delta ' + (income ? "income" : "expense") + '">' + (income ? "+" : "") + it.delta + '</span>' +
+            '<span class="pc-points-row-balance">余额 ' + it.balanceAfter + '</span>' +
+            (canRevoke ? '<button class="pc-points-revoke" type="button" data-points-revoke-id="' + esc(it._id) + '">撤销</button>' : '') +
+          '</div>' +
+        '</div>';
+      }).join("");
+    }
+
+    var pointsState = { openid: "", name: "" };
+
+    function doPointsLedger(openid, name) {
+      if (!openid) { window.alert("这个用户还没有微信身份，暂时没有积分流水"); return; }
+      pointsState.openid = openid; pointsState.name = name || "该用户";
+      var mask = $("pcPointsMask"); if (!mask) return;
+      mask.hidden = false;
+      $("pcPointsTitle").textContent = "积分明细 · " + pointsState.name;
+      $("pcPointsSub").textContent = "加载中…";
+      $("pcPointsList").innerHTML = "";
+      Core.callAdminOrders("points-ledger", { openid: openid, limit: 200 })
+        .then(function (res) {
+          var items = (res && res.items) || [];
+          $("pcPointsSub").textContent = "当前余额 " + (items.length ? items[0].balanceAfter : 0) + " 分 · 共 " + items.length + " 条";
+          renderPointsList(items);
+        })
+        .catch(function (e) { $("pcPointsSub").textContent = "加载失败：" + e.message; });
+    }
+
+    function doPointsRevoke(ledgerId) {
+      if (!ledgerId) return;
+      if (!window.confirm("撤销这笔手动发放？会生成一条等额反向流水冲正，不可再撤销。")) return;
+      Core.callAdminOrders("points-revoke", { ledgerId: ledgerId })
+        .then(function () { toast("已撤销"); doPointsLedger(pointsState.openid, pointsState.name); loadRanking(); })
+        .catch(function (e) { window.alert(e.message); });
+    }
+
+    function bindPoints() {
+      var mask = $("pcPointsMask");
+      var closeBtn = $("pcPointsClose");
+      var close = function () { if (mask) mask.hidden = true; };
+      if (closeBtn) closeBtn.addEventListener("click", close);
+      if (mask) mask.addEventListener("click", function (e) { if (e.target === mask) close(); });
+      var list = $("pcPointsList");
+      if (list) list.addEventListener("click", function (e) {
+        var rv = e.target.closest("[data-points-revoke-id]");
+        if (rv) doPointsRevoke(rv.getAttribute("data-points-revoke-id"));
+      });
+    }
+
     function doSetAlias(openid, cur) {
       if (!openid) return;
       var v = window.prompt("给这个人设个备注名（方便认人，留空可清除）：", cur || "");
@@ -4937,6 +5014,14 @@
         var ub = e.target.closest("[data-tree-unbind]");
         if (ub) doUnbindOpenid(ub.getAttribute("data-tree-unbind"), ub.getAttribute("data-tree-name"));
       });
+      var rank = $("pcRefRanking");
+      if (rank) rank.addEventListener("click", function (e) {
+        var g = e.target.closest("[data-points-grant]");
+        if (g) { doPointsGrant(g.getAttribute("data-points-grant"), g.getAttribute("data-points-name")); return; }
+        var l = e.target.closest("[data-points-ledger]");
+        if (l) doPointsLedger(l.getAttribute("data-points-ledger"), l.getAttribute("data-points-name"));
+      });
+      bindPoints();
       var addBtn = $("pcRefAddBtn"); if (addBtn) addBtn.addEventListener("click", doAdd);
       var searchBtn = $("pcRefSearchBtn"); if (searchBtn) searchBtn.addEventListener("click", function () {
         refState.keyword = ($("pcRefSearch").value || "").trim(); loadReferral();

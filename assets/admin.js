@@ -1553,11 +1553,106 @@ async function loadRefAdminRanking() {
         <span class="admin-ref-rank-no">${i + 1}</span>
         <span class="admin-ref-rank-name">${refEsc(r.nick || "微信用户")} <em>${refEsc(r.code || "")}</em></span>
         <span class="admin-ref-rank-stat">有效 ${r.opened || 0} / 累计 ${r.total || 0} · ${r.rewardPoints || 0}分</span>
+        <span class="admin-ref-rank-ops">
+          <button class="admin-ref-rank-btn" type="button" data-points-grant="${refEsc(r.openid)}" data-points-name="${refEsc(r.nick || "微信用户")}">+积分</button>
+          <button class="admin-ref-rank-btn" type="button" data-points-ledger="${refEsc(r.openid)}" data-points-name="${refEsc(r.nick || "微信用户")}">明细</button>
+        </span>
       </div>`).join("");
   } catch (e) {
     el.innerHTML = '<p class="admin-ref-empty">排行加载失败</p>';
   }
 }
+
+async function doPointsGrant(openid, name) {
+  if (!openid) { window.alert("这个用户还没有微信身份，暂时没法发积分"); return; }
+  const amountStr = window.prompt(`给「${name || "该用户"}」手动发放积分（正整数）：`, "");
+  if (amountStr === null) return;
+  const amount = parseInt(amountStr, 10);
+  if (!Number.isFinite(amount) || amount <= 0) { window.alert("积分数额必须是正整数"); return; }
+  const note = window.prompt("备注一下原因（可留空，方便以后查账）：", "") || "";
+  try {
+    await callAdminOrders("points-grant", { openid, amount, note });
+    window.alert(`已发放 ${amount} 分`);
+    loadRefAdminRanking();
+  } catch (e) {
+    window.alert(e.message);
+  }
+}
+
+let pointsPanelState = { openid: "", name: "" };
+
+function renderPointsPanelList(items) {
+  const el = document.getElementById("adminPointsPanelList");
+  if (!el) return;
+  if (!items || !items.length) { el.innerHTML = '<p class="admin-status-text">还没有积分流水</p>'; return; }
+  el.innerHTML = items.map((it) => {
+    const income = it.delta > 0;
+    const canRevoke = it.manual && !it.reversedAt;
+    return `
+      <div class="admin-points-row">
+        <div class="admin-points-row-main">
+          <span class="admin-points-row-reason">${refEsc(it.reason || "积分变动")}${it.reversedAt ? "（已撤销）" : ""}</span>
+          <span class="admin-points-row-time">${refEsc(refFmtDate(it.createdAt))}</span>
+        </div>
+        <div class="admin-points-row-side">
+          <span class="admin-points-row-delta ${income ? "income" : "expense"}">${income ? "+" : ""}${it.delta}</span>
+          <span class="admin-points-row-balance">余额 ${it.balanceAfter}</span>
+          ${canRevoke ? `<button class="admin-points-revoke" type="button" data-points-revoke-id="${refEsc(it._id)}">撤销</button>` : ""}
+        </div>
+      </div>`;
+  }).join("");
+}
+
+async function doPointsLedger(openid, name) {
+  if (!openid) { window.alert("这个用户还没有微信身份，暂时没有积分流水"); return; }
+  pointsPanelState = { openid, name: name || "该用户" };
+  const panel = document.getElementById("adminPointsPanel");
+  if (!panel) return;
+  panel.hidden = false;
+  document.getElementById("adminPointsPanelTitle").textContent = `积分明细 · ${pointsPanelState.name}`;
+  document.getElementById("adminPointsPanelSub").textContent = "加载中…";
+  document.getElementById("adminPointsPanelList").innerHTML = "";
+  panel.scrollIntoView({ behavior: "smooth", block: "start" });
+  try {
+    const res = await callAdminOrders("points-ledger", { openid, limit: 200 });
+    const items = (res && res.items) || [];
+    document.getElementById("adminPointsPanelSub").textContent =
+      `当前余额 ${items.length ? items[0].balanceAfter : 0} 分 · 共 ${items.length} 条`;
+    renderPointsPanelList(items);
+  } catch (e) {
+    document.getElementById("adminPointsPanelSub").textContent = `加载失败：${e.message}`;
+  }
+}
+
+async function doPointsRevoke(ledgerId) {
+  if (!ledgerId) return;
+  if (!window.confirm("撤销这笔手动发放？会生成一条等额反向流水冲正，不可再撤销。")) return;
+  try {
+    await callAdminOrders("points-revoke", { ledgerId });
+    window.alert("已撤销");
+    doPointsLedger(pointsPanelState.openid, pointsPanelState.name);
+    loadRefAdminRanking();
+  } catch (e) {
+    window.alert(e.message);
+  }
+}
+
+document.getElementById("adminRefRanking")?.addEventListener("click", (e) => {
+  const g = e.target.closest("[data-points-grant]");
+  if (g) { doPointsGrant(g.getAttribute("data-points-grant"), g.getAttribute("data-points-name")); return; }
+  const l = e.target.closest("[data-points-ledger]");
+  if (l) doPointsLedger(l.getAttribute("data-points-ledger"), l.getAttribute("data-points-name"));
+});
+
+document.getElementById("adminPointsPanelClose")?.addEventListener("click", () => {
+  const panel = document.getElementById("adminPointsPanel");
+  if (panel) panel.hidden = true;
+});
+
+document.getElementById("adminPointsPanelList")?.addEventListener("click", (e) => {
+  const rv = e.target.closest("[data-points-revoke-id]");
+  if (rv) doPointsRevoke(rv.getAttribute("data-points-revoke-id"));
+});
 
 async function doRefAdminAdd() {
   const code = (document.getElementById("adminRefAddCode").value || "").trim();

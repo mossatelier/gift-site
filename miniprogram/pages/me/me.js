@@ -5,7 +5,8 @@ Page({
   data: {
     user: null,
     address: null,
-    addressCount: 0
+    addressCount: 0,
+    rewardPoints: 0
   },
 
   onShow() {
@@ -25,9 +26,20 @@ Page({
       } catch (err) {
         console.warn('load address failed', err);
       }
+      wx.cloud.callFunction({ name: 'referral', data: { action: 'get-my-points' } })
+        .then((cf) => {
+          const r = cf && cf.result;
+          if (r && r.success) this.setData({ rewardPoints: r.rewardPoints || 0 });
+        })
+        .catch((err) => console.warn('load points failed', err));
     } else {
-      this.setData({ address: null, addressCount: 0 });
+      this.setData({ address: null, addressCount: 0, rewardPoints: 0 });
     }
+  },
+
+  goPoints() {
+    if (!auth.ensureLogin('/pages/points/points')) return;
+    wx.navigateTo({ url: '/pages/points/points' });
   },
 
   goLogin() {

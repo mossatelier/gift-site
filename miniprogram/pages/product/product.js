@@ -241,7 +241,18 @@ Page({
       wx.hideLoading();
       console.error('submit from product failed', err);
       this.setData({ submitting: false });
-      wx.showToast({ title: err.message || '提交失败', icon: 'none' });
+      if (err.message && err.message.indexOf('积分不足') >= 0) {
+        wx.showModal({
+          title: '积分不够啦',
+          content: err.message,
+          confirmText: '去邀友赚积分',
+          cancelText: '知道了',
+          confirmColor: '#d64b2a',
+          success: (res) => { if (res.confirm) wx.navigateTo({ url: '/pages/referral/referral' }); }
+        });
+      } else {
+        wx.showToast({ title: err.message || '提交失败', icon: 'none' });
+      }
     }
   },
 

@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>加加好物图集 · Admin Console（电脑版）</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="assets/site.css?v=68">
-  <link rel="stylesheet" href="assets/admin-pc.css?v=33">
+  <link rel="stylesheet" href="assets/site.css?v=69">
+  <link rel="stylesheet" href="assets/admin-pc.css?v=34">
 </head>
 <body class="pc-admin">
 
@@ -314,8 +314,20 @@
     </div>
   </div>
 
+  <!-- 积分明细弹窗 -->
+  <div class="pc-modal-mask" id="pcPointsMask" hidden>
+    <div class="pc-modal pc-modal-wide" role="dialog" aria-labelledby="pcPointsTitle">
+      <h3 class="pc-modal-title" id="pcPointsTitle">积分明细</h3>
+      <p class="pc-modal-msg" id="pcPointsSub"></p>
+      <div class="pc-points-list" id="pcPointsList"></div>
+      <div class="pc-modal-actions">
+        <button type="button" class="pc-modal-cancel" id="pcPointsClose">关闭</button>
+      </div>
+    </div>
+  </div>
+
   <script src="assets/config.js?v=13"></script>
   <script src="assets/admin-core.js?v=12"></script>
-  <script src="assets/admin-pc.js?v=53"></script>
+  <script src="assets/admin-pc.js?v=54"></script>
 </body>
 </html>

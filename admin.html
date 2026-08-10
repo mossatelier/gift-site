@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>加加好物图集 · 商品录入后台</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="assets/site.css?v=68">
+  <link rel="stylesheet" href="assets/site.css?v=69">
 </head>
 <body class="admin-page">
   <main class="admin-shell">
@@ -311,6 +311,15 @@
           <div id="adminRefRanking"></div>
         </div>
 
+        <div class="admin-points-panel" id="adminPointsPanel" hidden>
+          <div class="admin-status-head">
+            <h3 class="admin-ref-sub" id="adminPointsPanelTitle">积分明细</h3>
+            <button class="admin-secondary-btn" id="adminPointsPanelClose" type="button">收起</button>
+          </div>
+          <p class="admin-status-text" id="adminPointsPanelSub"></p>
+          <div id="adminPointsPanelList"></div>
+        </div>
+
         <div class="admin-ref-tree">
           <h3 class="admin-ref-sub">裂变关系树 <span class="admin-ref-tree-note">（奖励仍只发上线一层 · 点 📝 ✎ 可改备注名 · 「⏳ 待对账」的手动录入暂不进树，TA 下单后自动入树）</span></h3>
           <div id="adminRefTree"></div>
@@ -433,6 +442,6 @@
   </main>
 
   <script src="assets/config.js?v=13"></script>
-  <script src="assets/admin.js?v=68"></script>
+  <script src="assets/admin.js?v=69"></script>
 </body>
 </html>

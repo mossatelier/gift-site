@@ -47,6 +47,17 @@
     <text class="me-referral-arrow">›</text>
   </view>
 
+  <!-- 我的积分 -->
+  <view class="me-points-entry" wx:if="{{user}}" bindtap="goPoints">
+    <text class="me-points-icon">💰</text>
+    <view class="me-points-text">
+      <text class="me-points-title">我的积分</text>
+      <text class="me-points-sub">查看积分明细</text>
+    </view>
+    <text class="me-points-value">{{rewardPoints}} 分</text>
+    <text class="me-points-arrow">›</text>
+  </view>
+
   <!-- 功能入口 -->
   <view class="me-menu">
     <view class="me-menu-item" bindtap="goOrders">
