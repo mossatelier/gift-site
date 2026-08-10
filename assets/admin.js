@@ -1185,10 +1185,15 @@ const adminShowPw = document.getElementById("adminShowPw");
 const syncAdminShowPw = () => {
   if (adminShowPw && adminPasswordInput) adminPasswordInput.type = adminShowPw.checked ? "text" : "password";
 };
+adminShowPw?.addEventListener("click", syncAdminShowPw);
 adminShowPw?.addEventListener("change", syncAdminShowPw);
-// 刷新/后退时浏览器会恢复勾选状态但不触发 change → 加载时也同步一次
-syncAdminShowPw();
-window.addEventListener("pageshow", syncAdminShowPw);
+// 加载/后退恢复时钉死初始态：不勾选、密文——浏览器恢复的勾选一律清掉
+const resetAdminShowPw = () => {
+  if (adminShowPw) adminShowPw.checked = false;
+  if (adminPasswordInput) adminPasswordInput.type = "password";
+};
+resetAdminShowPw();
+window.addEventListener("pageshow", resetAdminShowPw);
 
 adminAuthForm?.addEventListener("submit", async (event) => {
   event.preventDefault();

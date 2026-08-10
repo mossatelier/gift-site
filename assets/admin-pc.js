@@ -267,10 +267,16 @@
       var syncShowPw = function () {
         pcLoginPassword.type = pcShowPw.checked ? "text" : "password";
       };
+      // click 比 change 在各浏览器下更可靠（change 可能因表单状态恢复错乱）
+      pcShowPw.addEventListener("click", syncShowPw);
       pcShowPw.addEventListener("change", syncShowPw);
-      // 刷新/后退时浏览器会恢复勾选状态但不触发 change → 加载时也同步一次
-      syncShowPw();
-      window.addEventListener("pageshow", syncShowPw);
+      // 加载/后退恢复时钉死初始态：不勾选、密文——浏览器恢复的勾选一律清掉
+      var resetShowPw = function () {
+        pcShowPw.checked = false;
+        pcLoginPassword.type = "password";
+      };
+      resetShowPw();
+      window.addEventListener("pageshow", resetShowPw);
     }
     if (pcLogoutBtn) {
       pcLogoutBtn.addEventListener("click", handleLogout);
