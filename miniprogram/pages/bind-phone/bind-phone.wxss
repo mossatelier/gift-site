@@ -1,0 +1,72 @@
+.bindphone-page {
+  padding: 24rpx;
+}
+
+.bindphone-intro {
+  padding: 28rpx 24rpx;
+  border-radius: 20rpx;
+  background: #fff8e1;
+  border: 1rpx solid #f0d98a;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+.bindphone-intro-title { font-size: 26rpx; font-weight: 800; color: #8a6d1a; }
+.bindphone-intro-text { font-size: 23rpx; color: #8a6d1a; line-height: 1.6; }
+
+.bindphone-card {
+  margin-top: 24rpx;
+  padding: 36rpx 28rpx;
+  border-radius: 20rpx;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.bindphone-label { font-size: 24rpx; color: #a08f79; }
+.bindphone-value {
+  margin-top: 12rpx;
+  font-size: 40rpx;
+  font-weight: 800;
+  color: #3a2f22;
+}
+
+.bindphone-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 18rpx;
+  padding: 20rpx 24rpx;
+  border-radius: 14rpx;
+  background: #f8f3ea;
+  border: 1rpx solid #f0e4d3;
+  font-size: 30rpx;
+  text-align: center;
+}
+
+.bindphone-error {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: #d64b2a;
+}
+
+.bindphone-btn {
+  width: 100%;
+  margin-top: 28rpx;
+  height: 84rpx;
+  line-height: 84rpx;
+  border-radius: 999rpx;
+  font-size: 28rpx;
+  font-weight: 800;
+}
+.bindphone-btn-primary { background: #e8531f; color: #fff; }
+.bindphone-btn-secondary { background: #f4ede0; color: #5d5140; }
+
+.bindphone-tip {
+  margin-top: 18rpx;
+  font-size: 21rpx;
+  color: #a08f79;
+}
+
+.bottom-spacer { height: 40rpx; }

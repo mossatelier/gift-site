@@ -1,0 +1,32 @@
+<view class="page-shell bindphone-page">
+
+  <view class="bindphone-intro">
+    <text class="bindphone-intro-title">为什么要绑定？</text>
+    <text class="bindphone-intro-text">绑定你办卡时预留的手机号，客服核实办卡凭证后才能准确给你发放积分，避免因为微信昵称重复、没法确认身份而耽误发放。</text>
+  </view>
+
+  <view class="bindphone-card" wx:if="{{!loading}}">
+    <block wx:if="{{boundPhone}}">
+      <text class="bindphone-label">已绑定手机号</text>
+      <text class="bindphone-value">{{maskedPhone}}</text>
+      <button class="bindphone-btn bindphone-btn-secondary" bindtap="doUnbind" loading="{{submitting}}">解绑</button>
+      <text class="bindphone-tip">解绑后可以重新绑定新的手机号</text>
+    </block>
+    <block wx:else>
+      <text class="bindphone-label">办卡预留手机号</text>
+      <input
+        class="bindphone-input"
+        type="number"
+        maxlength="11"
+        placeholder="请输入 11 位手机号"
+        value="{{inputPhone}}"
+        bindinput="onInput"
+      />
+      <text class="bindphone-error" wx:if="{{errorMsg}}">{{errorMsg}}</text>
+      <button class="bindphone-btn bindphone-btn-primary" bindtap="doBind" loading="{{submitting}}">确认绑定</button>
+      <text class="bindphone-tip">一个手机号只能绑定一个账号，绑定后如需更换请先解绑</text>
+    </block>
+  </view>
+
+  <view class="bottom-spacer"></view>
+</view>

@@ -13,6 +13,7 @@
     "pages/order-detail/order-detail",
     "pages/referral/referral",
     "pages/points/points",
+    "pages/bind-phone/bind-phone",
     "pages/card-flow/card-flow",
     "pages/claim-guide/claim-guide",
     "pages/bank-new-user/bank-new-user",

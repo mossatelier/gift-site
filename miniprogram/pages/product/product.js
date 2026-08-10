@@ -41,9 +41,9 @@ Page({
     this.setData({ submitError: '', submitErrorInsufficientPoints: false });
   },
 
-  goPointsFromError() {
+  goBindPhoneFromError() {
     this.setData({ submitError: '', submitErrorInsufficientPoints: false });
-    wx.navigateTo({ url: '/pages/points/points' });
+    wx.navigateTo({ url: '/pages/bind-phone/bind-phone' });
   },
 
   onLoad(options) {

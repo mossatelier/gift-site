@@ -189,6 +189,31 @@ async function getQr(openid) {
   }
 }
 
+// 绑定办卡预留手机号：用户自己在小程序里输入，不接短信验证（信任输入，冒充也拿不到分——
+// 客服还是会核实办卡凭证才手动加分）。一个手机号只能绑一个账号，重绑需先解绑。
+async function getMyBinding(openid) {
+  const me = await ensureMyUser(openid);
+  return { success: true, boundPhone: me.boundPhone || '' };
+}
+
+async function bindPhone(openid, phone) {
+  const p = String(phone || '').trim();
+  if (!/^1\d{10}$/.test(p)) return { success: false, error: '手机号格式不正确' };
+  const me = await ensureMyUser(openid);
+  if (me.boundPhone) return { success: false, error: '已绑定手机号，如需更换请先解绑' };
+  const dup = await db.collection(USERS).where({ boundPhone: p }).count();
+  if (dup.total > 0) return { success: false, error: '该手机号已绑定其他账号' };
+  await db.collection(USERS).doc(me._id).update({ data: { boundPhone: p, boundPhoneAt: new Date(), updatedAt: new Date() } });
+  return { success: true, boundPhone: p };
+}
+
+async function unbindPhone(openid) {
+  const me = await ensureMyUser(openid);
+  if (!me.boundPhone) return { success: true, boundPhone: '' };
+  await db.collection(USERS).doc(me._id).update({ data: { boundPhone: '', boundPhoneAt: null, updatedAt: new Date() } });
+  return { success: true, boundPhone: '' };
+}
+
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
   if (!OPENID) return { success: false, error: '未登录' };
@@ -198,6 +223,9 @@ exports.main = async (event) => {
     if (action === 'bind-referrer') return await bindReferrer(OPENID, event.code);
     if (action === 'get-qr') return await getQr(OPENID);
     if (action === 'get-my-points') return await getMyPointsLedger(OPENID);
+    if (action === 'get-my-binding') return await getMyBinding(OPENID);
+    if (action === 'bind-phone') return await bindPhone(OPENID, event.phone);
+    if (action === 'unbind-phone') return await unbindPhone(OPENID);
     return { success: false, error: '未知操作' };
   } catch (err) {
     console.error('[referral]', action, err);

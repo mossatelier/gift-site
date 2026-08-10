@@ -5027,7 +5027,10 @@
         .catch(function (e) { window.alert(e.message); });
     }
 
+    var pointsBound = false;
     function bindPoints() {
+      if (pointsBound) return;
+      pointsBound = true;
       var mask = $("pcPointsMask");
       var closeBtn = $("pcPointsClose");
       var close = function () { if (mask) mask.hidden = true; };
@@ -5108,6 +5111,60 @@
     }
 
     PANEL_LOADERS.referral = loadReferral;
+
+    // ============ 客户管理（按绑定手机号搜索） ============
+    var custState = { keyword: "", bound: false };
+
+    function renderCustList(items) {
+      var el = $("pcCustList");
+      if (!el) return;
+      if (!items || !items.length) { el.innerHTML = '<p class="pc-ref-empty">暂无客户</p>'; return; }
+      el.innerHTML = items.map(function (u) {
+        return '<div class="pc-cust-row">' +
+          '<span class="pc-cust-nick">' + esc(u.nickName || "微信用户") + "</span>" +
+          '<span class="' + (u.boundPhone ? "pc-cust-phone" : "pc-cust-phone pc-cust-phone-unbound") + '">' + (u.boundPhone ? esc(u.boundPhone) : "未绑定") + "</span>" +
+          '<span class="pc-cust-points">' + (u.rewardPoints || 0) + "分</span>" +
+          '<span>' + esc(fmtDate(u.createdAt)) + "</span>" +
+          '<span class="pc-cust-ops">' +
+            '<button class="pc-ref-rank-btn" type="button" data-points-grant="' + esc(u.openid) + '" data-points-name="' + esc(u.nickName || "微信用户") + '">+积分</button>' +
+            '<button class="pc-ref-rank-btn" type="button" data-points-ledger="' + esc(u.openid) + '" data-points-name="' + esc(u.nickName || "微信用户") + '">明细</button>' +
+          "</span>" +
+        "</div>";
+      }).join("");
+    }
+
+    function loadCustomers() {
+      var el = $("pcCustList");
+      if (el) el.innerHTML = '<p class="pc-ref-empty">加载中…</p>';
+      Core.callAdminOrders("customers-list", { phone: custState.keyword, limit: 100 })
+        .then(function (res) { renderCustList((res && res.items) || []); })
+        .catch(function (e) { if (el) el.innerHTML = '<p class="pc-ref-empty">加载失败：' + esc(e.message) + "</p>"; });
+    }
+
+    function bindCustomers() {
+      if (custState.bound) return;
+      custState.bound = true;
+      var list = $("pcCustList");
+      if (list) list.addEventListener("click", function (e) {
+        var g = e.target.closest("[data-points-grant]");
+        if (g) { doPointsGrant(g.getAttribute("data-points-grant"), g.getAttribute("data-points-name")); return; }
+        var l = e.target.closest("[data-points-ledger]");
+        if (l) doPointsLedger(l.getAttribute("data-points-ledger"), l.getAttribute("data-points-name"));
+      });
+      bindPoints();
+      var searchBtn = $("pcCustSearchBtn");
+      if (searchBtn) searchBtn.addEventListener("click", function () {
+        custState.keyword = ($("pcCustSearch").value || "").trim(); loadCustomers();
+      });
+      var searchInp = $("pcCustSearch");
+      if (searchInp) searchInp.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { custState.keyword = (searchInp.value || "").trim(); loadCustomers(); }
+      });
+      var refreshBtn = $("pcCustRefreshBtn");
+      if (refreshBtn) refreshBtn.addEventListener("click", loadCustomers);
+    }
+
+    PANEL_LOADERS.customers = function () { bindCustomers(); loadCustomers(); };
   })();
 
   // ============ 启动 ============

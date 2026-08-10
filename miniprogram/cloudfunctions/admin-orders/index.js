@@ -1863,6 +1863,27 @@ async function referralRanking() {
   return Object.values(map).sort((a, b) => (b.opened - a.opened) || (b.total - a.total));
 }
 
+// 客户列表（按已绑定手机号搜索，昵称不作为查询条件——微信昵称重名/易变，不可靠）
+async function adminCustomersList({ phone, limit = 50, skip = 0 }) {
+  const lim = Math.max(1, Math.min(200, Number(limit) || 50));
+  const sk = Math.max(0, Number(skip) || 0);
+  const p = String(phone || '').trim();
+  let query = db.collection(USERS);
+  if (p) query = query.where({ boundPhone: db.RegExp({ regexp: p, options: 'i' }) });
+  const [listRes, countRes] = await Promise.all([
+    query.orderBy('createdAt', 'desc').skip(sk).limit(lim).get(),
+    query.count()
+  ]);
+  const items = (listRes.data || []).map(u => ({
+    openid: u.openid,
+    nickName: u.nickName || '微信用户',
+    boundPhone: u.boundPhone || '',
+    rewardPoints: u.rewardPoints || 0,
+    createdAt: u.createdAt
+  }));
+  return { items, total: countRes.total, limit: lim, skip: sk };
+}
+
 // ---------- 积分：后台手动发放 / 撤销 / 明细 ----------
 // 设计上只允许「加」，不给后台自由扣减用户余额：
 // - 手动发放一律是正数，留 ledger 记录（manual:true）
@@ -2129,6 +2150,9 @@ exports.main = async (event) => {
         break;
       case 'referral-ranking':
         data = await referralRanking(body);
+        break;
+      case 'customers-list':
+        data = await adminCustomersList(body);
         break;
       case 'points-grant':
         data = await adminPointsGrant(body);

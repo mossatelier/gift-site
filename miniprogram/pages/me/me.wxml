@@ -65,6 +65,11 @@
 
   <!-- 功能入口 -->
   <view class="me-menu">
+    <view class="me-menu-item" bindtap="goBindPhone">
+      <text class="me-menu-icon">📱</text>
+      <text class="me-menu-text">绑定办卡记录</text>
+      <text class="me-menu-chevron">›</text>
+    </view>
     <view class="me-menu-item" bindtap="goOrders">
       <text class="me-menu-icon">📦</text>
       <text class="me-menu-text">我的领取</text>

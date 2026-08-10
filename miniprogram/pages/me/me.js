@@ -56,6 +56,11 @@ Page({
     wx.navigateTo({ url: '/pages/address-list/address-list' });
   },
 
+  goBindPhone() {
+    if (!auth.ensureLogin('/pages/bind-phone/bind-phone')) return;
+    wx.navigateTo({ url: '/pages/bind-phone/bind-phone' });
+  },
+
   goOrders() {
     if (!auth.ensureLogin('/pages/my-orders/my-orders')) return;
     wx.navigateTo({ url: '/pages/my-orders/my-orders' });

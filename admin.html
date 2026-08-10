@@ -85,6 +85,7 @@
         <button class="admin-panel-tab active" id="adminTabGoods" type="button"><span class="tab-ico">🎁</span>礼品管理</button>
         <button class="admin-panel-tab" id="adminTabOrders" type="button"><span class="tab-ico">📦</span>订单管理</button>
         <button class="admin-panel-tab" id="adminTabReferral" type="button"><span class="tab-ico">🤝</span>推荐管理</button>
+        <button class="admin-panel-tab" id="adminTabCustomers" type="button"><span class="tab-ico">👤</span>客户管理</button>
         <!-- 第二行：数据看板 / 银行积分 / 分类排序 -->
         <button class="admin-panel-tab" id="adminTabStats" type="button"><span class="tab-ico">📊</span>数据看板</button>
         <button class="admin-panel-tab" id="adminTabBanks" type="button"><span class="tab-ico">🏦</span>银行积分</button>
@@ -326,6 +327,29 @@
         </div>
       </section>
 
+      <section class="admin-card" id="adminCustomersPanel" hidden>
+        <div class="admin-status-head">
+          <h2 class="admin-section-title">客户管理</h2>
+          <button class="admin-secondary-btn" id="adminCustRefreshBtn" type="button">刷新</button>
+        </div>
+        <p class="admin-status-text">按客户自己绑定的办卡预留手机号查询（微信昵称不可靠，不作为查询条件）</p>
+        <div class="admin-ref-search">
+          <input id="adminCustSearch" class="admin-ref-input" placeholder="按手机号搜索（支持部分号码）" maxlength="20">
+          <button class="admin-secondary-btn" id="adminCustSearchBtn" type="button">搜索</button>
+        </div>
+        <div class="admin-ref-list" id="adminCustList"></div>
+
+        <div class="admin-points-panel" id="adminCustPointsPanel" hidden>
+          <div class="admin-status-head">
+            <h3 class="admin-ref-sub" id="adminCustPointsPanelTitle">积分明细</h3>
+            <button class="admin-secondary-btn" id="adminCustPointsPanelClose" type="button">收起</button>
+          </div>
+          <p class="admin-status-text" id="adminCustPointsPanelSub"></p>
+          <div id="adminCustPointsPanelList"></div>
+        </div>
+      </section>
+
+
       <section class="admin-card" id="adminReviewsPanel" hidden>
         <div class="admin-status-head">
           <h2 class="admin-section-title">晒图审核</h2>
@@ -464,6 +488,6 @@
   </main>
 
   <script src="assets/config.js?v=13"></script>
-  <script src="assets/admin.js?v=72"></script>
+  <script src="assets/admin.js?v=73"></script>
 </body>
 </html>

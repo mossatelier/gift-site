@@ -69,6 +69,8 @@ const adminOrdersBulkDelete = document.getElementById("adminOrdersBulkDelete");
 const adminOrdersBulkClear = document.getElementById("adminOrdersBulkClear");
 const adminTabReferral = document.getElementById("adminTabReferral");
 const adminReferralPanel = document.getElementById("adminReferralPanel");
+const adminTabCustomers = document.getElementById("adminTabCustomers");
+const adminCustomersPanel = document.getElementById("adminCustomersPanel");
 const adminTabStats = document.getElementById("adminTabStats");
 const adminStatsPanel = document.getElementById("adminStatsPanel");
 const adminStatsPeriod = document.getElementById("adminStatsPeriod");
@@ -514,6 +516,7 @@ function updatePanelUi() {
     banks: adminBanksPanel,
     orders: adminOrdersPanel,
     referral: adminReferralPanel,
+    customers: adminCustomersPanel,
     stats: adminStatsPanel,
     reviews: adminReviewsPanel,
     catorder: adminCatOrderPanel,
@@ -534,6 +537,7 @@ function updatePanelUi() {
     banks: state.activePanel === "banks",
     orders: state.activePanel === "orders",
     referral: state.activePanel === "referral",
+    customers: state.activePanel === "customers",
     stats: state.activePanel === "stats",
     reviews: state.activePanel === "reviews",
     catorder: state.activePanel === "catorder",
@@ -546,6 +550,7 @@ function updatePanelUi() {
     banks: adminTabBanks,
     orders: adminTabOrders,
     referral: adminTabReferral,
+    customers: adminTabCustomers,
     stats: adminTabStats,
     reviews: adminTabReviews,
     catorder: adminTabCatOrder,
@@ -3419,6 +3424,148 @@ document.getElementById("adminPiracySave")?.addEventListener("click", async () =
   } catch (err) {
     setPiracyMessage(err.message || "保存失败", "error");
   }
+});
+
+// ===== 客户管理（按绑定手机号搜索；手机后台） =====
+const adminCustList = document.getElementById("adminCustList");
+let custKeyword = "";
+
+adminTabCustomers?.addEventListener("click", () => {
+  state.activePanel = "customers";
+  updatePanelUi();
+  loadCustomers();
+});
+
+document.getElementById("adminCustRefreshBtn")?.addEventListener("click", loadCustomers);
+document.getElementById("adminCustSearchBtn")?.addEventListener("click", () => {
+  custKeyword = (document.getElementById("adminCustSearch").value || "").trim();
+  loadCustomers();
+});
+document.getElementById("adminCustSearch")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    custKeyword = (e.target.value || "").trim();
+    loadCustomers();
+  }
+});
+
+async function loadCustomers() {
+  if (!adminCustList) return;
+  adminCustList.innerHTML = '<p class="admin-ref-empty">加载中…</p>';
+  try {
+    const res = await callAdminOrders("customers-list", { phone: custKeyword, limit: 100 });
+    renderCustomers((res && res.items) || []);
+  } catch (err) {
+    adminCustList.innerHTML = `<p class="admin-ref-empty">加载失败：${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function renderCustomers(items) {
+  if (!adminCustList) return;
+  if (!items.length) { adminCustList.innerHTML = '<p class="admin-ref-empty">暂无客户</p>'; return; }
+  adminCustList.innerHTML = items.map((u) => `
+    <div class="admin-ref-card">
+      <div class="admin-ref-card-top">
+        <span class="admin-ref-friend">${refEsc(u.nickName || "微信用户")}</span>
+        <span class="admin-ref-phone">${u.boundPhone ? refEsc(u.boundPhone) : "未绑定"}</span>
+        <span class="admin-ref-ordered">${u.rewardPoints || 0}分</span>
+      </div>
+      <div class="admin-ref-card-mid">注册时间：${refEsc(refFmtDate(u.createdAt))}</div>
+      <div class="admin-ref-card-bot admin-ref-rank-ops">
+        <button class="admin-ref-rank-btn" type="button" data-cust-points-grant="${refEsc(u.openid)}" data-cust-points-name="${refEsc(u.nickName || "微信用户")}">+积分</button>
+        <button class="admin-ref-rank-btn" type="button" data-cust-points-ledger="${refEsc(u.openid)}" data-cust-points-name="${refEsc(u.nickName || "微信用户")}">明细</button>
+      </div>
+    </div>`).join("");
+}
+
+async function doCustPointsGrant(openid, name) {
+  if (!openid) { window.alert("这个用户还没有微信身份，暂时没法发积分"); return; }
+  const amountStr = window.prompt(`给「${name || "该用户"}」手动发放积分（正整数）：`, "");
+  if (amountStr === null) return;
+  const amount = parseInt(amountStr, 10);
+  if (!Number.isFinite(amount) || amount <= 0) { window.alert("积分数额必须是正整数"); return; }
+  const note = window.prompt("备注一下原因（可留空，方便以后查账）：", "") || "";
+  try {
+    await callAdminOrders("points-grant", { openid, amount, note });
+    window.alert(`已发放 ${amount} 分`);
+    loadCustomers();
+  } catch (e) {
+    window.alert(e.message);
+  }
+}
+
+let custPointsState = { openid: "", name: "" };
+
+async function doCustPointsLedger(openid, name) {
+  if (!openid) { window.alert("这个用户还没有微信身份，暂时没有积分流水"); return; }
+  custPointsState = { openid, name: name || "该用户" };
+  const panel = document.getElementById("adminCustPointsPanel");
+  if (!panel) return;
+  panel.hidden = false;
+  document.getElementById("adminCustPointsPanelTitle").textContent = `积分明细 · ${custPointsState.name}`;
+  document.getElementById("adminCustPointsPanelSub").textContent = "加载中…";
+  document.getElementById("adminCustPointsPanelList").innerHTML = "";
+  panel.scrollIntoView({ behavior: "smooth", block: "start" });
+  try {
+    const res = await callAdminOrders("points-ledger", { openid, limit: 200 });
+    const items = (res && res.items) || [];
+    document.getElementById("adminCustPointsPanelSub").textContent =
+      `当前余额 ${items.length ? items[0].balanceAfter : 0} 分 · 共 ${items.length} 条`;
+    renderCustPointsList(items);
+  } catch (e) {
+    document.getElementById("adminCustPointsPanelSub").textContent = `加载失败：${e.message}`;
+  }
+}
+
+function renderCustPointsList(items) {
+  const el = document.getElementById("adminCustPointsPanelList");
+  if (!el) return;
+  if (!items.length) { el.innerHTML = '<p class="admin-status-text">还没有积分流水</p>'; return; }
+  el.innerHTML = items.map((it) => {
+    const income = it.delta > 0;
+    const canRevoke = it.manual && !it.reversedAt;
+    return `
+      <div class="admin-points-row">
+        <div class="admin-points-row-main">
+          <span class="admin-points-row-reason">${refEsc(it.reason || "积分变动")}${it.reversedAt ? "（已撤销）" : ""}</span>
+          <span class="admin-points-row-time">${refEsc(refFmtDate(it.createdAt))}</span>
+        </div>
+        <div class="admin-points-row-side">
+          <span class="admin-points-row-delta ${income ? "income" : "expense"}">${income ? "+" : ""}${it.delta}</span>
+          <span class="admin-points-row-balance">余额 ${it.balanceAfter}</span>
+          ${canRevoke ? `<button class="admin-points-revoke" type="button" data-cust-points-revoke-id="${refEsc(it._id)}">撤销</button>` : ""}
+        </div>
+      </div>`;
+  }).join("");
+}
+
+async function doCustPointsRevoke(ledgerId) {
+  if (!ledgerId) return;
+  if (!window.confirm("撤销这笔手动发放？会生成一条等额反向流水冲正，不可再撤销。")) return;
+  try {
+    await callAdminOrders("points-revoke", { ledgerId });
+    window.alert("已撤销");
+    doCustPointsLedger(custPointsState.openid, custPointsState.name);
+    loadCustomers();
+  } catch (e) {
+    window.alert(e.message);
+  }
+}
+
+adminCustList?.addEventListener("click", (e) => {
+  const g = e.target.closest("[data-cust-points-grant]");
+  if (g) { doCustPointsGrant(g.getAttribute("data-cust-points-grant"), g.getAttribute("data-cust-points-name")); return; }
+  const l = e.target.closest("[data-cust-points-ledger]");
+  if (l) doCustPointsLedger(l.getAttribute("data-cust-points-ledger"), l.getAttribute("data-cust-points-name"));
+});
+
+document.getElementById("adminCustPointsPanelClose")?.addEventListener("click", () => {
+  const panel = document.getElementById("adminCustPointsPanel");
+  if (panel) panel.hidden = true;
+});
+
+document.getElementById("adminCustPointsPanelList")?.addEventListener("click", (e) => {
+  const rv = e.target.closest("[data-cust-points-revoke-id]");
+  if (rv) doCustPointsRevoke(rv.getAttribute("data-cust-points-revoke-id"));
 });
 
 // ===== 积分档银行（cards_bank_labels；云开发 app_config + Supabase app_config 双写） =====

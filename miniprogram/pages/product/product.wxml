@@ -158,8 +158,8 @@
         <button
           wx:if="{{submitErrorInsufficientPoints}}"
           class="fail-modal-btn fail-modal-btn-primary"
-          bindtap="goPointsFromError"
-        >查看我的积分</button>
+          bindtap="goBindPhoneFromError"
+        >绑定办卡手机号</button>
       </view>
     </view>
   </view>
