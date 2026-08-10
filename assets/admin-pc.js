@@ -1919,6 +1919,14 @@
     if (tone) el.setAttribute("data-tone", tone); else el.removeAttribute("data-tone");
   }
 
+  // 建议文案：字段是空的才拿这个填，不是写死——填进输入框只是省得从零打字，
+  // 保存前随便改，改完点保存才真正生效
+  var PIRACY_SUGGESTED = {
+    marqueeText: "⚠️ 温馨提醒：小程序仅作礼品展示，办卡请联系官方客服（L1916959）办理，他人转发不生效！",
+    meBannerText: "📢 谨防同行转发盗用！（唯一客服号：L1916959 加多宝办卡送礼）\n仅在本客服登记办卡才可发放积分兑换礼品，别处办理无效。",
+    productFooterText: "礼品兑换需消耗积分，积分仅官方客服审核发放。"
+  };
+
   function loadPiracyNotice() {
     if (!Core.activeSession()) return;
     setPiracyMsg("加载中…", null);
@@ -1930,9 +1938,9 @@
         var meBannerEl = document.getElementById("pcPiracyMeBanner");
         var footerEl = document.getElementById("pcPiracyProductFooter");
         if (enabledEl) enabledEl.checked = !!data.enabled;
-        if (marqueeEl) marqueeEl.value = data.marqueeText || "";
-        if (meBannerEl) meBannerEl.value = data.meBannerText || "";
-        if (footerEl) footerEl.value = data.productFooterText || "";
+        if (marqueeEl) marqueeEl.value = data.marqueeText || PIRACY_SUGGESTED.marqueeText;
+        if (meBannerEl) meBannerEl.value = data.meBannerText || PIRACY_SUGGESTED.meBannerText;
+        if (footerEl) footerEl.value = data.productFooterText || PIRACY_SUGGESTED.productFooterText;
         setPiracyMsg("", null);
       })
       .catch(function (err) { setPiracyMsg((err && err.message) || "加载失败", "error"); });
