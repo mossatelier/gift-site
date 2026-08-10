@@ -241,18 +241,26 @@ Page({
       wx.hideLoading();
       console.error('submit from product failed', err);
       this.setData({ submitting: false });
-      if (err.message && err.message.indexOf('积分不足') >= 0) {
-        wx.showModal({
-          title: '积分不够啦',
-          content: err.message,
-          confirmText: '去邀友赚积分',
-          cancelText: '知道了',
-          confirmColor: '#d64b2a',
-          success: (res) => { if (res.confirm) wx.navigateTo({ url: '/pages/referral/referral' }); }
-        });
-      } else {
-        wx.showToast({ title: err.message || '提交失败', icon: 'none' });
-      }
+      // hideLoading 和紧接着的 showModal 是两个背靠背的原生 UI 调用，留点时间让蒙层先关完
+      setTimeout(() => {
+        if (err.message && err.message.indexOf('积分不足') >= 0) {
+          wx.showModal({
+            title: '积分不够啦',
+            content: err.message,
+            confirmText: '去邀友赚积分',
+            cancelText: '知道了',
+            confirmColor: '#d64b2a',
+            success: (res) => { if (res.confirm) wx.navigateTo({ url: '/pages/referral/referral' }); }
+          });
+        } else {
+          wx.showModal({
+            title: '提交失败',
+            content: (err && err.errMsg) || (err && err.message) || '未知错误，请重试；如果重试还是不行，请截图这个提示联系客服',
+            showCancel: false,
+            confirmText: '知道了'
+          });
+        }
+      }, 200);
     }
   },
 

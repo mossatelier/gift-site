@@ -205,25 +205,28 @@ Page({
     } catch (err) {
       wx.hideLoading();
       console.error('submit failed', err);
-      if (err.message && err.message.indexOf('积分不足') >= 0) {
-        wx.showModal({
-          title: '积分不够啦',
-          content: err.message,
-          confirmText: '去邀友赚积分',
-          cancelText: '知道了',
-          confirmColor: '#d64b2a',
-          success: (res) => { if (res.confirm) wx.navigateTo({ url: '/pages/referral/referral' }); }
-        });
-      } else {
-        // 兜底：不管是云函数报错还是 wx API 本身调用失败（比如上面提到的弹窗冲突），
-        // 都要有肉眼可见的反馈，不能静默消失
-        wx.showModal({
-          title: '提交失败',
-          content: (err && err.errMsg) || (err && err.message) || '未知错误，请重试；如果重试还是不行，请截图这个提示联系客服',
-          showCancel: false,
-          confirmText: '知道了'
-        });
-      }
+      // hideLoading 和紧接着的 showModal 也是两个背靠背的原生 UI 调用，跟之前那个 bug
+      // 同一个坑——留一点点时间让 loading 蒙层先关完，modal 才稳妥地弹得出来
+      setTimeout(() => {
+        if (err.message && err.message.indexOf('积分不足') >= 0) {
+          wx.showModal({
+            title: '积分不够啦',
+            content: err.message,
+            confirmText: '去邀友赚积分',
+            cancelText: '知道了',
+            confirmColor: '#d64b2a',
+            success: (res) => { if (res.confirm) wx.navigateTo({ url: '/pages/referral/referral' }); }
+          });
+        } else {
+          // 兜底：不管是云函数报错还是 wx API 本身调用失败，都要有肉眼可见的反馈，不能静默消失
+          wx.showModal({
+            title: '提交失败',
+            content: (err && err.errMsg) || (err && err.message) || '未知错误，请重试；如果重试还是不行，请截图这个提示联系客服',
+            showCancel: false,
+            confirmText: '知道了'
+          });
+        }
+      }, 200);
     } finally {
       this.setData({ submitting: false });
     }
