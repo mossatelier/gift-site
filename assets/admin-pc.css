@@ -3220,6 +3220,8 @@ body.pc-admin {
 .pc-orders-onlyfail input { cursor: pointer; }
 
 /* ============ 修改密码弹窗 ============ */
+.pc-modal-mask[hidden] { display: none; }
+
 .pc-modal-mask {
   position: fixed;
   inset: 0;
