@@ -1,16 +1,21 @@
 const auth = require('../../utils/auth.js');
-const { getDefaultAddress, listMyAddresses } = require('../../utils/db.js');
+const { getDefaultAddress, listMyAddresses, getAntiPiracyNotice } = require('../../utils/db.js');
 
 Page({
   data: {
     user: null,
     address: null,
     addressCount: 0,
-    rewardPoints: 0
+    rewardPoints: 0,
+    antiPiracyNotice: null
   },
 
   onShow() {
     this.refresh();
+    if (!this._noticeLoaded) {
+      this._noticeLoaded = true;
+      getAntiPiracyNotice().then((notice) => this.setData({ antiPiracyNotice: notice })).catch(() => {});
+    }
   },
 
   async refresh() {

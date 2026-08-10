@@ -1,5 +1,10 @@
 <view class="page-shell me-page">
 
+  <!-- 防冒用警示栏：后台可开关/改字，防止同行拿本小程序当礼品菜单转发给自己客户 -->
+  <view class="me-piracy-banner" wx:if="{{antiPiracyNotice.meBannerText}}">
+    <text>{{antiPiracyNotice.meBannerText}}</text>
+  </view>
+
   <!-- 头部：未登录 -->
   <view class="me-header" wx:if="{{!user}}" bindtap="goLogin">
     <image class="me-avatar placeholder" src="/images/icons/service.svg" mode="aspectFit" />

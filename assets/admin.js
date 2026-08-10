@@ -92,6 +92,7 @@ const adminInputOrderMessage = document.getElementById("adminInputOrderMessage")
 const adminInputOrderSave = document.getElementById("adminInputOrderSave");
 const adminTabHaibao = document.getElementById("adminTabHaibao");
 const adminHaibaoPanel = document.getElementById("adminHaibaoPanel");
+const adminPiracyPanel = document.getElementById("adminPiracyPanel");
 const adminHaibaoList = document.getElementById("adminHaibaoList");
 const adminTabCardBank = document.getElementById("adminTabCardBank");
 const adminCardBankPanel = document.getElementById("adminCardBankPanel");
@@ -523,6 +524,8 @@ function updatePanelUi() {
   Object.keys(panels).forEach((key) => {
     if (panels[key]) panels[key].hidden = state.activePanel !== key;
   });
+  // 防冒用提示面板跟着「首页海报」这个 tab 一起显示（同一个入口下的第二块）
+  if (adminPiracyPanel) adminPiracyPanel.hidden = state.activePanel !== "haibao";
 
   // 「礼品管理」合并 tab：录入/编辑 两个子视图共用，二者之一激活时高亮
   const inGoods = state.activePanel === "create" || state.activePanel === "edit";
@@ -3360,6 +3363,54 @@ adminTabHaibao?.addEventListener("click", () => {
   state.activePanel = "haibao";
   updatePanelUi();
   loadHaibao();
+  loadPiracyNotice();
+});
+
+// ===== 防冒用提示（anti_piracy_notice；同一份配置给小程序三处用） =====
+function setPiracyMessage(text, tone) {
+  const el = document.getElementById("adminPiracyMessage");
+  if (!el) return;
+  el.textContent = text || "";
+  if (tone) el.dataset.tone = tone; else delete el.dataset.tone;
+}
+
+async function loadPiracyNotice() {
+  if (!activeSession()) return;
+  setPiracyMessage("加载中…");
+  try {
+    const data = (await callAdminOrders("get-anti-piracy-notice", {})) || {};
+    const enabledEl = document.getElementById("adminPiracyEnabled");
+    const marqueeEl = document.getElementById("adminPiracyMarquee");
+    const meBannerEl = document.getElementById("adminPiracyMeBanner");
+    const footerEl = document.getElementById("adminPiracyProductFooter");
+    if (enabledEl) enabledEl.checked = !!data.enabled;
+    if (marqueeEl) marqueeEl.value = data.marqueeText || "";
+    if (meBannerEl) meBannerEl.value = data.meBannerText || "";
+    if (footerEl) footerEl.value = data.productFooterText || "";
+    setPiracyMessage("");
+  } catch (err) {
+    setPiracyMessage(err.message || "加载失败", "error");
+  }
+}
+
+document.getElementById("adminPiracySave")?.addEventListener("click", async () => {
+  const enabledEl = document.getElementById("adminPiracyEnabled");
+  const marqueeEl = document.getElementById("adminPiracyMarquee");
+  const meBannerEl = document.getElementById("adminPiracyMeBanner");
+  const footerEl = document.getElementById("adminPiracyProductFooter");
+  const payload = {
+    enabled: !!(enabledEl && enabledEl.checked),
+    marqueeText: (marqueeEl && marqueeEl.value || "").trim(),
+    meBannerText: (meBannerEl && meBannerEl.value || "").trim(),
+    productFooterText: (footerEl && footerEl.value || "").trim()
+  };
+  setPiracyMessage("保存中…");
+  try {
+    await callAdminOrders("save-anti-piracy-notice", payload);
+    setPiracyMessage("已保存，小程序下拉刷新即可看到。", "success");
+  } catch (err) {
+    setPiracyMessage(err.message || "保存失败", "error");
+  }
 });
 
 // ===== 积分档银行（cards_bank_labels；云开发 app_config + Supabase app_config 双写） =====

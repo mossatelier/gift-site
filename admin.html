@@ -383,6 +383,28 @@
         <p class="admin-inline-message" id="adminHaibaoMessage"></p>
       </section>
 
+      <section class="admin-card" id="adminPiracyPanel" hidden>
+        <div class="admin-status-head">
+          <h2 class="admin-section-title">防冒用提示</h2>
+          <button class="admin-submit" id="adminPiracySave" type="button">保存</button>
+        </div>
+        <p class="admin-status-text">有同行拿本小程序当礼品菜单转发给自己的客户时用。开启后小程序首页顶部滚动提示、「我的」页顶部黄条、礼品详情页底部都会显示。三处独立填写，留空不显示，保存后立即生效，不用重新提审。</p>
+        <label class="admin-checkbox-field"><input type="checkbox" id="adminPiracyEnabled"> 开启防冒用提示</label>
+        <label class="admin-field">
+          <span>首页顶部滚动横幅</span>
+          <input id="adminPiracyMarquee" type="text" maxlength="200" placeholder="例如：⚠️ 温馨提醒：小程序仅作礼品展示，办卡请联系官方客服（XXX）办理，他人转发不生效！">
+        </label>
+        <label class="admin-field">
+          <span>「我的」页顶部警示栏</span>
+          <textarea id="adminPiracyMeBanner" maxlength="300" rows="3" placeholder="例如：📢 谨防同行转发盗用！唯一客服号：XXX。仅在本客服登记办卡才可发放积分兑换礼品，别处办理无效。"></textarea>
+        </label>
+        <label class="admin-field">
+          <span>礼品详情页底部提示</span>
+          <input id="adminPiracyProductFooter" type="text" maxlength="200" placeholder="例如：礼品兑换需消耗积分，积分仅官方客服审核发放。">
+        </label>
+        <p class="admin-inline-message" id="adminPiracyMessage"></p>
+      </section>
+
       <section class="admin-card" id="adminCardBankPanel" hidden>
         <div class="admin-status-head">
           <h2 class="admin-section-title">积分档银行</h2>
@@ -442,6 +464,6 @@
   </main>
 
   <script src="assets/config.js?v=13"></script>
-  <script src="assets/admin.js?v=70"></script>
+  <script src="assets/admin.js?v=71"></script>
 </body>
 </html>

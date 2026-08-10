@@ -61,6 +61,34 @@
   box-shadow: 0 8rpx 16rpx rgba(214, 75, 42, 0.22);
 }
 
+/* 防冒用滚动提示 */
+.marquee-bar {
+  margin: 16rpx 24rpx 0;
+  height: 52rpx;
+  border-radius: 999rpx;
+  background: rgba(232, 83, 31, 0.08);
+  overflow: hidden;
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  height: 52rpx;
+  align-items: center;
+  animation: marquee-scroll 16s linear infinite;
+}
+.marquee-text {
+  flex: 0 0 auto;
+  padding: 0 40rpx;
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #e8531f;
+  white-space: nowrap;
+}
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
 /* 轮播 */
 .banner-wrap {
   margin: 24rpx 24rpx 0;

@@ -292,6 +292,17 @@
   color: var(--red);
   border: 2rpx solid var(--red);
 }
+.product-piracy-note {
+  margin: 20rpx 24rpx 0;
+  padding: 16rpx 20rpx;
+  border-radius: 14rpx;
+  background: #fff8e1;
+  border: 1rpx solid #f0d98a;
+  color: #8a6d1a;
+  font-size: 22rpx;
+  line-height: 1.6;
+}
+
 .cta-note {
   font-size: 22rpx;
   color: #8a7c66;

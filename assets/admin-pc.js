@@ -1874,7 +1874,19 @@
       + '<div class="pc-haibao-list" id="pcHaibaoList"></div>'
       + '<button class="pc-btn-ghost pc-haibao-add" id="pcHaibaoAddBtn" type="button">+ 添加海报</button>'
       + '<div class="pc-haibao-foot"><button class="pc-btn-primary" id="pcHaibaoSaveBtn" type="button">保存到云端</button></div>'
-      + '<p class="pc-inline-msg" id="pcHaibaoMsg"></p>';
+      + '<p class="pc-inline-msg" id="pcHaibaoMsg"></p>'
+      + '<div class="pc-piracy-block">'
+      + '<div class="pc-haibao-head">'
+      + '<h3 class="pc-haibao-title">防冒用提示（小程序）</h3>'
+      + '<span class="pc-haibao-hint">有同行拿本小程序当礼品菜单转发给自己的客户时用——开启后小程序首页顶部会滚动提示、「我的」页顶部常驻黄条、礼品详情页底部也会加一句。三处文案独立填，留空的那处就不显示。改完保存立即生效，不用重新提审。</span>'
+      + "</div>"
+      + '<label class="pc-piracy-toggle"><input type="checkbox" id="pcPiracyEnabled"> 开启防冒用提示</label>'
+      + '<label class="pc-piracy-field"><span>首页顶部滚动横幅</span><input type="text" id="pcPiracyMarquee" maxlength="200" placeholder="例如：⚠️ 温馨提醒：小程序仅作礼品展示，办卡请联系官方客服（XXX）办理，他人转发不生效！"></label>'
+      + '<label class="pc-piracy-field"><span>「我的」页顶部警示栏</span><textarea id="pcPiracyMeBanner" maxlength="300" rows="2" placeholder="例如：📢 谨防同行转发盗用！唯一客服号：XXX。仅在本客服登记办卡才可发放积分兑换礼品，别处办理无效。"></textarea></label>'
+      + '<label class="pc-piracy-field"><span>礼品详情页底部提示</span><input type="text" id="pcPiracyProductFooter" maxlength="200" placeholder="例如：礼品兑换需消耗积分，积分仅官方客服审核发放。"></label>'
+      + '<div class="pc-haibao-foot"><button class="pc-btn-primary" id="pcPiracySaveBtn" type="button">保存到云端</button></div>'
+      + '<p class="pc-inline-msg" id="pcPiracyMsg"></p>'
+      + '</div>';
 
     var listEl = document.getElementById("pcHaibaoList");
     if (listEl) {
@@ -1894,7 +1906,59 @@
     var saveBtn = document.getElementById("pcHaibaoSaveBtn");
     if (saveBtn) saveBtn.addEventListener("click", saveHaibao);
 
+    var piracySaveBtn = document.getElementById("pcPiracySaveBtn");
+    if (piracySaveBtn) piracySaveBtn.addEventListener("click", savePiracyNotice);
+
     return host;
+  }
+
+  function setPiracyMsg(text, tone) {
+    var el = document.getElementById("pcPiracyMsg");
+    if (!el) return;
+    el.textContent = text || "";
+    if (tone) el.setAttribute("data-tone", tone); else el.removeAttribute("data-tone");
+  }
+
+  function loadPiracyNotice() {
+    if (!Core.activeSession()) return;
+    setPiracyMsg("加载中…", null);
+    Core.callAdminOrders("get-anti-piracy-notice", {})
+      .then(function (data) {
+        data = data || {};
+        var enabledEl = document.getElementById("pcPiracyEnabled");
+        var marqueeEl = document.getElementById("pcPiracyMarquee");
+        var meBannerEl = document.getElementById("pcPiracyMeBanner");
+        var footerEl = document.getElementById("pcPiracyProductFooter");
+        if (enabledEl) enabledEl.checked = !!data.enabled;
+        if (marqueeEl) marqueeEl.value = data.marqueeText || "";
+        if (meBannerEl) meBannerEl.value = data.meBannerText || "";
+        if (footerEl) footerEl.value = data.productFooterText || "";
+        setPiracyMsg("", null);
+      })
+      .catch(function (err) { setPiracyMsg((err && err.message) || "加载失败", "error"); });
+  }
+
+  function savePiracyNotice() {
+    var enabledEl = document.getElementById("pcPiracyEnabled");
+    var marqueeEl = document.getElementById("pcPiracyMarquee");
+    var meBannerEl = document.getElementById("pcPiracyMeBanner");
+    var footerEl = document.getElementById("pcPiracyProductFooter");
+    var payload = {
+      enabled: !!(enabledEl && enabledEl.checked),
+      marqueeText: (marqueeEl && marqueeEl.value || "").trim(),
+      meBannerText: (meBannerEl && meBannerEl.value || "").trim(),
+      productFooterText: (footerEl && footerEl.value || "").trim()
+    };
+    setPiracyMsg("保存中…", null);
+    Core.callAdminOrders("save-anti-piracy-notice", payload)
+      .then(function () {
+        setPiracyMsg("已保存，小程序下拉刷新即可看到。", "success");
+        toast("防冒用提示已保存", "success");
+      })
+      .catch(function (err) {
+        setPiracyMsg((err && err.message) || "保存失败", "error");
+        toast((err && err.message) || "保存失败", "error");
+      });
   }
 
   function renderHaibao() {
@@ -2093,7 +2157,7 @@
       });
   }
 
-  PANEL_LOADERS.haibao = function () { loadHaibao(false); };
+  PANEL_LOADERS.haibao = function () { loadHaibao(false); loadPiracyNotice(); };
 
   // ============ 积分档银行（cards_bank_labels；云开发 app_config + Supabase app_config 双写） ============
   var CARDBANK_BUCKETS = [

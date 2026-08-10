@@ -3374,3 +3374,43 @@ body.pc-admin {
 
 .pc-ref-rank-phone { font-size: 11px; color: var(--muted); margin-left: 4px; }
 .pc-ref-rank-phone-unknown { color: rgba(214, 75, 42, 0.6); }
+
+/* ============ 防冒用提示 ============ */
+.pc-piracy-block {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px dashed var(--line);
+}
+.pc-piracy-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 18px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+}
+.pc-piracy-field {
+  display: block;
+  margin-bottom: 16px;
+}
+.pc-piracy-field span {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.pc-piracy-field input,
+.pc-piracy-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  font-size: 13.5px;
+  font-family: inherit;
+  resize: vertical;
+}

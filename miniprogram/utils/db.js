@@ -154,6 +154,22 @@ async function getHomeBanners() {
   }
 }
 
+// 取防冒用警示文案（防止同行拿本小程序当礼品菜单转发给自己客户），失败/未开启返回 null
+async function getAntiPiracyNotice() {
+  try {
+    const res = await db().collection('app_config').where({ key: 'anti_piracy_notice' }).limit(1).get();
+    const doc = res.data[0];
+    if (!doc || !doc.enabled) return null;
+    return {
+      marqueeText: doc.marqueeText || '',
+      meBannerText: doc.meBannerText || '',
+      productFooterText: doc.productFooterText || ''
+    };
+  } catch (err) {
+    return null;
+  }
+}
+
 // 取首页「按积分快速兑换」各档位的银行名，失败/未配置返回 {}（首页回退默认）
 async function getCardsBankLabels() {
   try {
@@ -409,6 +425,7 @@ module.exports = {
   getCategoryOrder,
   getHomeBanners,
   getCardsBankLabels,
+  getAntiPiracyNotice,
   getReferralShare,
   getReferralShareCached,
   // addresses

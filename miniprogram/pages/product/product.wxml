@@ -96,6 +96,11 @@
     <text class="cta-note">提交地址后，请微信同步客服，核验后发货</text>
   </view>
 
+  <!-- 防冒用提示：后台可开关/改字 -->
+  <view class="product-piracy-note" wx:if="{{antiPiracyNotice.productFooterText}}">
+    <text>{{antiPiracyNotice.productFooterText}}</text>
+  </view>
+
   <view class="bottom-spacer"></view>
 
   <!-- 收藏并提交地址 弹层 -->

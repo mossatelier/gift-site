@@ -1095,6 +1095,45 @@ async function saveCardsBankLabels({ labels }) {
   return { labels: clean };
 }
 
+// 防冒用警示文案（存 app_config，key=anti_piracy_notice）：防止同行拿本小程序当礼品菜单转发给自己客户，
+// 客户收到不符合预期的礼品后误会到本店头上。三处都是纯展示文案，客服号写死在这里而不是代码里，
+// 换号/关停时后台改字即可，不用重新提审。
+const ANTI_PIRACY_DEFAULT = {
+  enabled: false,
+  marqueeText: '',       // 首页顶部滚动横幅
+  meBannerText: '',      // 「我的」页面顶部常驻警示栏
+  productFooterText: ''  // 礼品详情页底部提示
+};
+
+async function getAntiPiracyNotice() {
+  const r = await db.collection('app_config').where({ key: 'anti_piracy_notice' }).limit(1).get();
+  const saved = r.data[0];
+  if (!saved) return Object.assign({}, ANTI_PIRACY_DEFAULT);
+  return {
+    enabled: !!saved.enabled,
+    marqueeText: saved.marqueeText || '',
+    meBannerText: saved.meBannerText || '',
+    productFooterText: saved.productFooterText || ''
+  };
+}
+
+async function saveAntiPiracyNotice({ enabled, marqueeText, meBannerText, productFooterText }) {
+  const clean = {
+    enabled: !!enabled,
+    marqueeText: String(marqueeText || '').trim().slice(0, 200),
+    meBannerText: String(meBannerText || '').trim().slice(0, 300),
+    productFooterText: String(productFooterText || '').trim().slice(0, 200)
+  };
+  const now = new Date();
+  const existing = await db.collection('app_config').where({ key: 'anti_piracy_notice' }).limit(1).get();
+  if (existing.data[0]) {
+    await db.collection('app_config').doc(existing.data[0]._id).update({ data: Object.assign({}, clean, { updatedAt: now }) });
+  } else {
+    await db.collection('app_config').add({ data: Object.assign({ key: 'anti_piracy_notice' }, clean, { createdAt: now, updatedAt: now }) });
+  }
+  return clean;
+}
+
 // 邀请页分享卡片（存 app_config，key=referral_share）：好友转发邀请页时显示的图与标题。
 // 邀请码仍走分享 path 的 ?ref=，换图不影响返利。
 const REFERRAL_SHARE_DEFAULT_TITLE = '加加好物图集 · 办指定银行免费领正品好礼';
@@ -2021,6 +2060,12 @@ exports.main = async (event) => {
         break;
       case 'save-cards-bank-labels':
         data = await saveCardsBankLabels(body);
+        break;
+      case 'get-anti-piracy-notice':
+        data = await getAntiPiracyNotice(body);
+        break;
+      case 'save-anti-piracy-notice':
+        data = await saveAntiPiracyNotice(body);
         break;
       case 'get-referral-share':
         data = await getReferralShare(body);

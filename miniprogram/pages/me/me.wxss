@@ -175,6 +175,19 @@
 .me-referral-sub { font-size: 22rpx; color: rgba(255,255,255,0.9); }
 .me-referral-arrow { font-size: 36rpx; color: #fff; }
 
+/* 防冒用警示栏 */
+.me-piracy-banner {
+  margin-bottom: 20rpx;
+  padding: 16rpx 20rpx;
+  border-radius: 14rpx;
+  background: #fff8e1;
+  border: 1rpx solid #f0d98a;
+  color: #8a6d1a;
+  font-size: 22rpx;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
 /* 我的积分 */
 .me-points-entry {
   display: flex;

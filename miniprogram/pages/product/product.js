@@ -1,4 +1,4 @@
-const { getProductById, getDefaultAddress } = require('../../utils/db.js');
+const { getProductById, getDefaultAddress, getAntiPiracyNotice } = require('../../utils/db.js');
 const config = require('../../config.js');
 const { labelOfCategory } = config;
 const auth = require('../../utils/auth.js');
@@ -33,7 +33,8 @@ Page({
     submitRemark: '',
     submitting: false,
     submitError: '',
-    submitErrorInsufficientPoints: false
+    submitErrorInsufficientPoints: false,
+    antiPiracyNotice: null
   },
 
   dismissSubmitError() {
@@ -60,6 +61,7 @@ Page({
       this._reopenAfterLoad = true;
     }
     this.loadProduct(id);
+    getAntiPiracyNotice().then((notice) => this.setData({ antiPiracyNotice: notice })).catch(() => {});
   },
 
   async loadProduct(id) {

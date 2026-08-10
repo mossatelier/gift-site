@@ -1,4 +1,4 @@
-const { listHotProducts, listHotByOrders, listNewProducts, getHomeBanners, getCardsBankLabels } = require('../../utils/db.js');
+const { listHotProducts, listHotByOrders, listNewProducts, getHomeBanners, getCardsBankLabels, getAntiPiracyNotice } = require('../../utils/db.js');
 const wishlist = require('../../utils/wishlist.js');
 const floatBtn = require('../../utils/floatBtn.js');
 
@@ -13,6 +13,7 @@ Page({
     // 首帧直接用上次缓存的海报，避免闪那两张本地旧默认图（promo-1/2）
     banners: (function () { try { return wx.getStorageSync('homeBanners') || []; } catch (e) { return []; } })(),
     bannersReady: false, // 海报是否已拉取完成；未完成前不显示默认回退图
+    antiPiracyNotice: null,
     hotList: [],
     newList: [],
     wishlistMap: {},
@@ -86,7 +87,8 @@ Page({
         listHotByOrders(10).catch(() => listHotProducts(10)),  // 下单排名；云函数失败则回退浏览量
         listNewProducts(10),
         getHomeBanners().catch(() => []),
-        getCardsBankLabels().catch(() => ({}))
+        getCardsBankLabels().catch(() => ({})),
+        getAntiPiracyNotice().catch(() => null)
       ]);
       const labels = results[3] || {};
       const cardsQuick = this.data.cardsQuick.map((it) => ({
@@ -106,6 +108,7 @@ Page({
         banners,
         bannersReady: true,
         cardsQuick,
+        antiPiracyNotice: results[4] || null,
         loading: false
       });
     } catch (err) {
