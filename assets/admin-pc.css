@@ -3371,3 +3371,6 @@ body.pc-admin {
   cursor: pointer;
 }
 .pc-ref-rank-btn:hover { border-color: rgba(214, 75, 42, 0.4); color: var(--red); }
+
+.pc-ref-rank-phone { font-size: 11px; color: var(--muted); margin-left: 4px; }
+.pc-ref-rank-phone-unknown { color: rgba(214, 75, 42, 0.6); }

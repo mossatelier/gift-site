@@ -1551,7 +1551,9 @@ async function loadRefAdminRanking() {
     el.innerHTML = rows.map((r, i) => `
       <div class="admin-ref-rank-row">
         <span class="admin-ref-rank-no">${i + 1}</span>
-        <span class="admin-ref-rank-name">${refEsc(r.nick || "微信用户")} <em>${refEsc(r.code || "")}</em></span>
+        <span class="admin-ref-rank-name">${refEsc(r.nick || "微信用户")} <em>${refEsc(r.code || "")}</em>
+          ${r.phone ? `<span class="admin-ref-rank-phone">${refEsc(r.phone)}</span>` : `<span class="admin-ref-rank-phone admin-ref-rank-phone-unknown">手机号未知</span>`}
+        </span>
         <span class="admin-ref-rank-stat">有效 ${r.opened || 0} / 累计 ${r.total || 0} · ${r.rewardPoints || 0}分</span>
         <span class="admin-ref-rank-ops">
           <button class="admin-ref-rank-btn" type="button" data-points-grant="${refEsc(r.openid)}" data-points-name="${refEsc(r.nick || "微信用户")}">+积分</button>

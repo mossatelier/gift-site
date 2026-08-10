@@ -1803,7 +1803,7 @@ async function referralRanking() {
   rows.forEach(r => {
     const k = r.referrerOpenid || '';
     if (!k) return;
-    if (!map[k]) map[k] = { openid: k, code: r.referrerCode || '', nick: '', total: 0, opened: 0, rewardPoints: 0 };
+    if (!map[k]) map[k] = { openid: k, code: r.referrerCode || '', nick: '', total: 0, opened: 0, rewardPoints: 0, phone: '' };
     map[k].total += 1;
     if (r.status === REF_OPENED) { map[k].opened += 1; map[k].rewardPoints += (r.rewardPoints || 0); }
   });
@@ -1811,6 +1811,15 @@ async function referralRanking() {
   if (openids.length) {
     const ur = await db.collection(USERS).where({ openid: _.in(openids) }).limit(1000).get();
     ur.data.forEach(u => { if (map[u.openid]) { map[u.openid].nick = u.nickName || ''; if (!map[u.openid].code) map[u.openid].code = u.referralCode || ''; } });
+
+    // 补手机号（排行榜这一行是「推荐人」本人，要找的是他自己的手机号，不是他推荐的好友的）：
+    // ① 他自己下过单时留的收件手机号；② 他当初是被别人推荐进来时，那条记录上留的手机号
+    const contact = await ordersContactByOpenid(openids);
+    const phoneBySelf = {};
+    rows.forEach(r => { if (r.refereeOpenid && r.refereePhone) phoneBySelf[r.refereeOpenid] = r.refereePhone; });
+    openids.forEach(k => {
+      map[k].phone = (contact[k] && contact[k].phone) || phoneBySelf[k] || '';
+    });
   }
   return Object.values(map).sort((a, b) => (b.opened - a.opened) || (b.total - a.total));
 }

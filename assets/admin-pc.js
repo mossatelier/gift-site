@@ -4829,7 +4829,9 @@
           if (!rows || !rows.length) { el.innerHTML = '<p class="pc-ref-empty">暂无数据</p>'; return; }
           el.innerHTML = rows.map(function (r, i) {
             return '<div class="pc-ref-rank-row"><span class="pc-ref-rank-no">' + (i + 1) + "</span>" +
-              '<span class="pc-ref-rank-name">' + esc(r.nick || "微信用户") + " <em>" + esc(r.code || "") + "</em></span>" +
+              '<span class="pc-ref-rank-name">' + esc(r.nick || "微信用户") + " <em>" + esc(r.code || "") + "</em>" +
+                (r.phone ? ' <span class="pc-ref-rank-phone">' + esc(r.phone) + "</span>" : ' <span class="pc-ref-rank-phone pc-ref-rank-phone-unknown">手机号未知</span>') +
+              "</span>" +
               '<span class="pc-ref-rank-stat">有效 ' + (r.opened || 0) + " / 累计 " + (r.total || 0) + " · " + (r.rewardPoints || 0) + "分</span>" +
               '<span class="pc-ref-rank-ops">' +
                 '<button class="pc-ref-rank-btn" type="button" data-points-grant="' + esc(r.openid) + '" data-points-name="' + esc(r.nick || "微信用户") + '">+积分</button>' +
