@@ -101,7 +101,8 @@ const state = {
   sub: "",
   showMore: false,
   query: urlParams.get("q") || "",
-  cards: urlParams.get("cards") || ""
+  cards: urlParams.get("cards") || "",
+  antiPiracyNotice: null
 };
 
 // 推荐归属：?ref=6位推荐码 落地即记到本机，下单时带给后台自动建推荐记录
@@ -1077,6 +1078,7 @@ function renderProductDetail() {
         <button class="pd-cta-btn pd-cta-btn-submit" type="button" data-collect-submit="${escapeHtml(item.id)}">收藏并提交地址</button>
       </div>
       <p class="pd-cta-note">提交地址后，请微信同步客服，核验订单后发货</p>
+      ${state.antiPiracyNotice && state.antiPiracyNotice.productFooterText ? `<p class="anti-piracy-banner anti-piracy-banner-inline">${escapeHtml(state.antiPiracyNotice.productFooterText)}</p>` : ""}
       <a class="product-detail-cta-link" href="wishlist.html">查看我的心愿单 ›</a>
     </div>
   `;
@@ -1505,6 +1507,40 @@ async function fetchCardsBankLabels() {
   }
 }
 
+// 防冒用提示（后台「防冒用提示」配置，跟小程序共用同一份）：
+// 首页顶部滚动横幅 / 心愿单页顶部警示栏 / 商品详情页底部提示，三处独立生效，未开启/未填则保持隐藏。
+async function fetchAntiPiracyNotice() {
+  if (!isWebApiConfigured()) return;
+  try {
+    const cfg = await getWebConfig();
+    const notice = cfg.anti_piracy_notice;
+    state.antiPiracyNotice = notice || null;
+    if (!notice) return;
+
+    const marqueeWrap = document.getElementById("antiPiracyMarquee");
+    if (marqueeWrap && notice.marqueeText) {
+      const a = document.getElementById("antiPiracyMarqueeTextA");
+      const b = document.getElementById("antiPiracyMarqueeTextB");
+      if (a) a.textContent = notice.marqueeText;
+      if (b) b.textContent = notice.marqueeText;
+      marqueeWrap.hidden = false;
+    }
+
+    const meBanner = document.getElementById("antiPiracyMeBanner");
+    if (meBanner && notice.meBannerText) {
+      meBanner.textContent = notice.meBannerText;
+      meBanner.hidden = false;
+    }
+
+    // 商品详情页是整段动态渲染的，之前那次渲染可能早于这个配置拉到，补渲染一次把提示接上
+    if (notice.productFooterText && productDetailEl) {
+      renderProductDetail();
+    }
+  } catch (err) {
+    // 读取失败保持隐藏，不影响其它内容
+  }
+}
+
 async function loadEarnBanks() {
   if (!earnBankList) {
     return;
@@ -1632,6 +1668,7 @@ loadProducts();
 loadEarnBanks();
 fetchHomeBanners();
 fetchCardsBankLabels();
+fetchAntiPiracyNotice();
 renderReviewsWall();
 renderHomeReviewStrip();
 injectFloatWidgets();

@@ -73,6 +73,13 @@ async function getConfig() {
     else if (row.key === 'cards_bank_labels') out.cards_bank_labels = row.labels || {};
     else if (row.key === 'referral_share') out.referral_share = { imageUrl: row.imageUrl || '', title: row.title || '' };
     else if (row.key === 'category_order') out.category_order = row.order || [];
+    else if (row.key === 'anti_piracy_notice') {
+      out.anti_piracy_notice = row.enabled ? {
+        marqueeText: row.marqueeText || '',
+        meBannerText: row.meBannerText || '',
+        productFooterText: row.productFooterText || ''
+      } : null;
+    }
   }
   return out;
 }

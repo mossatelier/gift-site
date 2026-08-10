@@ -192,6 +192,49 @@ textarea {
   border-radius: 10px;
 }
 
+/* 防冒用提示 */
+.anti-piracy-marquee {
+  margin: 10px 12px 0;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(232, 83, 31, 0.08);
+  overflow: hidden;
+}
+.anti-piracy-marquee-track {
+  display: flex;
+  width: max-content;
+  height: 30px;
+  align-items: center;
+  animation: anti-piracy-marquee-scroll 16s linear infinite;
+}
+.anti-piracy-marquee-text {
+  flex: 0 0 auto;
+  padding: 0 20px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #e8531f;
+  white-space: nowrap;
+}
+@keyframes anti-piracy-marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.anti-piracy-banner {
+  margin: 10px 12px 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #fff8e1;
+  border: 1px solid #f0d98a;
+  color: #8a6d1a;
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.anti-piracy-banner-inline {
+  margin: 10px 0 0;
+}
+
 .banner-wrap {
   position: relative;
   margin: 14px 12px 0;

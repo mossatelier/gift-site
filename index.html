@@ -15,7 +15,7 @@
   <link rel="image_src" href="https://mossatelier.github.io/gift-site/images/share-cover.jpg">
   <meta itemprop="image" content="https://mossatelier.github.io/gift-site/images/share-cover.jpg">
   <meta name="twitter:card" content="summary_large_image">
-  <link rel="stylesheet" href="assets/site.css?v=67">
+  <link rel="stylesheet" href="assets/site.css?v=71">
 </head>
 <body id="top">
   <div class="page-shell">
@@ -26,6 +26,14 @@
         <button id="productSearchButton" type="button" aria-label="搜索">搜</button>
       </div>
     </header>
+
+    <!-- 防冒用滚动提示：后台「防冒用提示」未开启/未填时保持隐藏 -->
+    <div class="anti-piracy-marquee" id="antiPiracyMarquee" hidden>
+      <div class="anti-piracy-marquee-track">
+        <span class="anti-piracy-marquee-text" id="antiPiracyMarqueeTextA"></span>
+        <span class="anti-piracy-marquee-text" id="antiPiracyMarqueeTextB"></span>
+      </div>
+    </div>
 
     <section class="banner-wrap" aria-label="活动轮播">
       <div class="banner-track" id="bannerTrack">
@@ -210,6 +218,6 @@
   </div>
 
   <script src="assets/config.js"></script>
-  <script src="assets/site.js?v=41"></script>
+  <script src="assets/site.js?v=42"></script>
 </body>
 </html>
