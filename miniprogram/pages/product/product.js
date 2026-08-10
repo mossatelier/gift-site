@@ -31,7 +31,13 @@ Page({
     showSubmit: false,
     submitAddress: null,
     submitRemark: '',
-    submitting: false
+    submitting: false,
+    submitError: '',
+    submitErrorInsufficientPoints: false
+  },
+
+  goReferralFromError() {
+    wx.navigateTo({ url: '/pages/referral/referral' });
   },
 
   onLoad(options) {
@@ -166,7 +172,7 @@ Page({
     }
   },
 
-  closeSubmit() { this.setData({ showSubmit: false }); },
+  closeSubmit() { this.setData({ showSubmit: false, submitError: '', submitErrorInsufficientPoints: false }); },
   noop() {},
   onRemarkInput(e) { this.setData({ submitRemark: e.detail.value }); },
 
@@ -195,7 +201,7 @@ Page({
       return;
     }
     // 立刻上锁，防连点重复下单
-    this.setData({ submitting: true });
+    this.setData({ submitting: true, submitError: '', submitErrorInsufficientPoints: false });
     const tmplIds = [config.orderPlacedTmplId, config.shipNotifyTmplId].filter(Boolean);
     if (tmplIds.length) {
       wx.requestSubscribeMessage({ tmplIds, complete: () => this._doConfirmSubmit(remark) });
@@ -226,7 +232,7 @@ Page({
       const finish = () => {
         // 已下单，从心愿单移除该件，避免回到心愿单再次重复提交
         wishlist.remove(this.productId);
-        this.setData({ showSubmit: false, submitRemark: '', wishlisted: false, submitting: false });
+        this.setData({ showSubmit: false, submitRemark: '', wishlisted: false, submitting: false, submitError: '', submitErrorInsufficientPoints: false });
         wx.showModal({
           title: '提交成功',
           content: '申请信息已复制到剪贴板，请粘贴发送给客服微信核验，核验后发货。',
@@ -240,27 +246,14 @@ Page({
     } catch (err) {
       wx.hideLoading();
       console.error('submit from product failed', err);
-      this.setData({ submitting: false });
-      // hideLoading 和紧接着的 showModal 是两个背靠背的原生 UI 调用，留点时间让蒙层先关完
-      setTimeout(() => {
-        if (err.message && err.message.indexOf('积分不足') >= 0) {
-          wx.showModal({
-            title: '积分不够啦',
-            content: err.message,
-            confirmText: '去邀友赚积分',
-            cancelText: '知道了',
-            confirmColor: '#d64b2a',
-            success: (res) => { if (res.confirm) wx.navigateTo({ url: '/pages/referral/referral' }); }
-          });
-        } else {
-          wx.showModal({
-            title: '提交失败',
-            content: (err && err.errMsg) || (err && err.message) || '未知错误，请重试；如果重试还是不行，请截图这个提示联系客服',
-            showCancel: false,
-            confirmText: '知道了'
-          });
-        }
-      }, 200);
+      // 系统弹窗 wx.showModal 在实测中出现调用了但不显示的情况（原因待查），
+      // 改成直接写在页面里的横幅（见 wxml #submit-result-banner），不依赖任何原生弹窗组件
+      const msg = (err && err.message) || (err && err.errMsg) || '提交失败，请重试；如果重试还是不行，请截图这个提示联系客服';
+      this.setData({
+        submitting: false,
+        submitError: msg,
+        submitErrorInsufficientPoints: !!(err.message && err.message.indexOf('积分不足') >= 0)
+      });
     }
   },
 

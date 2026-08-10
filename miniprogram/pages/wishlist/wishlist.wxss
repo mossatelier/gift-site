@@ -317,3 +317,23 @@
 .bottom-spacer {
   height: 32rpx;
 }
+
+.submit-result-banner {
+  margin-top: 16rpx;
+  padding: 20rpx 22rpx;
+  border-radius: 16rpx;
+  background: rgba(214, 75, 42, 0.08);
+  border: 2rpx solid rgba(214, 75, 42, 0.28);
+  color: #d64b2a;
+  font-size: 26rpx;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.submit-result-actions { margin-top: 10rpx; }
+.submit-result-link {
+  display: inline-block;
+  font-size: 24rpx;
+  font-weight: 800;
+  color: #d64b2a;
+  text-decoration: underline;
+}

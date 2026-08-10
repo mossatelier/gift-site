@@ -126,6 +126,15 @@
       <!-- 隐私同意：提交含手机号/地址的申请前须取得用户同意（审核要求） -->
       <consent-bar />
 
+      <!-- 提交结果横幅：不依赖系统弹窗（wx.showModal 在部分设备/环境下有渲染不出来的问题），
+           直接写在页面里，肯定看得见 -->
+      <view class="submit-result-banner" wx:if="{{submitError}}">
+        <text>{{submitError}}</text>
+        <view class="submit-result-actions" wx:if="{{submitErrorInsufficientPoints}}">
+          <text class="submit-result-link" bindtap="goReferralFromError">去邀友赚积分 ›</text>
+        </view>
+      </view>
+
       <view class="submit-actions">
         <button class="submit-cancel" bindtap="closeSubmit">取消</button>
         <button class="submit-ok" loading="{{submitting}}" bindtap="confirmSubmit">提交并复制给客服</button>

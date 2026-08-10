@@ -13,7 +13,13 @@ Page({
     address: null,
     addressCount: 0,
     remark: '',
-    submitting: false
+    submitting: false,
+    submitError: '',
+    submitErrorInsufficientPoints: false
+  },
+
+  goReferralFromError() {
+    wx.navigateTo({ url: '/pages/referral/referral' });
   },
 
   onShow() {
@@ -157,7 +163,7 @@ Page({
 
     // 立刻上锁——必须在任何异步（订阅授权弹窗 / 确认弹窗）之前。
     // 之前锁设在确认弹窗回调里，双击时两条流程都会先通过校验、各自弹窗 → 重复下单。
-    this.setData({ submitting: true });
+    this.setData({ submitting: true, submitError: '', submitErrorInsufficientPoints: false });
 
     const items = this.data.items.map(it => ({ _id: it._id, qty: 1 }));
     const remark = this.data.remark.trim();
@@ -196,7 +202,7 @@ Page({
         throw new Error((r && r.error) || '提交失败');
       }
       wishlist.saveList([]);
-      this.setData({ items: [], remark: '' });
+      this.setData({ items: [], remark: '', submitError: '', submitErrorInsufficientPoints: false });
       this._pickedAddressId = null;
       wx.showToast({ title: '提交成功', icon: 'success' });
       setTimeout(() => {
@@ -205,28 +211,14 @@ Page({
     } catch (err) {
       wx.hideLoading();
       console.error('submit failed', err);
-      // hideLoading 和紧接着的 showModal 也是两个背靠背的原生 UI 调用，跟之前那个 bug
-      // 同一个坑——留一点点时间让 loading 蒙层先关完，modal 才稳妥地弹得出来
-      setTimeout(() => {
-        if (err.message && err.message.indexOf('积分不足') >= 0) {
-          wx.showModal({
-            title: '积分不够啦',
-            content: err.message,
-            confirmText: '去邀友赚积分',
-            cancelText: '知道了',
-            confirmColor: '#d64b2a',
-            success: (res) => { if (res.confirm) wx.navigateTo({ url: '/pages/referral/referral' }); }
-          });
-        } else {
-          // 兜底：不管是云函数报错还是 wx API 本身调用失败，都要有肉眼可见的反馈，不能静默消失
-          wx.showModal({
-            title: '提交失败',
-            content: (err && err.errMsg) || (err && err.message) || '未知错误，请重试；如果重试还是不行，请截图这个提示联系客服',
-            showCancel: false,
-            confirmText: '知道了'
-          });
-        }
-      }, 200);
+      // 系统弹窗 wx.showModal 在实测中出现调用了但不显示的情况（原因待查），
+      // 改成直接写在页面里的横幅（见 wxml #submit-result-banner），不依赖任何原生弹窗组件，
+      // 保证用户一定看得见结果
+      const msg = (err && err.message) || (err && err.errMsg) || '提交失败，请重试；如果重试还是不行，请截图这个提示联系客服';
+      this.setData({
+        submitError: msg,
+        submitErrorInsufficientPoints: !!(err.message && err.message.indexOf('积分不足') >= 0)
+      });
     } finally {
       this.setData({ submitting: false });
     }
