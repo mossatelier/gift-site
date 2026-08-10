@@ -858,6 +858,10 @@ function setWebOrderMsg(text, tone) {
   webOrderMsg.textContent = text || "";
   if (tone) webOrderMsg.dataset.tone = tone;
   else delete webOrderMsg.dataset.tone;
+  // 拒绝/失败提示容易被用户划走漏看，强制滚到能看见的位置
+  if (tone === "error" && text) {
+    webOrderMsg.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 }
 
 function bindWebOrder() {

@@ -3905,8 +3905,15 @@ body.admin-logged-in #adminLogoutButtonLogged {
 .web-order-submit { width: 100%; margin-top: 4px; min-height: 48px; border: none; border-radius: 999px; background: linear-gradient(135deg, var(--red) 0%, var(--red-deep) 100%); color: #fff; font-size: 15px; font-weight: 800; cursor: pointer; box-shadow: 0 12px 22px rgba(214,75,42,0.28); }
 .web-order-submit:disabled { opacity: 0.6; cursor: default; }
 .web-order-msg { margin: 10px 0 0; font-size: 13px; font-weight: 700; text-align: center; min-height: 18px; }
-.web-order-msg[data-tone="error"] { color: #c0392b; }
-.web-order-msg[data-tone="success"] { color: #2d8a82; }
+.web-order-msg:empty { margin: 0; }
+.web-order-msg[data-tone="error"] {
+  color: #c0392b; background: rgba(192, 57, 43, 0.08); border: 1px solid rgba(192, 57, 43, 0.25);
+  border-radius: 10px; padding: 12px 14px; line-height: 1.5; font-size: 14px;
+}
+.web-order-msg[data-tone="success"] {
+  color: #2d8a82; background: rgba(45, 138, 130, 0.08); border: 1px solid rgba(45, 138, 130, 0.25);
+  border-radius: 10px; padding: 12px 14px; line-height: 1.5; font-size: 14px;
+}
 .web-order-hint { margin: 8px 0 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
 
 /* 下单：粘贴地址识别 */
