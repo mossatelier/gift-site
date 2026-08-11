@@ -84,13 +84,11 @@
   opacity: 0.6;
 }
 
-.login-fineprint {
-  margin-top: 24rpx;
-  font-size: 22rpx;
+.login-fineprint-note {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 21rpx;
   color: var(--muted);
   text-align: center;
   line-height: 1.5;
-}
-.login-fineprint-link {
-  color: #e8722e;
 }

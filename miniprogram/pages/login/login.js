@@ -1,4 +1,5 @@
 const auth = require('../../utils/auth.js');
+const consent = require('../../utils/consent.js');
 
 Page({
   data: {
@@ -29,6 +30,7 @@ Page({
 
   async onSubmit() {
     if (this.data.submitting) return;
+    if (!consent.requireConsent()) return; // 未勾选同意协议不提交（审核要求：不能默认视为同意）
     const nickName = (this.data.nickName || '').trim();
     if (!nickName) {
       wx.showToast({ title: '请填写昵称', icon: 'none' });
@@ -60,14 +62,6 @@ Page({
     } finally {
       this.setData({ submitting: false });
     }
-  },
-
-  goTerms() {
-    wx.navigateTo({ url: '/pages/agreement/agreement?type=terms' });
-  },
-
-  goPrivacy() {
-    wx.navigateTo({ url: '/pages/agreement/agreement?type=privacy' });
   },
 
   goBackOrRedirect() {

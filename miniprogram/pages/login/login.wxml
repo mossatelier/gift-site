@@ -28,14 +28,14 @@
       />
     </view>
 
+    <!-- 隐私同意：需用户主动勾选才能登录（审核要求，不能默认视为同意） -->
+    <consent-bar />
+    <text class="login-fineprint-note">昵称、头像仅用于礼品申请与发放沟通</text>
+
     <button
       class="primary-btn login-submit {{submitting ? 'disabled' : ''}}"
       bindtap="onSubmit"
       disabled="{{submitting}}"
     >{{submitting ? '提交中…' : '确认登录'}}</button>
-
-    <view class="login-fineprint">
-      <text>登录即表示同意</text><text class="login-fineprint-link" bindtap="goTerms">《用户服务协议》</text><text>和</text><text class="login-fineprint-link" bindtap="goPrivacy">《隐私政策》</text><text>，昵称、头像仅用于礼品申请与发放沟通</text>
-    </view>
   </view>
 </view>
