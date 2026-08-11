@@ -34,10 +34,13 @@
 }
 
 .bindphone-input {
+  display: block;
   width: 100%;
   box-sizing: border-box;
+  height: 88rpx;
+  line-height: 88rpx;
   margin-top: 18rpx;
-  padding: 20rpx 24rpx;
+  padding: 0 24rpx;
   border-radius: 14rpx;
   background: #f8f3ea;
   border: 1rpx solid #f0e4d3;
