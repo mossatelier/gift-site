@@ -55,14 +55,16 @@
 }
 
 .bindphone-btn {
+  box-sizing: border-box;
   width: 100%;
-  margin-top: 28rpx;
-  height: 84rpx;
-  line-height: 84rpx;
+  margin: 28rpx 0 0;
+  padding: 22rpx 0;
   border-radius: 999rpx;
   font-size: 28rpx;
   font-weight: 800;
+  line-height: 1.4;
 }
+.bindphone-btn::after { border: none; }
 .bindphone-btn-primary { background: #e8531f; color: #fff; }
 .bindphone-btn-secondary { background: #f4ede0; color: #5d5140; }
 
