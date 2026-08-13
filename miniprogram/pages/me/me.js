@@ -7,6 +7,7 @@ Page({
     address: null,
     addressCount: 0,
     rewardPoints: 0,
+    phoneChecked: false,
     antiPiracyNotice: null
   },
 
@@ -37,6 +38,26 @@ Page({
           if (r && r.success) this.setData({ rewardPoints: r.rewardPoints || 0 });
         })
         .catch((err) => console.warn('load points failed', err));
+
+      // 手机号以云端为准：本地缓存是登录那一刻写的，之后在绑定页绑的号缓存里没有，
+      // 只信缓存会把「其实已绑定」的老用户误判成未填写。
+      // phoneChecked 用来防止核对完成前黄条闪一下。
+      wx.cloud.callFunction({ name: 'referral', data: { action: 'get-my-binding' } })
+        .then((cf) => {
+          const r = cf && cf.result;
+          if (!r || !r.success) { this.setData({ phoneChecked: true }); return; }
+          const phone = r.boundPhone || '';
+          if (phone !== (user.boundPhone || '')) {
+            const merged = { ...user, boundPhone: phone };
+            auth.setCurrentUser(merged);
+            this.setData({ user: merged });
+          }
+          this.setData({ phoneChecked: true });
+        })
+        .catch((err) => {
+          console.warn('load binding failed', err);
+          this.setData({ phoneChecked: true });
+        });
     } else {
       this.setData({ address: null, addressCount: 0, rewardPoints: 0 });
     }
