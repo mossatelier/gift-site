@@ -38,10 +38,10 @@ function isLoggedIn() {
 }
 
 // 调用云函数 login —— upsert + 同步本地缓存
-async function callLogin({ nickName = '', avatarUrl = '' } = {}) {
+async function callLogin({ phone = '', nickName = '', avatarUrl = '' } = {}) {
   const res = await wx.cloud.callFunction({
     name: 'login',
-    data: { nickName, avatarUrl }
+    data: { phone, nickName, avatarUrl }
   });
   const r = res && res.result;
   if (!r || !r.success) {
@@ -56,6 +56,13 @@ async function callLogin({ nickName = '', avatarUrl = '' } = {}) {
     console.warn('[auth] wishlist merge after login failed', err);
   }
   return user;
+}
+
+// 老用户过渡：手机号改成登录必填之前注册的账号没有 boundPhone，
+// 他们本地登录态还在、不会再走登录页，需要在「我的」页引导补填。
+function needsPhone() {
+  const u = getCurrentUser();
+  return !!u && !u.boundPhone;
 }
 
 // 在受保护页面 onLoad 调用：未登录跳登录页（回调 redirectUrl）
@@ -74,6 +81,7 @@ module.exports = {
   setCurrentUser,
   clearCurrentUser,
   isLoggedIn,
+  needsPhone,
   callLogin,
   ensureLogin
 };

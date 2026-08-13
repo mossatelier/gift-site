@@ -55,6 +55,9 @@ Page({
         maskedPhone: maskPhone(r.boundPhone),
         inputPhone: ''
       });
+      // 同步本地登录缓存，否则「我的」页读缓存仍显示"未填写"
+      const cur = auth.getCurrentUser();
+      if (cur) auth.setCurrentUser({ ...cur, boundPhone: r.boundPhone });
       wx.showToast({ title: '绑定成功', icon: 'success' });
     } catch (err) {
       this.setData({ submitting: false, errorMsg: err.message || '绑定失败' });
@@ -75,6 +78,8 @@ Page({
           const r = cf && cf.result;
           if (!r || !r.success) throw new Error((r && r.error) || '解绑失败');
           this.setData({ submitting: false, boundPhone: '', maskedPhone: '' });
+          const cur = auth.getCurrentUser();
+          if (cur) auth.setCurrentUser({ ...cur, boundPhone: '' });
           wx.showToast({ title: '已解绑', icon: 'success' });
         } catch (err) {
           this.setData({ submitting: false });

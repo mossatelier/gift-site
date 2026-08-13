@@ -1,41 +1,58 @@
 <view class="page-shell login-page">
   <view class="login-card">
-    <text class="login-title">微信登录</text>
-    <text class="login-sub">填写头像和昵称后可提交申请、管理订单</text>
-
-    <button
-      class="avatar-btn"
-      open-type="chooseAvatar"
-      bindchooseavatar="onChooseAvatar"
-    >
-      <image
-        class="avatar-img"
-        src="{{avatarUrl || '/images/icons/service.svg'}}"
-        mode="aspectFill"
-      />
-      <text class="avatar-tip">{{avatarUrl ? '点击更换头像' : '点击选择头像'}}</text>
-    </button>
+    <text class="login-title">手机号登录</text>
+    <text class="login-sub">登录后可查看积分、办卡进度、收藏礼品、查询订单</text>
 
     <view class="field">
-      <text class="field-label">昵称</text>
+      <text class="field-label">办卡预留手机号</text>
       <input
-        class="field-input"
-        type="nickname"
-        placeholder="请输入昵称"
-        value="{{nickName}}"
-        bindinput="onNickInput"
-        maxlength="20"
+        class="field-input login-phone-input"
+        type="number"
+        placeholder="请输入 11 位手机号"
+        value="{{phone}}"
+        bindinput="onPhoneInput"
+        maxlength="11"
       />
+    </view>
+
+    <!-- 头像昵称选填：不填也能登录，只影响后台认人方便程度 -->
+    <view class="login-optional">
+      <button
+        class="avatar-btn"
+        open-type="chooseAvatar"
+        bindchooseavatar="onChooseAvatar"
+      >
+        <image
+          class="avatar-img"
+          src="{{avatarUrl || '/images/icons/service.svg'}}"
+          mode="aspectFill"
+        />
+        <text class="avatar-tip">{{avatarUrl ? '点击更换头像' : '选填：点击选择头像'}}</text>
+      </button>
+
+      <view class="field">
+        <text class="field-label">昵称（选填）</text>
+        <input
+          class="field-input"
+          type="nickname"
+          placeholder="方便客服认出你"
+          value="{{nickName}}"
+          bindinput="onNickInput"
+          maxlength="20"
+        />
+      </view>
     </view>
 
     <!-- 隐私同意：需用户主动勾选才能登录（审核要求，不能默认视为同意） -->
     <consent-bar />
-    <text class="login-fineprint-note">昵称、头像仅用于礼品申请与发放沟通</text>
+    <text class="login-fineprint-note">手机号仅用于识别积分账户、核对礼品发放</text>
 
     <button
       class="primary-btn login-submit {{submitting ? 'disabled' : ''}}"
       bindtap="onSubmit"
       disabled="{{submitting}}"
-    >{{submitting ? '提交中…' : '确认登录'}}</button>
+    >{{submitting ? '提交中…' : '登录'}}</button>
+
+    <text class="login-error" wx:if="{{errorMsg}}">{{errorMsg}}</text>
   </view>
 </view>

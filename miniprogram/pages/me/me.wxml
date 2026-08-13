@@ -20,8 +20,14 @@
     <image class="me-avatar" src="{{user.avatarUrl || '/images/icons/service.svg'}}" mode="aspectFill" />
     <view class="me-header-text">
       <text class="me-nick">{{user.nickName || '微信用户'}}</text>
-      <text class="me-sub">已登录</text>
+      <text class="me-sub">{{user.boundPhone ? user.boundPhone : '已登录'}}</text>
     </view>
+  </view>
+
+  <!-- 老用户过渡：手机号改成登录必填之前注册的账号没有手机号，引导补填 -->
+  <view class="me-phone-prompt" wx:if="{{user && !user.boundPhone}}" bindtap="goBindPhone">
+    <text class="me-phone-prompt-title">⚠️ 还没填办卡手机号</text>
+    <text class="me-phone-prompt-text">补填后客服才能核实办卡记录、给你发放积分，点这里补填 ›</text>
   </view>
 
   <!-- 收货地址摘要 -->
@@ -67,7 +73,8 @@
   <view class="me-menu">
     <view class="me-menu-item" bindtap="goBindPhone">
       <text class="me-menu-icon">📱</text>
-      <text class="me-menu-text">绑定办卡记录</text>
+      <text class="me-menu-text">办卡手机号</text>
+      <text class="me-menu-value">{{user.boundPhone || '未填写'}}</text>
       <text class="me-menu-chevron">›</text>
     </view>
     <view class="me-menu-item" bindtap="goOrders">

@@ -67,12 +67,37 @@
 }
 
 .field-input {
+  box-sizing: border-box;
+  height: 88rpx;
+  line-height: 88rpx;
   background: var(--paper-soft);
   border: 1rpx solid var(--line);
   border-radius: 16rpx;
-  padding: 22rpx 24rpx;
+  padding: 0 24rpx;
   font-size: 30rpx;
   color: var(--text);
+}
+
+.login-phone-input {
+  font-size: 34rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+}
+
+/* 选填区：视觉上弱化，别让人以为头像昵称是必填 */
+.login-optional {
+  width: 100%;
+  margin-top: 28rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx dashed var(--line);
+}
+
+.login-error {
+  margin-top: 20rpx;
+  font-size: 24rpx;
+  color: #d64b2a;
+  text-align: center;
+  line-height: 1.5;
 }
 
 .login-submit {
