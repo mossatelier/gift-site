@@ -411,7 +411,7 @@
     var password = (pcLoginPassword && pcLoginPassword.value) || "";
 
     if (!email || !password) {
-      setLoginMsg("请输入管理员邮箱和密码。", "error");
+      setLoginMsg("请输入管理员账号和密码。", "error");
       return;
     }
 

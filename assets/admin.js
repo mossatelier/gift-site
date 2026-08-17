@@ -332,9 +332,9 @@ async function signInWithPassword(email, password) {
         return json.data;
       }
       const msg = json && json.error ? String(json.error) : "";
-      if (/密码|锁定|邮箱/.test(msg)) throw new Error(msg);
+      if (/密码|锁定|账号|邮箱/.test(msg)) throw new Error(msg);
     } catch (e) {
-      if (e && /密码|锁定|邮箱/.test(e.message || "")) throw e;
+      if (e && /密码|锁定|账号|邮箱/.test(e.message || "")) throw e;
       // 网络异常或云端未初始化 → 落到 Supabase 兜底
     }
   }
@@ -486,7 +486,7 @@ function updateAuthUi() {
       adminWorkspace.hidden = false;
     }
   } else {
-    adminAuthTip.textContent = "请输入管理员邮箱和密码，登录后即可管理商品。";
+    adminAuthTip.textContent = "请输入管理员账号和密码，登录后即可管理商品。";
     adminLoginButton.disabled = false;
     adminEmailInput.disabled = false;
     adminPasswordInput.disabled = false;
@@ -1215,7 +1215,7 @@ adminAuthForm?.addEventListener("submit", async (event) => {
   const password = adminPasswordInput.value;
 
   if (!email || !password) {
-    setAuthMessage("请输入管理员邮箱和密码。", "error");
+    setAuthMessage("请输入管理员账号和密码。", "error");
     return;
   }
 

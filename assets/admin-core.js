@@ -141,9 +141,9 @@
         }
         // 密码错/锁定这类明确的业务失败：直接报错，不要回退（否则错误提示会变得莫名其妙）
         var msg = json && json.error ? String(json.error) : "";
-        if (/密码|锁定|邮箱/.test(msg)) throw new Error(msg);
+        if (/密码|锁定|账号|邮箱/.test(msg)) throw new Error(msg);
       } catch (e) {
-        if (e && /密码|锁定|邮箱/.test(e.message || "")) throw e;
+        if (e && /密码|锁定|账号|邮箱/.test(e.message || "")) throw e;
         // 网络异常或云端尚未初始化账号 → 落到下面的 Supabase 兜底
       }
     }

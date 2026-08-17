@@ -206,14 +206,14 @@ function verifyJwt(token, secret) {
 // 登录：校验密码 + 失败锁定，成功签发 JWT
 async function authLogin({ email, password }) {
   const mail = String(email || '').trim().toLowerCase();
-  if (!mail || !password) throw new Error('请输入邮箱和密码');
+  if (!mail || !password) throw new Error('请输入账号和密码');
 
   const r = await db.collection(ADMIN_USERS_COL).where({ email: mail }).limit(1).get();
   const u = (r.data || [])[0];
   // 账号不存在也走同样耗时的路径，避免通过响应时间探测账号是否存在
   if (!u || !u.passwordHash) {
     crypto.scryptSync(String(password), 'dummy-salt', 64);
-    throw new Error('邮箱或密码不正确');
+    throw new Error('账号或密码不正确');
   }
   if (u.lockedUntil && Date.now() < new Date(u.lockedUntil).getTime()) {
     const mins = Math.ceil((new Date(u.lockedUntil).getTime() - Date.now()) / 60000);
@@ -231,7 +231,7 @@ async function authLogin({ email, password }) {
     try { await db.collection(ADMIN_USERS_COL).doc(u._id).update({ data: patch }); } catch (e) {}
     throw new Error(failCount >= LOGIN_MAX_FAIL
       ? '密码错误次数过多，账号已锁定 15 分钟'
-      : `邮箱或密码不正确（还可尝试 ${LOGIN_MAX_FAIL - failCount} 次）`);
+      : `账号或密码不正确（还可尝试 ${LOGIN_MAX_FAIL - failCount} 次）`);
   }
 
   try { await db.collection(ADMIN_USERS_COL).doc(u._id).update({ data: { failCount: 0, lockedUntil: null, lastLoginAt: new Date() } }); } catch (e) {}
@@ -275,6 +275,23 @@ async function authInitAdmin({ email, password }) {
     data: { email: mail, salt, passwordHash: hashPassword(password, salt), failCount: 0, lockedUntil: null, createdAt: new Date() }
   });
   return { ok: true, mode: 'created', email: mail };
+}
+
+// 新增管理员账号（需已登录的管理员操作）。
+// 与 authInitAdmin 的区别：这个要鉴权，用来在已有管理员的情况下加同事账号；
+// authInitAdmin 只在集合为空时用于开天辟地建第一个号。
+// 账号名不限定邮箱格式——本系统不发邮件，email 字段只是个唯一标识。
+async function authCreateAdmin({ account, password }) {
+  const name = String(account || '').trim().toLowerCase();
+  if (!name) throw new Error('缺少账号名');
+  if (String(password || '').length < 6) throw new Error('密码至少 6 位');
+  const dup = await db.collection(ADMIN_USERS_COL).where({ email: name }).count();
+  if (dup.total > 0) throw new Error('该账号名已存在');
+  const salt = crypto.randomBytes(16).toString('hex');
+  await db.collection(ADMIN_USERS_COL).add({
+    data: { email: name, salt, passwordHash: hashPassword(password, salt), failCount: 0, lockedUntil: null, createdAt: new Date() }
+  });
+  return { ok: true, account: name };
 }
 
 async function verifyAdmin(accessToken) {
@@ -2117,6 +2134,9 @@ exports.main = async (event) => {
         break;
       case 'upload-image':
         data = await adminUploadImage(body);
+        break;
+      case 'auth-create-admin':
+        data = await authCreateAdmin(body);
         break;
       case 'auth-change-password':
         data = await authChangePassword({ ...body, email: adminEmail });
