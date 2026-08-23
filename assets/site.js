@@ -259,6 +259,7 @@ function normalizeProduct(product, index) {
     images,
     sortOrder: Number(product.sortOrder ?? product.sort_order ?? index + 1),
     isActive: product.isActive ?? product.is_active ?? true,
+    isPinned: Boolean(product.isPinned ?? product.is_pinned ?? false),
     createdAt: product.createdAt || product.created_at || "",
     viewCount: Number(product.viewCount ?? product.view_count ?? 0)
   };
@@ -480,6 +481,12 @@ function filteredProducts(items = state.products) {
   }
 
   return filtered.sort((left, right) => {
+    // 置顶优先于一切排序方式——这正是「置顶」区别于 sortOrder 的地方：
+    // sortOrder 只在默认排序下生效，用户一换排序就失效；置顶不受影响。
+    if (left.isPinned !== right.isPinned) {
+      return left.isPinned ? -1 : 1;
+    }
+
     if (state.sort === "price") {
       return state.priceDirection === "asc" ? left.cardsNeeded - right.cardsNeeded : right.cardsNeeded - left.cardsNeeded;
     }

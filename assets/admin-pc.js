@@ -1057,7 +1057,8 @@
 
       return '<tr class="pc-edit-row" data-edit-row="' + id + '">'
         + '<td class="pc-edit-col-img">' + img + "</td>"
-        + '<td class="pc-edit-col-title"><span class="pc-edit-title-text">' + escapeHtml(item.title || "未命名礼品") + "</span></td>"
+        + '<td class="pc-edit-col-title"><span class="pc-edit-title-text">' + escapeHtml(item.title || "未命名礼品") + "</span>"
+        + (item.is_pinned ? ' <span class="pc-edit-pin">置顶</span>' : "") + "</td>"
         + '<td class="pc-edit-col-cat">' + escapeHtml(editCategoryLabel(item.category)) + subLabel + "</td>"
         + '<td class="pc-edit-col-num">' + (price ? "¥" + escapeHtml(price) : "—") + "</td>"
         + '<td class="pc-edit-col-num pc-edit-cards">' + escapeHtml(cards) + " 分</td>"
@@ -2976,6 +2977,14 @@
       + '<span class="pc-create-switch-text" id="pcCreateActiveText">已上架</span>'
       + "</label>"
       + "</label>"
+      + '<label class="pc-create-field pc-create-switch-field">'
+      + '<span class="pc-create-label">置顶（切换排序也不掉）</span>'
+      + '<label class="pc-create-switch">'
+      + '<input type="checkbox" id="pcCreatePinned">'
+      + '<span class="pc-create-switch-track"></span>'
+      + '<span class="pc-create-switch-text" id="pcCreatePinnedText">未置顶</span>'
+      + "</label>"
+      + "</label>"
       + "</div>"
 
       + '<div class="pc-create-foot">'
@@ -3114,6 +3123,13 @@
         var txt = document.getElementById("pcCreateActiveText");
         if (txt) txt.textContent = activeEl.checked ? "已上架" : "未上架";
         renderCreatePreview();
+      });
+    }
+    var pinnedEl = document.getElementById("pcCreatePinned");
+    if (pinnedEl) {
+      pinnedEl.addEventListener("change", function () {
+        var txt = document.getElementById("pcCreatePinnedText");
+        if (txt) txt.textContent = pinnedEl.checked ? "已置顶" : "未置顶";
       });
     }
 
@@ -3440,6 +3456,10 @@
     }
     if (activeEl) activeEl.checked = true;
     if (activeText) activeText.textContent = "已上架";
+    var pinnedEl0 = document.getElementById("pcCreatePinned");
+    var pinnedText0 = document.getElementById("pcCreatePinnedText");
+    if (pinnedEl0) pinnedEl0.checked = false;
+    if (pinnedText0) pinnedText0.textContent = "未置顶";
 
     syncCreateSubcategory("");
     renderCreateImages();
@@ -3492,6 +3512,7 @@
     var cards = Number(cardsRaw) || 0;
     var sortOrder = Number((document.getElementById("pcCreateSort") || {}).value || 10);
     var isActive = (document.getElementById("pcCreateActive") || {}).checked !== false;
+    var isPinned = !!(document.getElementById("pcCreatePinned") || {}).checked;
 
     // 价格有效但积分留空 → 自动补算（与移动版一致）。
     if (price > 0 && !cards) {
@@ -3519,7 +3540,8 @@
       image_url: imageUrls[0],
       images: imageUrls,
       sort_order: isNaN(sortOrder) ? 10 : sortOrder,
-      is_active: isActive
+      is_active: isActive,
+      is_pinned: isPinned
     };
 
     var editingId = state.createEditingId;
@@ -3614,6 +3636,10 @@
     if (sortEl) sortEl.value = Number(product.sort_order != null ? product.sort_order : 10);
     if (activeEl) activeEl.checked = product.is_active !== false;
     if (activeText) activeText.textContent = (product.is_active !== false) ? "已上架" : "未上架";
+    var pinnedEl1 = document.getElementById("pcCreatePinned");
+    var pinnedText1 = document.getElementById("pcCreatePinnedText");
+    if (pinnedEl1) pinnedEl1.checked = !!product.is_pinned;
+    if (pinnedText1) pinnedText1.textContent = product.is_pinned ? "已置顶" : "未置顶";
 
     // 图片：优先 images 数组，回退 image_url；每张一个槽（mode=url）。
     var imgs = [];

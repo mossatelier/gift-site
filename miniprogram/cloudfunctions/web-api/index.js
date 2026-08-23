@@ -33,6 +33,7 @@ function toWebProduct(p) {
     images,
     sort_order: Number(p.sortOrder) || 10,
     is_active: p.isActive !== false,
+    is_pinned: !!p.isPinned,
     created_at: p.createdAt || '',
     view_count: Number(p.viewCount) || 0
   };

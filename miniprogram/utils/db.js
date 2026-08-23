@@ -75,7 +75,11 @@ async function listProducts({
   }
 
   const res = await q.skip(skip).limit(limit).get();
-  return res.data.map(normalize);
+  const list = res.data.map(normalize);
+  // 置顶前置：数据库那几种排序（热门/积分/最新）都轮不到 sortOrder 说话，
+  // 所以置顶不能靠 sortOrder 模拟，得在取回后单独把置顶项提到最前。
+  // 用稳定排序，置顶项之间、非置顶项之间都保持原有顺序不变。
+  return list.sort((a, b) => (a.isPinned === b.isPinned ? 0 : (a.isPinned ? -1 : 1)));
 }
 
 // 仅返回符合条件的总数（不拉数据）
@@ -261,6 +265,7 @@ function normalize(item) {
     imageUrl: images[0] || '',
     sortOrder: Number(item.sortOrder || item.sort_order) || 10,
     isActive: item.isActive !== false,
+    isPinned: !!(item.isPinned || item.is_pinned),
     createdAt: item.createdAt || item.created_at || '',
     viewCount: Number(item.viewCount || item.view_count) || 0
   };
