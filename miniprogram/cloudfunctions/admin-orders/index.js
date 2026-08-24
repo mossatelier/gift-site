@@ -1182,7 +1182,7 @@ async function saveReferralShare({ imageUrl, title }) {
 // ============ 商品 CRUD（B 步：后台改走云开发，不再写 Supabase） ============
 // 字段用下划线风格与后台原有代码对齐（admin-core 传什么就存什么的映射在下面做）。
 const PRODUCT_WEB_FIELDS = ['title', 'category', 'subcategory', 'price', 'cardsNeeded',
-  'description', 'imageUrl', 'images', 'sortOrder', 'isActive', 'isPinned', 'deleted'];
+  'description', 'imageUrl', 'images', 'sortOrder', 'isActive', 'isPinned', 'isDisplayOnly', 'deleted'];
 
 // 后台下划线 payload → 云开发驼峰文档
 function toCloudProduct(p) {
@@ -1205,6 +1205,8 @@ function toCloudProduct(p) {
   // 置顶：与 sortOrder 是两回事——sortOrder 只在「默认排序」下起作用，
   // isPinned 则要求无论用户选哪种排序都固定排在最前（见前后端的置顶前置排序）。
   if (p.is_pinned != null) out.isPinned = !!p.is_pinned;
+  // 仅展示：活动说明卡这类"图就是内容"的条目，不允许被兑换下单
+  if (p.is_display_only != null) out.isDisplayOnly = !!p.is_display_only;
   if (p.deleted != null) out.deleted = !!p.deleted;
   return out;
 }
@@ -1225,6 +1227,7 @@ function toAdminProduct(d) {
     sort_order: Number(d.sortOrder) || 10,
     is_active: d.isActive !== false,
     is_pinned: !!d.isPinned,
+    is_display_only: !!d.isDisplayOnly,
     deleted: !!d.deleted,
     created_at: d.createdAt || '',
     updated_at: d.updatedAt || ''
@@ -1245,6 +1248,7 @@ async function adminCreateProduct(body) {
   if (doc.isActive == null) doc.isActive = true;
   if (doc.sortOrder == null) doc.sortOrder = 10;
   if (doc.isPinned == null) doc.isPinned = false;
+  if (doc.isDisplayOnly == null) doc.isDisplayOnly = false;
   const r = await db.collection('products').add({ data: doc });
   return { id: r._id, product: toAdminProduct({ ...doc, _id: r._id }) };
 }
@@ -1540,6 +1544,10 @@ async function webSubmitOrder({ items, address, remark, referrerCode }) {
   for (const it of list) {
     const key = String((it && (it.supabaseId || it.id)) || '');
     const p = map[key];
+    // 仅展示条目不可兑换（服务端兜底，同 submit-order）
+    if (p && p.isDisplayOnly) {
+      throw new Error(`「${p.title || '该条目'}」是活动说明，不能兑换`);
+    }
     const cards = Number(p && p.cardsNeeded != null ? p.cardsNeeded : (it && it.cardsNeeded)) || 0;
     const qty = Math.max(1, Math.min(99, Number(it && it.qty) || 1));
     itemSnapshots.push({

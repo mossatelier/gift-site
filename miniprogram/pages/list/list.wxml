@@ -130,12 +130,12 @@ module.exports = { cardsLabel: cardsLabel };
     >
       <view class="product-media">
         <image class="product-image" src="{{item.imageUrl}}" mode="aspectFill" lazy-load></image>
-        <view class="card-heart-btn" catchtap="toggleHeart" data-id="{{item._id}}">
+        <view class="card-heart-btn" wx:if="{{!item.isDisplayOnly}}" catchtap="toggleHeart" data-id="{{item._id}}">
           <image src="{{wishlistMap[item._id] ? '/images/icons/heart-filled.svg' : '/images/icons/heart.svg'}}" mode="aspectFit" class="card-heart-svg" />
         </view>
       </view>
       <view class="product-body">
-        <text class="product-title"><text class="title-tag {{item.category === 'referral' ? 'title-tag-referral' : 'title-tag-card'}}">{{item.category === 'referral' ? '邀请可兑' : '办卡可兑'}}</text>{{item.title}}</text>
+        <text class="product-title"><text wx:if="{{!item.isDisplayOnly}}" class="title-tag {{item.category === 'referral' ? 'title-tag-referral' : 'title-tag-card'}}">{{item.category === 'referral' ? '邀请可兑' : '办卡可兑'}}</text>{{item.title}}</text>
         <text class="product-meta" wx:if="{{item._metaText}}">{{item._metaText}}</text>
       </view>
     </view>

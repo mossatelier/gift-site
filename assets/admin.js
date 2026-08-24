@@ -1117,6 +1117,7 @@ function fillForm(product) {
   productForm.elements.sortOrder.value = Number(product.sort_order || 10);
   productForm.elements.isActive.checked = Boolean(product.is_active);
   if (productForm.elements.isPinned) productForm.elements.isPinned.checked = Boolean(product.is_pinned);
+  if (productForm.elements.isDisplayOnly) productForm.elements.isDisplayOnly.checked = Boolean(product.is_display_only);
   updatePreviewFromImageSlots();
   setEditorMode(product);
   setSubmitMessage("已载入商品信息，修改后保存即可。");
@@ -1357,6 +1358,7 @@ productForm?.addEventListener("submit", async (event) => {
   const sortOrder = Number(formData.get("sortOrder") || 10);
   const isActive = formData.get("isActive") === "on";
   const isPinned = formData.get("isPinned") === "on";
+  const isDisplayOnly = formData.get("isDisplayOnly") === "on";
   const imageInputCount = filledImageSlotCount();
 
   if (!title || !category || !priceInput || !cardsNeeded) {
@@ -1392,7 +1394,8 @@ productForm?.addEventListener("submit", async (event) => {
       images: imageUrls,
       sort_order: sortOrder,
       is_active: isActive,
-      is_pinned: isPinned
+      is_pinned: isPinned,
+      is_display_only: isDisplayOnly
     };
 
     if (currentEditingId) {

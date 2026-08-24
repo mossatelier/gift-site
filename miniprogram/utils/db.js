@@ -287,6 +287,7 @@ function normalize(item) {
     sortOrder: Number(item.sortOrder || item.sort_order) || 10,
     isActive: item.isActive !== false,
     isPinned: !!(item.isPinned || item.is_pinned),
+    isDisplayOnly: !!(item.isDisplayOnly || item.is_display_only),
     createdAt: item.createdAt || item.created_at || '',
     viewCount: Number(item.viewCount || item.view_count) || 0
   };

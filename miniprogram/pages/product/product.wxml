@@ -35,7 +35,7 @@
     <view class="image-indicator" wx:if="{{product.images.length > 1}}">
       {{currentImageIndex + 1}} / {{product.images.length}}
     </view>
-    <view class="heart-btn {{wishlisted ? 'active' : ''}}" bindtap="toggleWishlist">
+    <view class="heart-btn {{wishlisted ? 'active' : ''}}" wx:if="{{!product.isDisplayOnly}}" bindtap="toggleWishlist">
       <image src="{{wishlisted ? '/images/icons/heart-filled.svg' : '/images/icons/heart.svg'}}" mode="aspectFit" class="heart-svg" />
     </view>
   </view>
@@ -60,20 +60,20 @@
 
   <!-- 商品信息卡 -->
   <view class="product-detail-card">
-    <view class="product-detail-taghead">
+    <view class="product-detail-taghead" wx:if="{{!product.isDisplayOnly}}">
       <text class="title-tag {{product.category === 'referral' ? 'title-tag-referral' : 'title-tag-card'}}">{{product.category === 'referral' ? '邀请可兑' : '办卡可兑'}}</text>
     </view>
     <text class="product-detail-title">{{product.title}}</text>
     <view class="product-detail-meta">
       <text class="product-detail-points" wx:if="{{pointsText}}">{{pointsText}}</text>
-      <text class="product-detail-price">参考价 ¥{{product.price}}</text>
+      <text class="product-detail-price" wx:if="{{!product.isDisplayOnly}}">参考价 ¥{{product.price}}</text>
     </view>
     <view class="product-detail-views">👁 浏览 {{product.viewCount}} 次</view>
     <view class="product-detail-tags">
       <text class="product-tag" wx:if="{{categoryLabel}}">{{categoryLabel}}</text>
       <text class="product-tag" wx:if="{{product.subcategory}}">{{product.subcategory}}</text>
     </view>
-    <view class="points-rule-btn" bindtap="goEarn">
+    <view class="points-rule-btn" wx:if="{{!product.isDisplayOnly}}" bindtap="goEarn">
       <text class="points-rule-icon">📋</text>
       <text class="points-rule-text">本月积分获得规则</text>
       <text class="points-rule-arrow">›</text>
@@ -87,7 +87,7 @@
   </view>
 
   <!-- 兑换操作区：左加客服 / 右收藏并提交地址（两个按钮一直都在，客户自己选） -->
-  <view class="contact-card">
+  <view class="contact-card" wx:if="{{!product.isDisplayOnly}}">
     <text class="contact-title">想兑换这个礼品？</text>
     <view class="cta-row">
       <button class="cta-btn cta-btn-kefu" bindtap="showQrcode">添加客服微信</button>

@@ -7,6 +7,7 @@ const consent = require('../../utils/consent.js');
 
 // 推荐有礼按推荐人数换，不显示积分
 function buildPointsText(product) {
+  if (product.isDisplayOnly) return '';   // 活动说明卡：不是能兑换的礼品
   if (product.category === 'referral') {
     if (product.subcategory) {
       const m = String(product.subcategory).match(/推荐\s*(\d+)\s*人/);

@@ -11,6 +11,7 @@ const mainCategories = categories.filter(c => c.value !== 'all');
 //   （避免和"剩余积分"混淆——推荐有礼是按推荐人数发礼品，不是按积分）
 // - 其他分类：照旧显示"兑换积分：N 分"
 function buildCategoryMetaText(item, currentCategory) {
+  if (item.isDisplayOnly) return '';   // 活动说明卡：不是能兑换的礼品，不显示积分/人数
   if (item.category === 'referral' || currentCategory === 'referral') {
     if (item.subcategory) {
       const m = String(item.subcategory).match(/推荐\s*(\d+)\s*人/);

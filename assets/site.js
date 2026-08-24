@@ -61,6 +61,9 @@ function toggleWishlist(id) {
   if (idx >= 0) {
     list.splice(idx, 1);
   } else {
+    // 仅展示条目不进心愿单（界面上本来就没入口，这里防其它路径混进来）
+    const prod = state.products.find((p) => String(p.id) === sid);
+    if (prod && prod.isDisplayOnly) return;
     list.push(sid);
   }
 
@@ -262,6 +265,7 @@ function normalizeProduct(product, index) {
     sortOrder: Number(product.sortOrder ?? product.sort_order ?? index + 1),
     isActive: product.isActive ?? product.is_active ?? true,
     isPinned: Boolean(product.isPinned ?? product.is_pinned ?? false),
+    isDisplayOnly: Boolean(product.isDisplayOnly ?? product.is_display_only ?? false),
     createdAt: product.createdAt || product.created_at || "",
     viewCount: Number(product.viewCount ?? product.view_count ?? 0)
   };
@@ -515,6 +519,22 @@ function productCard(item) {
   const tagText = isReferral ? "推荐可兑" : "办卡可兑";
   const tagClass = isReferral ? "title-tag title-tag-referral" : "title-tag title-tag-card";
   const pointsText = buildPointsText(item);
+
+  // 仅展示条目（活动说明卡）：不显示价格/积分，也不给心愿单入口——它不是能兑换的礼品
+  if (item.isDisplayOnly) {
+    return `
+    <article class="product-card product-card-display">
+      <a class="product-card-link" href="${escapeHtml(detailHref)}">
+        <div class="product-media">
+          <img class="product-image" src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.title)}" loading="lazy" decoding="async">
+        </div>
+        <div class="product-body">
+          <h3 class="product-title">${escapeHtml(item.title)}</h3>
+        </div>
+      </a>
+    </article>
+  `;
+  }
 
   return `
     <article class="product-card">
@@ -1021,10 +1041,10 @@ function renderProductDetail() {
   }
 
   const wishlisted = isWishlisted(item.id);
-  const priceText = item.price > 0
+  const priceText = (item.price > 0 && !item.isDisplayOnly)
     ? `<p class="product-price">参考价 <span class="price-symbol">¥</span>${escapeHtml(item.price)}</p>`
     : "";
-  const pointsText = buildPointsText(item);
+  const pointsText = item.isDisplayOnly ? "" : buildPointsText(item);
   const descText = item.description
     ? `<div class="product-detail-section"><h2 class="product-detail-subhead">礼品说明</h2><p class="product-detail-desc">${escapeMultiline(item.description)}</p></div>`
     : "";
@@ -1064,11 +1084,11 @@ function renderProductDetail() {
     <div class="product-detail-media" data-image-zoom>
       <img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.title)}">
       <span class="product-detail-zoom-hint">点击放大</span>
-      <button class="heart-btn ${wishlisted ? "active" : ""}" type="button" data-wishlist-toggle="${escapeHtml(item.id)}" aria-label="${wishlisted ? "从心愿单移除" : "加入心愿单"}">
+      ${item.isDisplayOnly ? "" : `<button class="heart-btn ${wishlisted ? "active" : ""}" type="button" data-wishlist-toggle="${escapeHtml(item.id)}" aria-label="${wishlisted ? "从心愿单移除" : "加入心愿单"}">
         <svg viewBox="0 0 24 24">
           <path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z" stroke-width="1.8" stroke-linejoin="round"/>
         </svg>
-      </button>
+      </button>`}
     </div>
     ${galleryHtml}
     <div class="product-detail-body">
@@ -1080,14 +1100,14 @@ function renderProductDetail() {
         ${pointsText ? `<span class="product-cards">${escapeHtml(pointsText)}</span>` : ""}
       </div>
       <p class="product-detail-views" id="productDetailViews">👁 浏览 ${escapeHtml(item.viewCount || 0)} 次</p>
-      <a class="pd-points-link" href="earn.html">💡 积分怎么来？查看「获取积分」对照表 ›</a>
+      ${item.isDisplayOnly ? "" : `<a class="pd-points-link" href="earn.html">💡 积分怎么来？查看「获取积分」对照表 ›</a>`}
       ${descText}
       ${kefuCard}
-      <div class="product-detail-cta-row">
+      ${item.isDisplayOnly ? "" : `<div class="product-detail-cta-row">
         <button class="pd-cta-btn pd-cta-btn-kefu" type="button" data-qr-popup="${escapeHtml(qr)}">添加客服微信</button>
         <button class="pd-cta-btn pd-cta-btn-submit" type="button" data-collect-submit="${escapeHtml(item.id)}">收藏并提交地址</button>
-      </div>
-      <p class="pd-cta-note">提交地址后，请微信同步客服，核验订单后发货</p>
+      </div>`}
+      ${item.isDisplayOnly ? "" : `<p class="pd-cta-note">提交地址后，请微信同步客服，核验订单后发货</p>`}
       ${state.antiPiracyNotice && state.antiPiracyNotice.productFooterText ? `<p class="anti-piracy-banner anti-piracy-banner-inline">${escapeHtml(state.antiPiracyNotice.productFooterText)}</p>` : ""}
       <a class="product-detail-cta-link" href="wishlist.html">查看我的心愿单 ›</a>
     </div>

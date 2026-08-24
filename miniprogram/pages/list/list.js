@@ -49,6 +49,7 @@ function displayLabel(value) {
 
 // 推荐有礼按推荐人数换，不显示积分；其他显示兑换积分
 function buildMetaText(item) {
+  if (item.isDisplayOnly) return '';   // 活动说明卡：不是能兑换的礼品
   if (item.category === 'referral') {
     if (item.subcategory) {
       const m = String(item.subcategory).match(/推荐\s*(\d+)\s*人/);

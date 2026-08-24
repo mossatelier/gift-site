@@ -3452,3 +3452,9 @@ body.pc-admin {
   padding: 1px 6px;
   vertical-align: middle;
 }
+
+/* 仅展示角标：跟置顶区分开（灰蓝色，非强调色） */
+.pc-edit-dispraw {
+  color: #4a6fa5;
+  background: rgba(74, 111, 165, 0.1);
+}

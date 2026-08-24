@@ -188,6 +188,11 @@ exports.main = async (event, context) => {
   for (const it of items) {
     const p = productMap[it._id];
     if (!p) continue;
+    // 仅展示条目（活动说明卡之类）不可兑换：前端已经隐藏了入口，这里是服务端兜底，
+    // 防止有人绕过界面直接提交，产生根本没法发货的订单。
+    if (p.isDisplayOnly) {
+      return { success: false, error: `「${p.title || '该条目'}」是活动说明，不能兑换` };
+    }
     const qty = Math.max(1, Math.min(99, Number(it.qty) || 1));
     const cards = Number(p.cardsNeeded) || 0;
     itemSnapshots.push({
