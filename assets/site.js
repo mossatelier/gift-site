@@ -218,6 +218,8 @@ function categoryMatch(item) {
     return state.sub ? item.category === state.sub : MOMBABY_GROUP.indexOf(item.category) >= 0;
   }
   if (item.category !== cat) return false;
+  // 置顶卡豁免二级分类筛选：它是挂在一级分类下的活动位，点哪个二级 tag 都该看得到
+  if (item.isPinned) return true;
   return state.sub ? item.subcategory === state.sub : true;
 }
 
@@ -602,6 +604,7 @@ function renderCategoryPage() {
 
   const items = state.products.filter((item) => {
     if (item.category !== state.category) return false;
+    if (item.isPinned) return true; // 置顶卡豁免二级分类筛选（同上）
     return state.sub ? item.subcategory === state.sub : true;
   });
 

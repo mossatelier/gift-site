@@ -75,7 +75,28 @@ async function listProducts({
   }
 
   const res = await q.skip(skip).limit(limit).get();
-  const list = res.data.map(normalize);
+  let list = res.data.map(normalize);
+
+  // 置顶卡豁免二级分类筛选：它是挂在一级分类下的活动位（图就是活动信息），
+  // 用户在「推荐有礼」里点哪个人数档，它都该固定在最前面，否则一点 tag 活动信息就消失了。
+  // 只豁免二级分类；搜索关键词 / 积分筛选时不硬塞，免得出现明显不相关的结果。
+  if (subcategory && category && category !== 'all' && !keyword && cardsMin == null && cardsMax == null && skip === 0) {
+    try {
+      const pinCond = { isActive: true, isPinned: true };
+      pinCond.category = Array.isArray(category) ? db().command.in(category) : category;
+      const pinRes = await products().where(pinCond).limit(10).get();
+      const pinned = (pinRes.data || []).map(normalize);
+      if (pinned.length) {
+        const seen = {};
+        pinned.forEach((p) => { seen[p._id] = true; });
+        list = pinned.concat(list.filter((p) => !seen[p._id]));
+      }
+    } catch (e) {
+      // 取置顶失败不影响正常列表
+      console.warn('[db] load pinned failed', e);
+    }
+  }
+
   // 置顶前置：数据库那几种排序（热门/积分/最新）都轮不到 sortOrder 说话，
   // 所以置顶不能靠 sortOrder 模拟，得在取回后单独把置顶项提到最前。
   // 用稳定排序，置顶项之间、非置顶项之间都保持原有顺序不变。
