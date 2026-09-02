@@ -325,6 +325,7 @@
     try {
       json = await res.json();
     } catch (e) {
+      if (res.status === 413) throw new Error("图片太大，服务器拒收了。请换一张尺寸小一些的图片。");
       throw new Error("返回不是 JSON（HTTP " + res.status + "）");
     }
     if (!res.ok || !json.ok) {
@@ -479,76 +480,68 @@
    * 非图片 / 压缩无收益 / 出错 时原样返回传入的 file。永不 throw。
    */
   async function compressImageFile(file) {
-    if (!canCompressImage(file)) {
+    if (!file) return file;
+
+    // 已经足够小、且不是浏览器打不开的格式 → 原样上传
+    var looksHeic = /heic|heif/i.test(file.type || "") || /\.(heic|heif)$/i.test(file.name || "");
+    if (!looksHeic && file.size <= IMAGE_UPLOAD_MAX_BYTES) return file;
+
+    var image = null;
+    try {
+      image = await loadImageFile(file);
+    } catch (e) {
+      image = null;
+    }
+
+    var sourceWidth = image && (image.naturalWidth || image.width);
+    var sourceHeight = image && (image.naturalHeight || image.height);
+
+    // 浏览器解不开这张图（iPhone 的 HEIC 最常见）。原图往往几 MB，直接传必被网关 413 拒收，
+    // 与其抛个看不懂的「HTTP 413」，不如告诉用户该怎么办。
+    if (!image || !sourceWidth || !sourceHeight) {
+      if (file.size > IMAGE_UPLOAD_MAX_BYTES) {
+        throw new Error("这张图片浏览器打不开（iPhone 的 HEIC 格式常见）。请在手机相册里把它「拷贝」或截图一次转成 JPG，再上传。");
+      }
       return file;
     }
 
-    try {
-      var image = await loadImageFile(file);
-      var sourceWidth = image.naturalWidth || image.width;
-      var sourceHeight = image.naturalHeight || image.height;
+    // 逐轮压：先降质量，还不够就缩边长，直到进入体积限制内。
+    var edge = Math.min(IMAGE_COMPRESS_MAX_EDGE, Math.max(sourceWidth, sourceHeight));
+    var best = null;
+    var qualities = [IMAGE_COMPRESS_QUALITY, 0.7, 0.62, 0.55, 0.45, 0.35];
 
-      if (!sourceWidth || !sourceHeight) {
-        return file;
-      }
-
-      var scale = Math.min(1, IMAGE_COMPRESS_MAX_EDGE / Math.max(sourceWidth, sourceHeight));
-      var shouldResize = scale < 1;
-      var shouldCompress = file.size > IMAGE_COMPRESS_MIN_BYTES;
-
-      if (!shouldResize && !shouldCompress) {
-        return file;
-      }
-
+    for (var round = 0; round < 6; round += 1) {
+      var scale = edge / Math.max(sourceWidth, sourceHeight);
       var targetWidth = Math.max(1, Math.round(sourceWidth * scale));
       var targetHeight = Math.max(1, Math.round(sourceHeight * scale));
+
       var canvas = document.createElement("canvas");
       canvas.width = targetWidth;
       canvas.height = targetHeight;
-
       var ctx = canvas.getContext("2d", { alpha: false });
-
-      if (!ctx) {
-        return file;
-      }
-
+      if (!ctx) break;
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, targetWidth, targetHeight);
       ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
 
-      // 逐级降质量，直到体积达标（base64 会膨胀 33%，超了会被 HTTP 网关 413 拒收）
-      var blob = null;
-      var qualities = [IMAGE_COMPRESS_QUALITY, 0.7, 0.62, 0.55, 0.45];
       for (var qi = 0; qi < qualities.length; qi += 1) {
-        blob = await canvasToBlob(canvas, "image/jpeg", qualities[qi]);
-        if (blob && blob.size <= IMAGE_UPLOAD_MAX_BYTES) break;
+        var blob = await canvasToBlob(canvas, "image/jpeg", qualities[qi]);
+        if (!blob) continue;
+        if (!best || blob.size < best.size) best = blob;
+        if (blob.size <= IMAGE_UPLOAD_MAX_BYTES) {
+          return new File([blob], compressedImageName(file.name), {
+            type: "image/jpeg",
+            lastModified: Date.now()
+          });
+        }
       }
-      // 仍超标就再缩一半边长重压一次
-      if (blob && blob.size > IMAGE_UPLOAD_MAX_BYTES) {
-        canvas.width = Math.max(1, Math.round(targetWidth * 0.7));
-        canvas.height = Math.max(1, Math.round(targetHeight * 0.7));
-        var ctx2 = canvas.getContext("2d", { alpha: false });
-        ctx2.fillStyle = "#ffffff";
-        ctx2.fillRect(0, 0, canvas.width, canvas.height);
-        ctx2.drawImage(image, 0, 0, canvas.width, canvas.height);
-        blob = await canvasToBlob(canvas, "image/jpeg", 0.6);
-      }
-
-      if (!blob) {
-        return file;
-      }
-      // 压完反而更大：原图小于上限就用原图，否则仍用压缩结果（必须保证能传上去）
-      if (blob.size >= file.size && file.size <= IMAGE_UPLOAD_MAX_BYTES) {
-        return file;
-      }
-
-      return new File([blob], compressedImageName(file.name), {
-        type: "image/jpeg",
-        lastModified: Date.now()
-      });
-    } catch (e) {
-      return file;
+      edge = Math.max(1, Math.round(edge * 0.75));
     }
+
+    if (!best) {
+      throw new Error("图片处理失败，请换一张图片试试。");
+    }
+    throw new Error("这张图片压缩后仍然过大（" + Math.round(best.size / 1024) + "KB，上限 " + Math.round(IMAGE_UPLOAD_MAX_BYTES / 1024) + "KB）。请换一张尺寸小一些的图片。");
   }
 
   /**

@@ -879,74 +879,69 @@ function canvasToBlob(canvas, type, quality) {
 }
 
 async function compressImageFile(file) {
-  if (!canCompressImage(file)) {
+  if (!file) return file;
+
+  // 已经足够小、且是浏览器能直接吃的常规格式 → 原样上传
+  const looksHeic = /heic|heif/i.test(file.type || "") || /\.(heic|heif)$/i.test(file.name || "");
+  if (!looksHeic && file.size <= IMAGE_UPLOAD_MAX_BYTES) return file;
+
+  let image = null;
+  try {
+    image = await loadImageFile(file);
+  } catch (err) {
+    image = null;
+  }
+
+  const sourceWidth = image && (image.naturalWidth || image.width);
+  const sourceHeight = image && (image.naturalHeight || image.height);
+
+  // 浏览器解不开这张图（iPhone 的 HEIC 最常见）。原图往往几 MB，直接传必被网关 413 拒收，
+  // 与其抛个看不懂的「HTTP 413」，不如告诉用户该怎么办。
+  if (!image || !sourceWidth || !sourceHeight) {
+    if (file.size > IMAGE_UPLOAD_MAX_BYTES) {
+      throw new Error("这张图片浏览器打不开（iPhone 的 HEIC 格式常见）。请在手机相册里把它「拷贝」或截图一次转成 JPG，再上传。");
+    }
     return file;
   }
 
-  try {
-    const image = await loadImageFile(file);
-    const sourceWidth = image.naturalWidth || image.width;
-    const sourceHeight = image.naturalHeight || image.height;
+  // 逐轮压：先降质量，还不够就缩边长，直到进入体积限制内。
+  // 每轮边长 ×0.75，最多 6 轮（800→约 140px），正常照片一两轮就够。
+  let edge = Math.min(IMAGE_COMPRESS_MAX_EDGE, Math.max(sourceWidth, sourceHeight));
+  let best = null;
 
-    if (!sourceWidth || !sourceHeight) {
-      return file;
-    }
-
-    const scale = Math.min(1, IMAGE_COMPRESS_MAX_EDGE / Math.max(sourceWidth, sourceHeight));
-    const shouldResize = scale < 1;
-    const shouldCompress = file.size > IMAGE_COMPRESS_MIN_BYTES;
-
-    if (!shouldResize && !shouldCompress) {
-      return file;
-    }
-
+  for (let round = 0; round < 6; round += 1) {
+    const scale = edge / Math.max(sourceWidth, sourceHeight);
     const targetWidth = Math.max(1, Math.round(sourceWidth * scale));
     const targetHeight = Math.max(1, Math.round(sourceHeight * scale));
+
     const canvas = document.createElement("canvas");
     canvas.width = targetWidth;
     canvas.height = targetHeight;
-
     const ctx = canvas.getContext("2d", { alpha: false });
-
-    if (!ctx) {
-      return file;
-    }
-
+    if (!ctx) break;
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, targetWidth, targetHeight);
     ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
 
-    // 逐级降质量，直到体积达标（base64 会膨胀 33%，超了会被 HTTP 网关 413 拒收）
-    let blob = null;
-    for (const q of [IMAGE_COMPRESS_QUALITY, 0.7, 0.62, 0.55, 0.45]) {
-      blob = await canvasToBlob(canvas, "image/jpeg", q);
-      if (blob && blob.size <= IMAGE_UPLOAD_MAX_BYTES) break;
+    for (const q of [IMAGE_COMPRESS_QUALITY, 0.7, 0.62, 0.55, 0.45, 0.35]) {
+      const blob = await canvasToBlob(canvas, "image/jpeg", q);
+      if (!blob) continue;
+      if (!best || blob.size < best.size) best = blob;
+      if (blob.size <= IMAGE_UPLOAD_MAX_BYTES) {
+        return new File([blob], compressedImageName(file.name), {
+          type: "image/jpeg",
+          lastModified: Date.now()
+        });
+      }
     }
-    // 仍超标就再缩边长重压一次
-    if (blob && blob.size > IMAGE_UPLOAD_MAX_BYTES) {
-      canvas.width = Math.max(1, Math.round(targetWidth * 0.7));
-      canvas.height = Math.max(1, Math.round(targetHeight * 0.7));
-      const ctx2 = canvas.getContext("2d", { alpha: false });
-      ctx2.fillStyle = "#ffffff";
-      ctx2.fillRect(0, 0, canvas.width, canvas.height);
-      ctx2.drawImage(image, 0, 0, canvas.width, canvas.height);
-      blob = await canvasToBlob(canvas, "image/jpeg", 0.6);
-    }
-
-    if (!blob) {
-      return file;
-    }
-    if (blob.size >= file.size && file.size <= IMAGE_UPLOAD_MAX_BYTES) {
-      return file;
-    }
-
-    return new File([blob], compressedImageName(file.name), {
-      type: "image/jpeg",
-      lastModified: Date.now()
-    });
-  } catch {
-    return file;
+    edge = Math.max(1, Math.round(edge * 0.75));
   }
+
+  // 压到最小仍超标：与其上传后被网关 413，不如明确说清楚
+  if (!best) {
+    throw new Error("图片处理失败，请换一张图片试试。");
+  }
+  throw new Error("这张图片压缩后仍然过大（" + Math.round(best.size / 1024) + "KB，上限 " + Math.round(IMAGE_UPLOAD_MAX_BYTES / 1024) + "KB）。请换一张尺寸小一些的图片。");
 }
 
 // 读成 base64（经云函数中转写入云存储）
@@ -2010,6 +2005,7 @@ async function callAdminOrders(action, payload = {}) {
   try {
     json = await res.json();
   } catch {
+    if (res.status === 413) throw new Error("图片太大，服务器拒收了。请换一张尺寸小一些的图片。");
     throw new Error(`返回不是 JSON（HTTP ${res.status}）`);
   }
   if (!res.ok || !json.ok) {
