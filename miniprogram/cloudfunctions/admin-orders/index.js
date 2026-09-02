@@ -1530,22 +1530,36 @@ async function webSubmitOrder({ items, address, remark, referrerCode }) {
   if (!String(addr.province || '').trim() || !String(addr.city || '').trim()) throw new Error('请填写所在省 / 市');
   if (!String(addr.detail || '').trim()) throw new Error('请填写详细地址');
 
-  // 商品快照：优先用云开发 products（按 supabaseId 匹配）校正标题/积分，找不到则用前端传值
+  // 商品快照：一律以服务端商品为准，不信前端传来的标题/价格/积分。
+  // ⚠️ 这里原来只按 supabaseId 匹配，但迁移到云开发后商品的 supabaseId 基本都是空的，
+  //    导致永远匹配不到 → 积分/标题全用前端值（可被篡改，谎报 0 积分即可绕过下面的积分闸），
+  //    「仅展示」拦截也因为拿不到商品而失效。必须同时按云开发 _id 匹配。
   const ids = Array.from(new Set(list.map(it => String((it && (it.supabaseId || it.id)) || '')).filter(Boolean)));
   const map = {};
   if (ids.length) {
-    try {
-      const r = await db.collection('products').where({ supabaseId: _.in(ids) }).limit(50).get();
-      r.data.forEach(p => { if (p.supabaseId) map[String(p.supabaseId)] = p; });
-    } catch (e) { /* 匹配失败则用前端值 */ }
+    const r = await db.collection('products')
+      .where(_.or([{ _id: _.in(ids) }, { supabaseId: _.in(ids) }]))
+      .limit(50).get();
+    (r.data || []).forEach(p => {
+      map[String(p._id)] = p;
+      if (p.supabaseId) map[String(p.supabaseId)] = p;
+    });
   }
   const itemSnapshots = [];
   let totalCards = 0;
   for (const it of list) {
     const key = String((it && (it.supabaseId || it.id)) || '');
     const p = map[key];
+    // 查不到就拒绝：商品都在云开发里，查不到说明 id 有问题或商品已删，
+    // 不能再拿前端传的标题/积分兜底（那等于让前端自己定价）
+    if (!p) {
+      throw new Error('礼品不存在或已下架，请刷新页面后重试');
+    }
+    if (p.isActive === false) {
+      throw new Error(`「${p.title || '该礼品'}」已下架`);
+    }
     // 仅展示条目不可兑换（服务端兜底，同 submit-order）
-    if (p && p.isDisplayOnly) {
+    if (p.isDisplayOnly) {
       throw new Error(`「${p.title || '该条目'}」是活动说明，不能兑换`);
     }
     const cards = Number(p && p.cardsNeeded != null ? p.cardsNeeded : (it && it.cardsNeeded)) || 0;
