@@ -540,8 +540,18 @@ async function getStats({ period = 'today' }) {
     since ? db.collection('users').where({ createdAt: _.gte(since) }).count() : Promise.resolve({ total: 0 }),
     db.collection('orders').where(orderWhere).count(),
     db.collection('orders').where(orderWhere).orderBy('createdAt', 'desc').limit(1000).get(),
-    // 商品 createdAt 是同步自 Supabase 的 ISO 字符串（非 Date），用 ISO 字符串比较（ISO 8601 字符串序=时间序）
-    since ? db.collection('products').where({ createdAt: _.gte(since.toISOString()) }).count() : Promise.resolve({ total: 0 }),
+    // 商品 createdAt 有两种类型，必须都查：
+    //   · Supabase 时代同步过来的老商品 → ISO 字符串（"2026-05-09T08:18:42.847567+00:00"）
+    //   · 后台在云开发直接录入的新商品 → Date 对象
+    // 云开发严格区分类型，只拿字符串去比 Date 字段会一条都匹配不到（上新统计长期显示 0 就是这么来的）。
+    // 已删除（回收站里）的不算上新
+    since ? db.collection('products').where(_.and([
+      _.or([
+        { createdAt: _.gte(since) },
+        { createdAt: _.gte(since.toISOString()) }
+      ]),
+      { deleted: _.neq(true) }
+    ])).count() : Promise.resolve({ total: 0 }),
     db.collection('products').where({ isActive: true }).orderBy('viewCount', 'desc').limit(10).get(),
     fetchAll(db.collection('wishlists'), 5000),
     prevWhere ? db.collection('users').where(prevWhere).count() : Promise.resolve({ total: 0 }),
