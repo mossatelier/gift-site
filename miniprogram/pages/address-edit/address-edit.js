@@ -15,6 +15,10 @@ const PROVINCE_MAP = {
   '香港': '香港特别行政区', '澳门': '澳门特别行政区'
 };
 const MUNICIPALITIES = ['北京市', '天津市', '上海市', '重庆市'];
+// 省级名称白名单：region picker 选出来的一定在这里；粘贴识别可能给出"深圳市"这种市级名，
+// 用它把错位的数据挡在保存之前（错位会让省市区整体上移一级，统计里就会冒出"深圳市"这种省份）
+const VALID_PROVINCES = Object.keys(PROVINCE_MAP).map(function (k) { return PROVINCE_MAP[k]; });
+function isValidProvince(p) { return VALID_PROVINCES.indexOf(String(p || '').trim()) >= 0; }
 
 // 从一整段文字里尽力解析出收件人 / 手机 / 省市区 / 详细地址
 function parseAddress(raw) {
@@ -134,21 +138,30 @@ Page({
       return;
     }
     const r = parseAddress(raw);
-    const region = [r.province, r.city, r.district].filter(Boolean);
     const patch = {};
     if (r.recipient) patch.recipient = r.recipient;
     if (r.phone) patch.phone = r.phone;
     if (r.detail) patch.detail = r.detail;
-    if (region.length) {
-      patch.region = region;
-      patch.regionText = region.join(' ');
+
+    // ⚠️ 省市区是「按位置」取值的，绝不能用 filter(Boolean) 压缩数组：
+    //    没识别出省份时 ['', '深圳市', '宝安区'] 会被压成 ['深圳市', '宝安区']，
+    //    保存时按位解构就变成 省=深圳市、市=宝安区，整体错位一级。
+    //    只有省份确实识别成省级名称时才回填，否则留空让用户自己点选。
+    const regionOk = isValidProvince(r.province) && !!r.city;
+    if (regionOk) {
+      patch.region = [r.province, r.city, r.district || ''];
+      patch.regionText = [r.province, r.city, r.district].filter(Boolean).join(' ');
     }
+
     if (Object.keys(patch).length === 0) {
       wx.showToast({ title: '未识别到信息，请手动填写', icon: 'none' });
       return;
     }
     this.setData(patch);
-    wx.showToast({ title: '已识别，请核对', icon: 'none' });
+    wx.showToast({
+      title: regionOk ? '已识别，请核对' : '省市区没认出来，请手动选择',
+      icon: 'none'
+    });
   },
 
   onRecipient(e) { this.setData({ recipient: e.detail.value }); },
@@ -169,6 +182,11 @@ Page({
       return;
     }
     const [province = '', city = '', district = ''] = this.data.region || [];
+    // 兜底：省份必须是省级名称，挡住任何错位数据流进订单（统计里的"深圳市省份"就是这么来的）
+    if (!isValidProvince(province)) {
+      wx.showToast({ title: '请点击「省 / 市 / 区」重新选择', icon: 'none' });
+      return;
+    }
     const patch = {
       recipient: this.data.recipient,
       phone: this.data.phone,
