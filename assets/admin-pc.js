@@ -49,7 +49,7 @@
   // ============ 本地状态 ============
 
   var state = {
-    activePanel: "stats",
+    activePanel: "orders",
     statsPeriod: "today",
     stats: null,
     statsLoadedAt: null,
@@ -241,10 +241,10 @@
     var email = (session && session.user && session.user.email) || "已登录管理员";
     if (pcAccountEmail) pcAccountEmail.textContent = email;
 
-    // 初始面板：优先用 URL hash（刷新后停留在原面板），hash 非法时回看板。
-    var fromHash = (location.hash || "").replace(/^#/, "");
-    var validHash = pcPanels.some(function (p) { return p.getAttribute("data-panel") === fromHash; });
-    activatePanel(validHash ? fromHash : (state.activePanel || "stats"));
+    // 每次进入后台都优先展示最新待发货订单，不恢复旧面板。
+    state.ordersStatus = "pending";
+    state.ordersPage = 0;
+    activatePanel("orders");
 
     // 待办角标（不阻塞看板加载）
     loadBadges();
@@ -480,7 +480,7 @@
       resetCreateForm();
     }
     state.activePanel = key;
-    // 写入 URL hash（replaceState 不新增历史项、不滚动），刷新后据此回到原面板。
+    // 写入 URL hash（replaceState 不新增历史项、不滚动），便于当前页面内导航；重新进入时仍默认打开订单。
     try { history.replaceState(null, "", "#" + key); } catch (e) {}
 
     pcNavItems.forEach(function (item) {
@@ -4233,7 +4233,7 @@
     var offPage = ids.length - onPage;
     var msg = "确认把 " + ids.length + " 单改为「" + ORDER_STATUS_LABEL[status] + "」？";
     if (offPage > 0) msg += "\n其中 " + offPage + " 单不在当前页、无法在此逐条核对。";
-    if (status === "cancelled") msg += "\n「已取消」通常会退还用户积分、用户端立即可见，不可轻易撤回。";
+    if (status === "cancelled") msg += "\n本单实际扣除的积分将退回客户账户，未扣分或已退分的不重复退款。";
     else if (status === "shipped") msg += "\n「运输中」用户端将立即显示已发货 / 运输中。";
     else if (status === "signed") msg += "\n「已签收」表示客户已收到礼品。";
     if (!window.confirm(msg)) return;
@@ -4574,7 +4574,7 @@
     // 危险终态二次确认（不可逆 / 用户端立即可见）。取消则还原下拉。
     if (status === "cancelled" || status === "shipped") {
       var warn = status === "cancelled"
-        ? "确认把该订单改为「已取消」？此操作通常会退还用户积分，且用户端立即可见，不可轻易撤回。"
+        ? "确认把该订单改为「已取消」？本单实际扣除的积分将退回客户账户（未扣分或已退分的不重复退款），用户端立即可见。"
         : "确认把该订单改为「运输中」？用户端将显示已发货 / 运输中。";
       if (!window.confirm(warn)) {
         var selR = document.querySelector('[data-orders-status-select="' + ordersCssEscape(id) + '"]');

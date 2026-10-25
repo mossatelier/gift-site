@@ -218,7 +218,7 @@ const state = {
   previewUrl: "",
   editingProduct: null,
   recentProducts: [],
-  activePanel: "create",
+  activePanel: "orders",
   searchQuery: "",
   filterCategory: "all",
   pendingProductId: "",
@@ -1149,6 +1149,7 @@ async function restoreSession() {
       setAuthMessage("管理员登录状态已恢复。", "success");
       updateAuthUi();
       updateFormAccess();
+      openOrdersOnEntry();
       loadRecentProducts();
       return;
     }
@@ -1176,6 +1177,7 @@ async function restoreSession() {
 
   updateAuthUi();
   updateFormAccess();
+  if (activeSession()) openOrdersOnEntry();
   loadRecentProducts();
 }
 
@@ -1231,9 +1233,10 @@ adminAuthForm?.addEventListener("submit", async (event) => {
     saveSession(nextSession);
     try { localStorage.setItem("gift-site-admin-email", email); } catch (e) { /* ignore */ }
     adminPasswordInput.value = "";
-    setAuthMessage("登录成功，现在可以新增和编辑商品。", "success");
+    setAuthMessage("登录成功，已进入订单管理。", "success");
     updateAuthUi();
     updateFormAccess();
+    openOrdersOnEntry();
     await loadRecentProducts();
   } catch (error) {
     saveSession(null);
@@ -2498,6 +2501,22 @@ function copyOrderAddress(orderId) {
     () => setOrdersMessage("已复制收件信息。", "success"),
     () => setOrdersMessage("复制失败，请手动选中。", "error")
   );
+}
+
+function openOrdersOnEntry() {
+  state.activePanel = "orders";
+  state.ordersStatus = "pending";
+  state.ordersPage = 0;
+  state.ordersSearch = "";
+  state.ordersOnlyFail = false;
+  state.selectedOrderIds.clear();
+  if (adminOrdersSearchInput) adminOrdersSearchInput.value = "";
+  if (adminOrdersOnlyFail) adminOrdersOnlyFail.checked = false;
+  if (adminOrdersSegs) adminOrdersSegs.querySelectorAll("[data-orders-seg]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.ordersSeg === "pending");
+  });
+  updatePanelUi();
+  loadOrders();
 }
 
 adminTabOrders?.addEventListener("click", () => {

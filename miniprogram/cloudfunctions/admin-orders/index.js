@@ -421,46 +421,12 @@ async function getOrder({ orderId }) {
   return o;
 }
 
-// 取消/驳回时，若本单曾真实扣过积分、订单还没发货、且没退过分 → 自动退还（仅未发货订单退分，
-// 已发货/已签收后取消不退，避免「先拿货再申请取消」薅积分）
-async function maybeRefundPointsOnCancel(cur, orderId) {
-  if (!cur || cur.status !== 'pending') return null;
-  if (!cur.pointsDeducted || cur.pointsRefundedAt) return null;
-  const points = Number(cur.totalCards) || 0;
-  if (points <= 0 || !cur.openid) return null;
-  const now = new Date();
-  try {
-    await db.collection(USERS).where({ openid: cur.openid }).update({
-      data: { rewardPoints: _.inc(points), updatedAt: now }
-    });
-    await db.collection(LEDGER).add({
-      data: { openid: cur.openid, delta: points, reason: '订单取消退还', refId: orderId, createdAt: now }
-    });
-    return { pointsRefundedAt: now };
-  } catch (e) {
-    console.error('[points] refund on cancel failed', orderId, e);
-    return null;
-  }
-}
-
-async function updateOrderStatus({ orderId, status, adminNote }) {
-  if (!orderId) throw new Error('缺少 orderId');
-  const next = normStatus(status);
-  if (!ALLOWED_STATUS.includes(next)) throw new Error('非法状态');
-  const curRes = await db.collection('orders').doc(orderId).get();
-  const cur = (curRes && curRes.data) || {};
-  const patch = { status: next, updatedAt: new Date() };
-  // 进入「已签收」且尚无签收时间 → 盖手动签收时间（快递接口自动签收会另填，不覆盖）
-  if (next === 'signed' && !cur.signedAt) patch.signedAt = new Date();
-  if (typeof adminNote === 'string') patch.adminNote = adminNote.slice(0, 1000);
-  if (next === 'cancelled') {
-    const refundPatch = await maybeRefundPointsOnCancel(cur, orderId);
-    if (refundPatch) Object.assign(patch, refundPatch);
-  }
-  await db.collection('orders').doc(orderId).update({ data: patch });
-  const r = await db.collection('orders').doc(orderId).get();
-  return r.data;
-}
+// 单笔和批量状态更新共用事务，取消时同时退积分、记流水和更新订单。
+const updateOrderStatus = require('./order-status')({
+  db,
+  normalizeStatus: normStatus,
+  allowedStatuses: ALLOWED_STATUS
+});
 
 // 北京时间偏移（云函数运行环境为 UTC，统一按 UTC+8 计算周期边界）
 const BJ_OFFSET_MS = 8 * 3600 * 1000;
@@ -790,24 +756,15 @@ async function updateOrderStatusBulk({ orderIds, status }) {
   if (orderIds.length > 200) throw new Error('单次最多 200 单');
   const next = normStatus(status);
   if (!ALLOWED_STATUS.includes(next)) throw new Error('非法状态');
-  const now = new Date();
-  const bulkData = { status: next, updatedAt: now };
-  if (next === 'signed') bulkData.signedAt = now; // 批量改已签收时盖签收时间
-  // 批量取消需要逐单核对是否要退积分，所以先读一批再写一批；并发 20 一批
+  // 每单独立事务，失败的订单不改变状态或积分。
   const BATCH = 20;
   let updated = 0;
   let failed = 0;
   for (let i = 0; i < orderIds.length; i += BATCH) {
     const slice = orderIds.slice(i, i + BATCH);
-    const results = await Promise.allSettled(slice.map(async id => {
-      const data = { ...bulkData };
-      if (next === 'cancelled') {
-        const curRes = await db.collection('orders').doc(id).get();
-        const refundPatch = await maybeRefundPointsOnCancel((curRes && curRes.data) || {}, id);
-        if (refundPatch) Object.assign(data, refundPatch);
-      }
-      return db.collection('orders').doc(id).update({ data });
-    }));
+    const results = await Promise.allSettled(slice.map(id =>
+      updateOrderStatus({ orderId: id, status: next })
+    ));
     results.forEach(r => {
       if (r.status === 'fulfilled') updated++;
       else failed++;

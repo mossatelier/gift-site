@@ -26,7 +26,7 @@
         <h2 class="admin-section-title">管理员登录</h2>
         <span class="admin-status-pill admin-status-pill-soft" id="adminAuthState">未登录</span>
       </div>
-      <p class="admin-status-text" id="adminAuthTip">请输入管理员账号和密码，登录后即可管理商品。</p>
+      <p class="admin-status-text" id="adminAuthTip">请输入管理员账号和密码，登录后优先显示最新订单。</p>
       <form class="admin-form admin-auth-form" id="adminAuthForm">
         <label class="admin-field">
           <span>管理员账号</span>
@@ -76,14 +76,14 @@
 
     <section class="admin-card admin-locked-panel" id="adminLockedPanel">
       <h2 class="admin-section-title">等待登录</h2>
-      <p class="admin-status-text">登录成功后，这里会显示录入礼品和编辑礼品两个入口。</p>
+      <p class="admin-status-text">登录成功后，默认显示订单管理，最新订单排在最上方。</p>
     </section>
 
     <div id="adminWorkspace" hidden>
       <section class="admin-card admin-panel-nav">
-        <!-- 第一行：礼品管理 / 订单管理 / 推荐管理 -->
-        <button class="admin-panel-tab active" id="adminTabGoods" type="button"><span class="tab-ico">🎁</span>礼品管理</button>
-        <button class="admin-panel-tab" id="adminTabOrders" type="button"><span class="tab-ico">📦</span>订单管理</button>
+        <!-- 第一行：订单管理 / 礼品管理 / 推荐管理 -->
+        <button class="admin-panel-tab active" id="adminTabOrders" type="button"><span class="tab-ico">📦</span>订单管理</button>
+        <button class="admin-panel-tab" id="adminTabGoods" type="button"><span class="tab-ico">🎁</span>礼品管理</button>
         <button class="admin-panel-tab" id="adminTabReferral" type="button"><span class="tab-ico">🤝</span>推荐管理</button>
         <button class="admin-panel-tab" id="adminTabCustomers" type="button"><span class="tab-ico">👤</span>客户管理</button>
         <!-- 第二行：数据看板 / 银行积分 / 分类排序 -->
@@ -504,6 +504,6 @@
   </main>
 
   <script src="assets/config.js?v=14"></script>
-  <script src="assets/admin.js?v=77"></script>
+  <script src="assets/admin.js?v=78"></script>
 </body>
 </html>
