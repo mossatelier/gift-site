@@ -2178,7 +2178,6 @@ function renderOrdersList() {
                 <input class="admin-tracking-company" type="text" placeholder="快递公司(可选)" value="${escapeHtml(o.trackingCompany || "")}" data-tracking-company="${escapeHtml(o._id)}">
                 <input class="admin-tracking-no" type="text" placeholder="快递单号" value="${escapeHtml(o.trackingNo || "")}" data-tracking-no="${escapeHtml(o._id)}">
                 <input class="admin-tracking-phone" type="text" placeholder="顺丰必填：收件人或寄件人手机号" value="${escapeHtml(o.trackingPhone || (o.address && o.address.phone) || "")}" data-tracking-phone="${escapeHtml(o._id)}">
-                <button class="admin-secondary-btn admin-tracking-save" data-save-tracking="${escapeHtml(o._id)}" type="button">保存单号</button>
               </div>
               <div class="admin-carrier-quick">
                 <span class="admin-carrier-label">常用：</span>
@@ -2213,7 +2212,7 @@ function renderOrdersList() {
               <strong>商家内部备注（仅你可见，客户看不到）</strong>
               <div class="admin-note-row">
                 <input class="admin-note-input" type="text" placeholder="例如：客户已电话确认 / 等下卡" value="${escapeHtml(o.adminNote || "")}" data-note="${escapeHtml(o._id)}">
-                <button class="admin-secondary-btn admin-note-save" data-save-note="${escapeHtml(o._id)}" type="button">保存备注</button>
+                <button class="admin-secondary-btn admin-note-save" data-save-order="${escapeHtml(o._id)}" type="button">保存修改</button>
               </div>
             </div>
             <div class="admin-order-section admin-order-actions">
@@ -2419,54 +2418,42 @@ async function batchQueryShippedLogistics(auto) {
   else renderOrdersList();
 }
 
-async function handleTrackingSave(orderId) {
-  if (!orderId) return;
-  const noInput = adminOrdersList.querySelector(`[data-tracking-no="${orderId}"]`);
-  const companyInput = adminOrdersList.querySelector(`[data-tracking-company="${orderId}"]`);
-  const trackingNo = noInput ? noInput.value.trim() : "";
-  const trackingCompany = companyInput ? companyInput.value.trim() : "";
-  if (!trackingNo) {
-    setOrdersMessage("请填写快递单号。", "error");
-    adminToast("请先填写快递单号", "error");
-    return;
-  }
-  const phoneInput = adminOrdersList.querySelector(`[data-tracking-phone="${orderId}"]`);
-  const phone = phoneInput ? phoneInput.value.trim() : "";
-  const courierCode = carrierCodeOf(trackingCompany);
-  setOrdersMessage(courierCode ? "正在保存单号…" : "正在保存单号（未识别快递公司，将不自动追踪物流）…");
+const savingOrderIds = new Set();
+async function handleOrderSave(orderId) {
+  if (!orderId || savingOrderIds.has(orderId)) return;
+  const order = state.orders.find(o => o._id === orderId);
+  if (!order) return;
+  const field = name => adminOrdersList.querySelector(`[data-${name}="${orderId}"]`);
+  const company = field("tracking-company").value.trim();
+  const fields = {
+    trackingNo: field("tracking-no").value,
+    trackingCompany: company,
+    phone: field("tracking-phone").value,
+    courierCode: carrierCodeOf(company),
+    adminNote: field("note").value
+  };
+  const button = field("save-order");
+  const controls = Array.from(button.closest(".admin-order-body").querySelectorAll("input, select, button"));
+  const disabled = controls.map(el => el.disabled);
+  savingOrderIds.add(orderId);
+  controls.forEach(el => { el.disabled = true; });
+  button.textContent = "保存中…";
+  setOrdersMessage("正在保存快递信息和备注…");
   try {
-    await callAdminOrders("update-tracking", { orderId, trackingNo, trackingCompany, courierCode, phone });
-    // 就地写回；填单号 = 发货 → 云端已自动置「运输中」，前端同步状态并重渲染徽标
-    const idx = state.orders.findIndex((o) => o._id === orderId);
-    if (idx >= 0) {
-      state.orders[idx].trackingNo = trackingNo;
-      state.orders[idx].trackingCompany = trackingCompany;
-      state.orders[idx].trackingPhone = phone;
-      if (state.orders[idx].status !== "cancelled") state.orders[idx].status = "shipped";
-    }
+    const result = await window.OrderSave.save(order, fields, callAdminOrders);
     renderOrdersList();
-    setOrdersMessage("单号已保存，已自动标记「运输中」并推送用户。", "success");
-    adminToast("✅ 单号已保存，已发货并推送用户", "success");
+    const message = result.shipped ? "保存成功，快递信息和备注已保存，订单已标记运输中。"
+      : (result.changed ? "保存成功，快递信息和备注已保存。" : "没有需要保存的修改。");
+    setOrdersMessage(message, "success");
+    adminToast(message, "success");
+    loadOrderSegCounts();
   } catch (err) {
     setOrdersMessage(err.message, "error");
-    adminToast("保存失败：" + (err.message || ""), "error");
-  }
-}
-
-async function handleNoteSave(orderId) {
-  if (!orderId) return;
-  const input = adminOrdersList.querySelector(`[data-note="${orderId}"]`);
-  const adminNote = input ? input.value.trim() : "";
-  setOrdersMessage("正在保存备注…");
-  try {
-    await callAdminOrders("update-note", { orderId, adminNote });
-    const idx = state.orders.findIndex((o) => o._id === orderId);
-    if (idx >= 0) state.orders[idx].adminNote = adminNote;
-    setOrdersMessage("备注已保存（仅你可见）。", "success");
-    adminToast("✅ 备注已保存", "success");
-  } catch (err) {
-    setOrdersMessage(err.message, "error");
-    adminToast("保存失败：" + (err.message || ""), "error");
+    adminToast(err.message, "error");
+  } finally {
+    savingOrderIds.delete(orderId);
+    controls.forEach((el, i) => { el.disabled = disabled[i]; });
+    button.textContent = "保存修改";
   }
 }
 
@@ -2567,16 +2554,10 @@ adminOrdersList?.addEventListener("click", (event) => {
     updateBulkBar();
     return;
   }
-  const saveTracking = event.target.closest("[data-save-tracking]");
-  if (saveTracking) {
+  const saveOrder = event.target.closest("[data-save-order]");
+  if (saveOrder) {
     event.stopPropagation();
-    handleTrackingSave(saveTracking.dataset.saveTracking);
-    return;
-  }
-  const saveNote = event.target.closest("[data-save-note]");
-  if (saveNote) {
-    event.stopPropagation();
-    handleNoteSave(saveNote.dataset.saveNote);
+    handleOrderSave(saveOrder.dataset.saveOrder);
     return;
   }
   const queryLog = event.target.closest("[data-query-logistics]");

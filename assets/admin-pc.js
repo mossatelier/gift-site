@@ -3982,7 +3982,7 @@
       if (event.key === "Escape" && state.ordersDrawerId && confirmDropOrdersDrawer()) closeOrdersDrawer();
     });
 
-    // 抽屉内交互（事件委托）：复制 / 状态下拉 / 快递 chip / 保存单号 / 保存备注。
+    // 抽屉内交互（事件委托）：复制 / 状态下拉 / 快递 chip / 保存修改。
     var drawerBody = document.getElementById("pcOrdersDrawerBody");
     if (drawerBody) {
       drawerBody.addEventListener("click", handleOrdersDrawerClick);
@@ -4378,7 +4378,6 @@
       + '<input class="pc-orders-input pc-orders-tracking-phone" type="text" placeholder="顺丰必填：收件人或寄件人手机号" value="'
       + escapeHtml(o.trackingPhone || (o.address && o.address.phone) || "") + '" data-orders-tracking-phone="' + idEsc + '">'
       + '<div class="pc-orders-carrier-chips"><span class="pc-orders-carrier-label">常用：</span>' + carrierChips + "</div>"
-      + '<button class="pc-btn-primary pc-orders-tracking-save" type="button" data-orders-save-tracking="' + idEsc + '">保存单号</button>'
       + "</section>"
       // 物流轨迹（快递100 推送自动写入；老单点「刷新物流」用实时查询拉取）
       + (o.trackingNo
@@ -4412,7 +4411,7 @@
       + '<div class="pc-orders-sec-head"><strong>商家内部备注</strong><span class="pc-orders-sec-hint">仅你可见，客户看不到</span></div>'
       + '<input class="pc-orders-input pc-orders-note-input" type="text" placeholder="例如：客户已电话确认 / 等下卡" value="'
       + escapeHtml(o.adminNote || "") + '" data-orders-note="' + idEsc + '">'
-      + '<button class="pc-btn-ghost pc-orders-note-save" type="button" data-orders-save-note="' + idEsc + '">保存备注</button>'
+      + '<button class="pc-btn-primary pc-orders-note-save" type="button" data-orders-save="' + idEsc + '">保存修改</button>'
       + "</section>"
       // 删除订单（硬删，主要用于清理测试单；删后数据看板自动同步）
       + '<section class="pc-orders-sec pc-orders-danger">'
@@ -4447,6 +4446,7 @@
   }
   // 关闭 / 切换前确认：有未保存单号/备注则拦。
   function confirmDropOrdersDrawer() {
+    if (state.ordersDrawerSaving) return false;
     return !ordersDrawerDirty() || window.confirm("有未保存的快递单号 / 备注，确定放弃并关闭？");
   }
 
@@ -4504,7 +4504,7 @@
     }
   }
 
-  // 抽屉点击委托：复制 / 快递 chip / 保存单号 / 保存备注。
+  // 抽屉点击委托：复制 / 快递 chip / 保存修改。
   function handleOrdersDrawerClick(event) {
     var copyBtn = event.target.closest("[data-orders-copy]");
     if (copyBtn) {
@@ -4520,14 +4520,9 @@
       }
       return;
     }
-    var saveTracking = event.target.closest("[data-orders-save-tracking]");
-    if (saveTracking) {
-      handleOrdersTrackingSave(saveTracking.getAttribute("data-orders-save-tracking"));
-      return;
-    }
-    var saveNote = event.target.closest("[data-orders-save-note]");
-    if (saveNote) {
-      handleOrdersNoteSave(saveNote.getAttribute("data-orders-save-note"));
+    var saveOrder = event.target.closest("[data-orders-save]");
+    if (saveOrder) {
+      handleOrdersSave(saveOrder.getAttribute("data-orders-save"));
       return;
     }
     var queryLog = event.target.closest("[data-orders-query]");
@@ -4729,46 +4724,45 @@
     step();
   }
 
-  function handleOrdersTrackingSave(id) {
-    if (!id) return;
+  async function handleOrdersSave(id) {
+    if (!id || state.ordersDrawerSaving) return;
     var o = findOrder(id);
     if (!o) return;
-    var noInput = document.querySelector('[data-orders-tracking-no="' + ordersCssEscape(id) + '"]');
-    var companyInput = document.querySelector('[data-orders-tracking-company="' + ordersCssEscape(id) + '"]');
-    var trackingNo = noInput ? noInput.value.trim() : "";
-    var trackingCompany = companyInput ? companyInput.value.trim() : "";
-    if (!trackingNo) {
-      setOrdersDrawerMsg("请填写快递单号。", "error");
-      toast("请先填写快递单号", "error");
-      return;
+    var field = function (name) { return document.querySelector('[data-orders-' + name + '="' + ordersCssEscape(id) + '"]'); };
+    var company = field("tracking-company").value.trim();
+    var fields = {
+      trackingNo: field("tracking-no").value,
+      trackingCompany: company,
+      phone: field("tracking-phone").value,
+      courierCode: carrierCodeOf(company),
+      adminNote: field("note").value
+    };
+    var button = field("save");
+    var controls = Array.from(document.getElementById("pcOrdersDrawerBody").querySelectorAll("input, select, button"));
+    var disabled = controls.map(function (el) { return el.disabled; });
+    state.ordersDrawerSaving = true;
+    controls.forEach(function (el) { el.disabled = true; });
+    button.textContent = "保存中…";
+    setOrdersDrawerMsg("正在保存快递信息和备注…", null);
+    try {
+      var result = await window.OrderSave.save(o, fields, Core.callAdminOrders);
+      renderOrdersTable();
+      renderOrdersDrawerBody(o);
+      var titleEl = document.getElementById("pcOrdersDrawerTitle");
+      if (titleEl) titleEl.textContent = ((o.address || {}).recipient || "订单") + " · " + orderStatusText(o.status);
+      var message = result.shipped ? "保存成功，快递信息和备注已保存，订单已标记运输中。"
+        : (result.changed ? "保存成功，快递信息和备注已保存。" : "没有需要保存的修改。");
+      setOrdersDrawerMsg(message, "success");
+      toast(message, "success");
+      loadBadges();
+    } catch (err) {
+      setOrdersDrawerMsg(err.message, "error");
+      toast(err.message, "error");
+    } finally {
+      state.ordersDrawerSaving = false;
+      controls.forEach(function (el, i) { el.disabled = disabled[i]; });
+      button.textContent = "保存修改";
     }
-    var courierCode = carrierCodeOf(trackingCompany);
-    var phoneInput = document.querySelector('[data-orders-tracking-phone="' + ordersCssEscape(id) + '"]');
-    var phone = phoneInput ? phoneInput.value.trim() : "";
-    setOrdersDrawerMsg(courierCode ? "正在保存单号…" : "正在保存单号（未识别快递公司，将不自动追踪物流）…", null);
-
-    Core.callAdminOrders("update-tracking", { orderId: id, trackingNo: trackingNo, trackingCompany: trackingCompany, courierCode: courierCode, phone: phone })
-      .then(function (res) {
-        o.trackingNo = trackingNo;
-        o.trackingCompany = trackingCompany;
-        o.trackingPhone = phone;
-        // 填单号 = 发货 → 云端已自动置「运输中」，前端同步状态 + 重渲染
-        if (o.status !== "cancelled") {
-          o.status = "shipped";
-          renderOrdersTable();
-          var titleEl = document.getElementById("pcOrdersDrawerTitle");
-          if (titleEl) titleEl.textContent = ((o.address || {}).recipient || "订单") + " · " + orderStatusText("shipped");
-          var rowEl = document.querySelector('[data-orders-row="' + ordersCssEscape(id) + '"]');
-          if (rowEl) rowEl.classList.add("pc-orders-row-active");
-          loadBadges();
-        }
-        setOrdersDrawerMsg("单号已保存，已自动标记「运输中」并推送用户。", "success");
-        toast("✅ 单号已保存，已发货并推送用户", "success");
-      })
-      .catch(function (err) {
-        setOrdersDrawerMsg((err && err.message) || "保存失败", "error");
-        toast("保存失败：" + ((err && err.message) || ""), "error");
-      });
   }
 
   // 硬删订单（清理测试单）：二次确认 → delete-order → 内存移除 + 总数-1 + 重渲染表
@@ -4795,25 +4789,6 @@
       .catch(function (err) {
         setOrdersDrawerMsg((err && err.message) || "删除失败", "error");
         toast((err && err.message) || "删除失败", "error");
-      });
-  }
-
-  // 保存内部备注：update-note，就地写回内存。
-  function handleOrdersNoteSave(id) {
-    if (!id) return;
-    var o = findOrder(id);
-    if (!o) return;
-    var input = document.querySelector('[data-orders-note="' + ordersCssEscape(id) + '"]');
-    var adminNote = input ? input.value.trim() : "";
-    setOrdersDrawerMsg("正在保存备注…", null);
-
-    Core.callAdminOrders("update-note", { orderId: id, adminNote: adminNote })
-      .then(function () {
-        o.adminNote = adminNote;
-        setOrdersDrawerMsg("备注已保存（仅你可见）。", "success");
-      })
-      .catch(function (err) {
-        setOrdersDrawerMsg((err && err.message) || "保存失败", "error");
       });
   }
 
