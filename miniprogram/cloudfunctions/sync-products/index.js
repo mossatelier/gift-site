@@ -1,5 +1,6 @@
-// 定时同步 Supabase ↔ 云开发
-// 同步两张表：products + banks_earn
+// 旧商品定时同步：Supabase → 云开发 products
+// 银行积分已由 CloudBase 后台管理，禁止再从 Supabase 覆盖 banks_earn。
+// 修复部署：重新上传本云函数 sync-products；仅发布网页或 admin-orders 不会生效。
 // 触发器：每 5 分钟一次（见 config.json）
 //
 // 关键策略：
@@ -78,16 +79,6 @@ function normalizeProduct(p) {
     createdAt: p.created_at || '',
     updatedAt: p.updated_at || '',
     _supabaseViewCount: Number(p.view_count) || 0   // 临时字段，不直接写入
-  };
-}
-
-function normalizeBank(b) {
-  return {
-    supabaseId: b.id,
-    name: b.name || '',
-    points: Number(b.points) || 0,
-    sortOrder: Number(b.sort_order) || 100,
-    updatedAt: b.updated_at || ''
   };
 }
 
@@ -180,54 +171,13 @@ async function syncProducts(supabaseProducts) {
   return stats;
 }
 
-const BANK_COMPARE_FIELDS = ['name', 'points', 'sortOrder', 'updatedAt'];
-
-async function syncBanks(supabaseBanks) {
-  const stats = { inserted: 0, updated: 0, skipped: 0, deleted: 0, fetched: supabaseBanks.length };
-
-  let existing;
-  try {
-    existing = await fetchAllFromCollection('banks_earn');
-  } catch (err) {
-    return { ...stats, error: err.message };
-  }
-
-  const map = new Map();
-  for (const e of existing) {
-    if (e.supabaseId) map.set(e.supabaseId, e);
-  }
-
-  const tasks = [];
-
-  for (const sb of supabaseBanks) {
-    const norm = normalizeBank(sb);
-    const cur = map.get(norm.supabaseId);
-    if (cur) {
-      const changed = BANK_COMPARE_FIELDS.some(k => cur[k] !== norm[k]);
-      if (changed) {
-        const docId = cur._id;
-        tasks.push(() => db.collection('banks_earn').doc(docId).update({ data: norm }).then(() => { stats.updated++; }));
-      } else {
-        stats.skipped++;
-      }
-      map.delete(norm.supabaseId);
-    } else {
-      tasks.push(() => db.collection('banks_earn').add({ data: norm }).then(() => { stats.inserted++; }));
-    }
-  }
-
-  for (const orphan of map.values()) {
-    const docId = orphan._id;
-    tasks.push(() => db.collection('banks_earn').doc(docId).remove().then(() => { stats.deleted++; }));
-  }
-
-  await runInBatches(tasks, 20);
-  return stats;
-}
-
 exports.main = async (event, context) => {
   const startedAt = Date.now();
-  const result = { success: true, products: null, banks: null };
+  const result = {
+    success: true,
+    products: null,
+    banks: { skipped: true, reason: 'cloudbase-managed' }
+  };
 
   try {
     // 1. Products（分页拉全量，不再截断在前 1000）
@@ -236,11 +186,8 @@ exports.main = async (event, context) => {
       ? await syncProducts(supabaseProducts)
       : { error: 'Supabase /products did not return an array' };
 
-    // 2. Banks（同样分页拉全量）
-    const supabaseBanks = await fetchAllFromSupabase('banks_earn');
-    result.banks = Array.isArray(supabaseBanks)
-      ? await syncBanks(supabaseBanks)
-      : { error: 'Supabase /banks_earn did not return an array' };
+    // 不读取、不写入、不删除银行积分；以 admin-orders 保存到 CloudBase 的值为准。
+    // 不因 Supabase 更新、缺少某银行或返回空表而改变银行积分。
 
     result.elapsedMs = Date.now() - startedAt;
     console.log('[sync-products] done', result);
