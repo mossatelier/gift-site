@@ -19,6 +19,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 
 const db = cloud.database();
 const _ = db.command;
+const pointsService = require('./points')(db);
 
 const SUPABASE_URL = 'https://ukoqffocqjokcroilyyv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrb3FmZm9jcWpva2Nyb2lseXl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzMxMDUsImV4cCI6MjA5MDkwOTEwNX0.jKFzbuDLbbDboUD8vJLAu0uTkkEzE2YnC2bHU5I8RH0';
@@ -1304,7 +1305,12 @@ async function adminDeleteProduct(body) {
   if (!id) throw new Error('缺少商品 id');
   const hard = !!(body && body.hard);
   if (hard) {
-    await db.collection('products').doc(id).remove();
+    await db.runTransaction(async tx => {
+      const ref = tx.collection('products').doc(id);
+      const product = (await ref.get()).data;
+      if (!product || product.deleted !== true) throw new Error('只能彻底删除回收站中的商品，请刷新后重试');
+      await ref.remove();
+    });
     return { id, hardDeleted: true };
   }
   // 软删：下架 + 标记，前台不再展示，可恢复
@@ -1784,85 +1790,13 @@ async function referralSetStatus(body) {
   const status = body.status;
   if (!id) throw new Error('缺少 id');
   if (!REF_STATUS.includes(status)) throw new Error('状态不合法');
-  const cur = await db.collection(REFERRALS).doc(id).get();
-  const rec = cur.data;
-  if (!rec) throw new Error('记录不存在');
-  const now = new Date();
-  const patch = { status, updatedAt: now };
-
-  // 开户成功 → 发奖励积分（幂等：rewardedAt 已有则不重复发）
-  if (status === REF_OPENED && !rec.rewardedAt) {
-    const reward = Math.max(0, Number(body.rewardPoints != null ? body.rewardPoints : 1) || 0);
-    patch.openedAt = rec.openedAt || now;
-    patch.rewardPoints = reward;
-    patch.rewardedAt = now;
-    if (reward > 0 && rec.referrerOpenid) {
-      await db.collection(USERS).where({ openid: rec.referrerOpenid })
-        .update({ data: { rewardPoints: _.inc(reward), updatedAt: now } });
-      await db.collection(LEDGER).add({ data: {
-        openid: rec.referrerOpenid, delta: reward, reason: '推荐开户奖励', refId: id, createdAt: now
-      }});
-    }
-  }
-  // 从开户成功改回其它状态 → 回收已发积分，保持账目一致
-  if (status !== REF_OPENED && rec.rewardedAt && rec.rewardPoints > 0 && rec.referrerOpenid) {
-    await db.collection(USERS).where({ openid: rec.referrerOpenid })
-      .update({ data: { rewardPoints: _.inc(-rec.rewardPoints), updatedAt: now } });
-    await db.collection(LEDGER).add({ data: {
-      openid: rec.referrerOpenid, delta: -rec.rewardPoints, reason: '推荐开户撤销', refId: id, createdAt: now
-    }});
-    patch.rewardPoints = 0;
-    patch.rewardedAt = null;
-    patch.openedAt = null;
-  }
-  await db.collection(REFERRALS).doc(id).update({ data: patch });
-  return { _id: id, status };
+  return pointsService.referral(body);
 }
 
 // 解绑：清空被推荐人 users 上的上线绑定（关系树的真正来源），删掉相关 referrals 记录，已发奖励回收。
 // 支持两种入参：{id}=按某条推荐记录解绑(列表用)；{openid}=按被推荐人解绑(关系树用，即使没有 referrals 记录也能清 users 绑定)。
 // 用于「老用户被错绑成下线」「误录入」等情况。
-async function referralUnbind(body) {
-  const id = body.id;
-  const openid = String(body.openid || '').trim();
-  if (!id && !openid) throw new Error('缺少 id 或 openid');
-  const now = new Date();
-
-  // 收集要删的 referrals 记录 + 目标被推荐人 openid
-  const recs = [];
-  let refereeOpenid = openid;
-  if (id) {
-    const cur = await db.collection(REFERRALS).doc(id).get();
-    if (cur.data) { recs.push(cur.data); if (!refereeOpenid) refereeOpenid = cur.data.refereeOpenid || ''; }
-  }
-  if (openid) {
-    try {
-      const r = await db.collection(REFERRALS).where({ refereeOpenid: openid }).get();
-      const seen = new Set(recs.map(x => x._id));
-      (r.data || []).forEach(x => { if (!seen.has(x._id)) recs.push(x); });
-    } catch (e) { /* 集合可能未建 */ }
-  }
-
-  // 逐条回收已发奖励 + 删记录
-  for (const rec of recs) {
-    if (rec.rewardedAt && rec.rewardPoints > 0 && rec.referrerOpenid) {
-      await db.collection(USERS).where({ openid: rec.referrerOpenid })
-        .update({ data: { rewardPoints: _.inc(-rec.rewardPoints), updatedAt: now } });
-      await db.collection(LEDGER).add({ data: {
-        openid: rec.referrerOpenid, delta: -rec.rewardPoints, reason: '推荐解绑回收', refId: rec._id, createdAt: now
-      }});
-    }
-    await db.collection(REFERRALS).doc(rec._id).remove();
-  }
-
-  // 清空被推荐人 users 上的上线绑定（关系树就是读这里）
-  if (refereeOpenid) {
-    await db.collection(USERS).where({ openid: refereeOpenid })
-      .update({ data: { referredByCode: '', referredByOpenid: '', referredAt: null, updatedAt: now } });
-  }
-
-  return { unbound: true, removed: recs.length };
-}
+const referralUnbind = pointsService.unbind;
 
 // 裂变关系树（只读）：从 users.referredByOpenid 还原整张上下线网，带每人开卡状态。
 // 仅用于后台查看全貌；奖励仍是单层（由 referral-set-status 只发直接上线），这里不涉及任何发分。
@@ -1970,62 +1904,25 @@ async function adminCustomersList({ phone, limit = 50, skip = 0 }) {
 // - 手动发放一律是正数，留 ledger 记录（manual:true）
 // - 发错了不能直接倒扣，只能「撤销那一笔」——生成一条等额反向流水冲正，原记录标 reversedAt 防止重复撤销
 // 这样后台操作永远有据可查，不会出现「用户余额突然变少但查不到原因」的纠纷。
-async function adminPointsGrant({ openid, amount, note }) {
-  const oid = String(openid || '').trim();
-  if (!oid) throw new Error('缺少 openid');
-  const amt = Math.floor(Number(amount));
-  if (!Number.isFinite(amt) || amt <= 0) throw new Error('积分数额必须是正整数');
-  const now = new Date();
-  const ur = await db.collection(USERS).where({ openid: oid }).limit(1).get();
-  let user = ur.data[0];
-  if (!user) {
-    const add = await db.collection(USERS).add({
-      data: { openid: oid, nickName: '微信用户', avatarUrl: '', rewardPoints: 0, createdAt: now, updatedAt: now }
-    });
-    user = { _id: add._id, rewardPoints: 0 };
-  }
-  await db.collection(USERS).doc(user._id).update({ data: { rewardPoints: _.inc(amt), updatedAt: now } });
-  const ledgerAdd = await db.collection(LEDGER).add({
-    data: {
-      openid: oid, delta: amt, reason: '客服手动发放' + (note ? '：' + String(note).trim().slice(0, 100) : ''),
-      refId: '', manual: true, reversedAt: null, createdAt: now
-    }
-  });
-  return { ledgerId: ledgerAdd._id, openid: oid, delta: amt };
-}
+const adminPointsGrant = pointsService.grant;
+const adminPointsRevoke = pointsService.revoke;
 
-async function adminPointsRevoke({ ledgerId }) {
-  const id = String(ledgerId || '').trim();
-  if (!id) throw new Error('缺少 ledgerId');
-  const r = await db.collection(LEDGER).doc(id).get();
-  const entry = r.data;
-  if (!entry) throw new Error('流水记录不存在');
-  if (!entry.manual) throw new Error('只能撤销「客服手动发放」的记录，其它类型（兑换/退还/推荐奖励）不能在这里撤销');
-  if (entry.reversedAt) throw new Error('这笔记录已经撤销过了');
-  const now = new Date();
-  await db.collection(USERS).where({ openid: entry.openid }).update({
-    data: { rewardPoints: _.inc(-entry.delta), updatedAt: now }
-  });
-  await db.collection(LEDGER).add({
-    data: { openid: entry.openid, delta: -entry.delta, reason: '撤销手动发放', refId: id, manual: false, reversedAt: null, createdAt: now }
-  });
-  await db.collection(LEDGER).doc(id).update({ data: { reversedAt: now } });
-  return { ok: true };
-}
-
-// 某用户的积分流水（后台查看用），带「变动后余额」——按时间正序累加算出每笔的余额，再倒序返回给前端看
+// 先取最新流水，以当前余额向前倒推，避免截断早期记录后遗漏最新收支。
 async function adminPointsLedger({ openid, limit = 100 }) {
   const oid = String(openid || '').trim();
   if (!oid) throw new Error('缺少 openid');
   const lim = Math.max(1, Math.min(500, Number(limit) || 100));
-  const res = await db.collection(LEDGER).where({ openid: oid }).orderBy('createdAt', 'asc').limit(lim).get();
+  const res = await db.collection(LEDGER).where({ openid: oid }).orderBy('createdAt', 'desc').limit(lim).get();
   const rows = res.data || [];
-  let running = 0;
+  const accounts = await db.collection(USERS).where({ openid: oid }).limit(2).get();
+  if (accounts.data.length !== 1) throw new Error('积分账户不存在或不唯一');
+  let running = Number(accounts.data[0].rewardPoints || 0);
   const withBalance = rows.map(r => {
-    running += Number(r.delta) || 0;
-    return { ...r, balanceAfter: running };
+    const balanceAfter = running;
+    running -= Number(r.delta) || 0;
+    return { ...r, balanceAfter };
   });
-  withBalance.reverse();
+
   return { items: withBalance };
 }
 
@@ -2237,6 +2134,10 @@ exports.main = async (event) => {
         break;
       case 'customers-list':
         data = await adminCustomersList(body);
+        break;
+      case 'points-grant-v2':
+        if (!body.operationId) throw new Error('缺少发放操作编号，请刷新后台');
+        data = await adminPointsGrant(body);
         break;
       case 'points-grant':
         data = await adminPointsGrant(body);

@@ -1578,19 +1578,12 @@ async function loadRefAdminRanking() {
 }
 
 async function doPointsGrant(openid, name) {
-  if (!openid) { window.alert("这个用户还没有微信身份，暂时没法发积分"); return; }
-  const amountStr = window.prompt(`给「${name || "该用户"}」手动发放积分（正整数）：`, "");
-  if (amountStr === null) return;
-  const amount = parseInt(amountStr, 10);
-  if (!Number.isFinite(amount) || amount <= 0) { window.alert("积分数额必须是正整数"); return; }
-  const note = window.prompt("备注一下原因（可留空，方便以后查账）：", "") || "";
   try {
-    await callAdminOrders("points-grant", { openid, amount, note });
+    const amount = await PointsGrant.run(openid, name, callAdminOrders);
+    if (amount === null) return;
     window.alert(`已发放 ${amount} 分`);
     loadRefAdminRanking();
-  } catch (e) {
-    window.alert(e.message);
-  }
+  } catch (e) { window.alert(e.message); }
 }
 
 let pointsPanelState = { openid: "", name: "" };

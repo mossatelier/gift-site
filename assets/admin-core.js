@@ -402,22 +402,12 @@
     var clean = ids.map(function (id) { return String(id).trim(); }).filter(Boolean);
     if (clean.length === 0) return 0;
 
-    // 分批删，控制 URL 长度（每个 UUID 约 37 字符，大批量一次拼接会触发 414）。
-    var BATCH = 80;
     var total = 0;
-    for (var i = 0; i < clean.length; i += BATCH) {
-      var inList = clean.slice(i, i + BATCH).map(encodeURIComponent).join(",");
-      var response = await authedFetch(
-        productsEndpoint() + "?id=in.(" + inList + ")",
-        { method: "DELETE" },
-        { Prefer: "return=representation" }
-      );
-      if (!response.ok) {
-        var errorText = await response.text();
-        throw new Error("彻底删除失败：已删 " + total + " 件，本批 " + response.status + " " + errorText);
-      }
-      var data = await response.json();
-      total += Array.isArray(data) ? data.length : 0;
+    for (var id of Array.from(new Set(clean))) {
+      try {
+        await callAdminOrders("products-delete", { id: id, hard: true });
+        total++;
+      } catch (e) { throw new Error("已彻底删除 " + total + " 件；其余未处理：" + e.message); }
     }
     return total;
   }

@@ -4994,16 +4994,12 @@
         .catch(function (e) { window.alert(e.message); });
     }
 
-    function doPointsGrant(openid, name) {
-      if (!openid) { window.alert("这个用户还没有微信身份（可能只是手动录入的推荐记录，还没关联到本人），暂时没法发积分"); return; }
-      var amountStr = window.prompt("给「" + (name || "该用户") + "」手动发放积分（正整数）：", "");
-      if (amountStr === null) return;
-      var amount = parseInt(amountStr, 10);
-      if (!Number.isFinite(amount) || amount <= 0) { window.alert("积分数额必须是正整数"); return; }
-      var note = window.prompt("备注一下原因（可留空，方便以后查账）：", "") || "";
-      Core.callAdminOrders("points-grant", { openid: openid, amount: amount, note: note })
-        .then(function () { toast("已发放 " + amount + " 分"); loadRanking(); })
-        .catch(function (e) { window.alert(e.message); });
+    async function doPointsGrant(openid, name) {
+      try {
+        var amount = await PointsGrant.run(openid, name, Core.callAdminOrders);
+        if (amount === null) return;
+        toast("已发放 " + amount + " 分"); loadRanking();
+      } catch (e) { window.alert(e.message); }
     }
 
     function renderPointsList(items) {

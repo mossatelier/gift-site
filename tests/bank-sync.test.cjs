@@ -49,7 +49,7 @@ function fixture({ productFailure = false } = {}) {
   vm.runInNewContext(fs.readFileSync(require.resolve('../miniprogram/cloudfunctions/sync-products/index.js'), 'utf8'), sync);
   const admin = {
     exports: {}, process: { env: {} }, console, Buffer,
-    require: name => name === 'wx-server-sdk' ? sdk : name === './order-status' ? require('../miniprogram/cloudfunctions/admin-orders/order-status') : require(name)
+    require: name => name === 'wx-server-sdk' ? sdk : name === './points' ? require('../miniprogram/cloudfunctions/admin-orders/points') : name === './order-status' ? require('../miniprogram/cloudfunctions/admin-orders/order-status') : require(name)
   };
   vm.runInNewContext(fs.readFileSync(require.resolve('../miniprogram/cloudfunctions/admin-orders/index.js'), 'utf8') + '\nexports.saveBank = adminSaveBankPoints;', admin);
   return { bank, product, requests, bankAccess, run: sync.exports.main, save: admin.exports.saveBank };

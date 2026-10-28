@@ -117,6 +117,7 @@ test('bulk cancellation uses the same refund logic and reports individual failur
   const context = {
     require(name) {
       if (name === 'wx-server-sdk') return { init() {}, database: () => f.db };
+      if (name === './points') return require('../miniprogram/cloudfunctions/admin-orders/points');
       if (name === './order-status') return createUpdater;
       return require(name);
     },

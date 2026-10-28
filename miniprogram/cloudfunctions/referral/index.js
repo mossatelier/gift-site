@@ -143,29 +143,21 @@ async function bindReferrer(openid, code) {
 // 带「变动后余额」：按时间正序累加算出每笔的余额，再倒序返回给前端看
 async function getMyPointsLedger(openid) {
   const me = await ensureMyUser(openid);
-  let rows = [];
-  try {
-    const res = await db.collection('points_ledger')
-      .where({ openid })
-      .orderBy('createdAt', 'asc')
-      .limit(200)
-      .get();
-    rows = res.data || [];
-  } catch (e) {
-    console.warn('[referral] points_ledger read failed', e);
-    rows = [];
-  }
-  let running = 0;
+  const res = await db.collection('points_ledger').where({ openid })
+    .orderBy('createdAt', 'desc').limit(200).get();
+  const rows = res.data || [];
+  let running = Number(me.rewardPoints || 0);
   const items = rows.map(r => {
-    running += Number(r.delta) || 0;
+    const balanceAfter = running;
+    running -= Number(r.delta) || 0;
     return {
       delta: r.delta || 0,
       reason: r.reason || '',
-      balanceAfter: running,
+      balanceAfter,
       createdAt: r.createdAt
     };
   });
-  items.reverse();
+
   return { success: true, rewardPoints: me.rewardPoints || 0, items };
 }
 
