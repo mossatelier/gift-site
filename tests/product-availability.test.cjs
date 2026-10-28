@@ -64,8 +64,8 @@ test('home and category refresh on each visit',()=>{
 });
 test('older list response cannot restore stale goods after a newer refresh',async()=>{
  let finish;
- const p=page('list',{listProducts:()=>new Promise(r=>finish=r)}).instance;
+ const p=page('list',{listProductPage:()=>new Promise(r=>finish=r)}).instance;
  p._loadRequest=1;p._filter=()=>({});p.data.cards='';p.data.items=[];
  const old=p._loadPage(1);p._loadRequest=2;p.data.items=[{_id:'new'}];
- finish([{_id:'off-shelf'}]);await old;assert.equal(p.data.items[0]._id,'new');assert.equal(p.data.items.length,1);
+ finish({items:[{_id:'off-shelf'}],nextSkip:1,hasMore:false});await old;assert.equal(p.data.items[0]._id,'new');assert.equal(p.data.items.length,1);
 });

@@ -14,6 +14,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 
 const db = cloud.database();
 const _ = db.command;
+const identity = require('./identity')(db);
 
 const USERS = 'users';
 const REFERRALS = 'referrals';
@@ -21,36 +22,9 @@ const REFERRALS = 'referrals';
 // 开户成功 = 计入"有效办卡"的状态
 const STATUS_OPENED = '开户成功';
 
-// 生成 6 位唯一数字推荐码
-async function genUniqueCode() {
-  for (let i = 0; i < 25; i++) {
-    const code = String(Math.floor(100000 + Math.random() * 900000));
-    const exist = await db.collection(USERS).where({ referralCode: code }).count();
-    if (exist.total === 0) return code;
-  }
-  throw new Error('生成推荐码失败，请重试');
-}
-
-// 取（或补建）我的 users 记录，并保证有推荐码
+// 推荐码和账号身份由事务创建，两个云函数共用相同的身份规则。
 async function ensureMyUser(openid) {
-  const r = await db.collection(USERS).where({ openid }).limit(1).get();
-  let user = r.data[0];
-  const now = new Date();
-  if (!user) {
-    const code = await genUniqueCode();
-    const doc = { openid, nickName: '微信用户', avatarUrl: '', referralCode: code, rewardPoints: 0, createdAt: now, updatedAt: now };
-    const add = await db.collection(USERS).add({ data: doc });
-    // _isNew：这条 users 记录是本次调用现建的（= 该 openid 第一次出现）。绑定推荐人时据此「只绑新人」。
-    return { _id: add._id, ...doc, _isNew: true };
-  }
-  if (!user.referralCode) {
-    const code = await genUniqueCode();
-    await db.collection(USERS).doc(user._id).update({ data: { referralCode: code, updatedAt: now } });
-    user.referralCode = code;
-  }
-  if (user.rewardPoints == null) user.rewardPoints = 0;
-  user._isNew = false;   // 已存在的老用户
-  return user;
+  return identity.upsert(openid, { ensureCode: true });
 }
 
 function maskPhone(p) {
@@ -97,50 +71,10 @@ async function getMyReferral(openid) {
   };
 }
 
-async function bindReferrer(openid, code) {
-  const c = String(code || '').trim();
-  if (!c) return { success: false, error: '缺少推荐码' };
-  const me = await ensureMyUser(openid);
-  if (me.referredByCode) return { success: true, already: true };       // 已绑定，不覆盖
-  // 只绑新人：老用户（之前已自己注册/用过小程序）后来才扫码的，不算下线，避免「抢」别人已有的用户
-  if (!me._isNew) return { success: true, skipped: 'existing-user' };
-  if (me.referralCode === c) return { success: false, error: '不能绑定自己的推荐码' };
-
-  const ref = await db.collection(USERS).where({ referralCode: c }).limit(1).get();
-  const referrer = ref.data[0];
-  if (!referrer) return { success: false, error: '推荐码无效' };
-  if (referrer.openid === openid) return { success: false, error: '不能推荐自己' };
-
-  const now = new Date();
-  await db.collection(USERS).doc(me._id).update({
-    data: { referredByCode: c, referredByOpenid: referrer.openid, referredAt: now, updatedAt: now }
-  });
-
-  // 自动建一条「待审核」推荐记录（同一对推荐关系只建一次）
-  const dup = await db.collection(REFERRALS)
-    .where({ referrerOpenid: referrer.openid, refereeOpenid: openid })
-    .count();
-  if (dup.total === 0) {
-    await db.collection(REFERRALS).add({
-      data: {
-        referrerOpenid: referrer.openid,
-        referrerCode: c,
-        refereeOpenid: openid,
-        refereeNick: me.nickName || '微信用户',
-        refereePhone: '',
-        status: '待审核',
-        rewardPoints: 0,
-        createdAt: now,
-        openedAt: null,
-        rewardedAt: null
-      }
-    });
-  }
-  return { success: true };
-}
+const bindReferrer = identity.bindReferrer;
 
 // 我的积分流水（本人查看，openid 取自可信的 wx 上下文）
-// 带「变动后余额」：按时间正序累加算出每笔的余额，再倒序返回给前端看
+// 最新流水在前，以当前余额向前倒推每笔的余额
 async function getMyPointsLedger(openid) {
   const me = await ensureMyUser(openid);
   const res = await db.collection('points_ledger').where({ openid })
@@ -191,18 +125,12 @@ async function getMyBinding(openid) {
 async function bindPhone(openid, phone) {
   const p = String(phone || '').trim();
   if (!/^1\d{10}$/.test(p)) return { success: false, error: '手机号格式不正确' };
-  const me = await ensureMyUser(openid);
-  if (me.boundPhone) return { success: false, error: '已绑定手机号，如需更换请先解绑' };
-  const dup = await db.collection(USERS).where({ boundPhone: p }).count();
-  if (dup.total > 0) return { success: false, error: '该手机号已绑定其他账号' };
-  await db.collection(USERS).doc(me._id).update({ data: { boundPhone: p, boundPhoneAt: new Date(), updatedAt: new Date() } });
+  await identity.upsert(openid, { phone: p, requireUnboundPhone: true, ensureCode: true });
   return { success: true, boundPhone: p };
 }
 
 async function unbindPhone(openid) {
-  const me = await ensureMyUser(openid);
-  if (!me.boundPhone) return { success: true, boundPhone: '' };
-  await db.collection(USERS).doc(me._id).update({ data: { boundPhone: '', boundPhoneAt: null, updatedAt: new Date() } });
+  await identity.upsert(openid, { phone: '', ensureCode: true });
   return { success: true, boundPhone: '' };
 }
 

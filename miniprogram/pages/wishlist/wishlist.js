@@ -7,6 +7,7 @@ const consent = require('../../utils/consent.js');
 Page({
   data: {
     loading: true,
+    syncError: false,
     items: [],
     openFlow: 'credit',
     user: null,
@@ -33,19 +34,31 @@ Page({
     this.refresh();
   },
 
+  onHide() { this._refreshRequest = (this._refreshRequest || 0) + 1; },
+
   onPullDownRefresh() {
     this.refresh().then(() => wx.stopPullDownRefresh());
   },
 
   async refresh() {
-    this.setData({ loading: true });
-    const ids = wishlist.getList();
     const user = auth.getCurrentUser();
-    this.setData({ user });
+    if ((this.data.user || {}).openid !== (user || {}).openid) {
+      this._pickedAddressId = null;
+      this.setData({ user, items: [], address: null, addressCount: 0 });
+    }
+    this.setData({ loading: true, address: null, addressCount: 0 });
+    const request = this._refreshRequest = (this._refreshRequest || 0) + 1;
+    const isCurrent = () => request === this._refreshRequest &&
+      (auth.getCurrentUser() || {}).openid === (user || {}).openid;
+    const synced = await wishlist.pullAndMerge();
+    if (!isCurrent()) return;
+    this.setData({ syncError: !synced, user });
+    const ids = wishlist.getList();
 
     if (user) {
       try {
         const addresses = await listMyAddresses(user.openid);
+        if (!isCurrent()) return;
         // 当前选中的地址：维持已选；否则取默认
         let address = null;
         if (this._pickedAddressId) {
@@ -56,6 +69,7 @@ Page({
         }
         this.setData({ address, addressCount: addresses.length });
       } catch (err) {
+        if (!isCurrent()) return;
         console.warn('load address failed', err);
       }
     } else {
@@ -68,8 +82,10 @@ Page({
     }
     try {
       const items = await getProductsByIds(ids);
+      if (!isCurrent()) return;
       this.setData({ items, loading: false });
     } catch (err) {
+      if (!isCurrent()) return;
       console.error('心愿单加载失败', err);
       this.setData({ items: [], loading: false });
       wx.showToast({ title: '加载失败', icon: 'none' });
@@ -87,8 +103,10 @@ Page({
 
   removeItem(e) {
     const id = e.currentTarget.dataset.id;
+    this._refreshRequest = (this._refreshRequest || 0) + 1;
     wishlist.remove(id);
     this.setData({
+      loading: false,
       items: this.data.items.filter(item => item._id !== id)
     });
     wx.showToast({ title: '已移除', icon: 'success' });
@@ -174,6 +192,7 @@ Page({
 
     const items = this.data.items.map(it => ({ _id: it._id, qty: 1 }));
     const remark = this.data.remark.trim();
+    const orderContext = { openid: (auth.getCurrentUser() || {}).openid, addressId: this.data.address._id };
 
     // 在点击手势链路内请求订阅（下单成功通知 + 发货提醒），一次最多 3 个；
     // 只请求已配置 ID 的模板；无论同意与否都继续提交
@@ -181,10 +200,10 @@ Page({
     if (tmplIds.length) {
       wx.requestSubscribeMessage({
         tmplIds,
-        complete: () => this.doSubmitOrder(items, remark)
+        complete: () => this.doSubmitOrder(items, remark, orderContext)
       });
     } else {
-      this.doSubmitOrder(items, remark);
+      this.doSubmitOrder(items, remark, orderContext);
     }
   },
 
@@ -192,14 +211,15 @@ Page({
   // 之前这里紧跟在「接收通知」订阅授权弹窗后面连续弹第二个系统弹窗，微信有概率因为两个
   // 原生弹窗背靠背弹而让第二个直接 fail（且 fail 分支原来什么反馈都没有），导致用户点了
   // 提交、按钮转一下就消失，实际请求根本没发出去。去掉这层多余确认，问题从根上不会再出现。
-  async doSubmitOrder(items, remark) {
+  async doSubmitOrder(items, remark, orderContext) {
     wx.showLoading({ title: '提交中…', mask: true });
     try {
+      if (!orderContext || orderContext.openid !== (auth.getCurrentUser() || {}).openid) throw new Error('登录状态已变化，请刷新后重试');
       const cf = await wx.cloud.callFunction({
         name: 'submit-order',
         data: {
           items,
-          addressId: this.data.address._id,
+          addressId: orderContext.addressId,
           remark
         }
       });
@@ -208,8 +228,10 @@ Page({
       if (!r || !r.success) {
         throw new Error((r && r.error) || '提交失败');
       }
-      wishlist.saveList([]);
-      this.setData({ items: [], remark: '', submitError: '', submitErrorInsufficientPoints: false });
+      if (orderContext.openid !== (auth.getCurrentUser() || {}).openid) return;
+      const submitted = new Set(items.map(it => it._id));
+      wishlist.saveList(wishlist.getList().filter(id => !submitted.has(id)));
+      this.setData({ items: this.data.items.filter(it => !submitted.has(it._id)), remark: '', submitError: '', submitErrorInsufficientPoints: false });
       this._pickedAddressId = null;
       wx.showToast({ title: '提交成功', icon: 'success' });
       setTimeout(() => {

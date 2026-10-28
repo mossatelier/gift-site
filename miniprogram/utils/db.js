@@ -14,7 +14,7 @@ function products() {
 // 构造 where 条件（多字段搜索：title + description + subcategory 都尝试匹配）
 function _buildWhere({ category, subcategory, keyword, cardsMin, cardsMax }) {
   const _ = db().command;
-  const cond = { isActive: true };
+  const cond = { isActive: true, deleted: _.neq(true) };
   const hasCards = cardsMin != null || cardsMax != null;
   if (category && category !== 'all') {
     // category 支持数组（如「母婴好物」大类 = 一组细分类），用 in 查询
@@ -50,7 +50,7 @@ function _buildWhere({ category, subcategory, keyword, cardsMin, cardsMax }) {
 }
 
 // 列表查询：sort 支持 default | newest | cards-asc | cards-desc | hot
-async function listProducts({
+async function listProductPage({
   category = null,
   subcategory = null,
   limit = 20,
@@ -82,7 +82,7 @@ async function listProducts({
   // 只豁免二级分类；搜索关键词 / 积分筛选时不硬塞，免得出现明显不相关的结果。
   if (subcategory && category && category !== 'all' && !keyword && cardsMin == null && cardsMax == null && skip === 0) {
     try {
-      const pinCond = { isActive: true, isPinned: true };
+      const pinCond = { isActive: true, isPinned: true, deleted: db().command.neq(true) };
       pinCond.category = Array.isArray(category) ? db().command.in(category) : category;
       const pinRes = await products().where(pinCond).limit(10).get();
       const pinned = (pinRes.data || []).map(normalize);
@@ -100,7 +100,14 @@ async function listProducts({
   // 置顶前置：数据库那几种排序（热门/积分/最新）都轮不到 sortOrder 说话，
   // 所以置顶不能靠 sortOrder 模拟，得在取回后单独把置顶项提到最前。
   // 用稳定排序，置顶项之间、非置顶项之间都保持原有顺序不变。
-  return list.sort((a, b) => (a.isPinned === b.isPinned ? 0 : (a.isPinned ? -1 : 1)));
+  list.sort((a, b) => (a.isPinned === b.isPinned ? 0 : (a.isPinned ? -1 : 1)));
+  // 置顶活动位只影响展示；翻页只能按数据库实际消耗的记录推进。
+  return { items: list, nextSkip: skip + res.data.length, hasMore: res.data.length === limit };
+}
+
+// 首页等只需数组的调用保持兼容；分页页面使用 listProductPage 的游标信息。
+async function listProducts(options) {
+  return (await listProductPage(options)).items;
 }
 
 // 仅返回符合条件的总数（不拉数据）
@@ -126,16 +133,25 @@ async function getProductById(id) {
 async function getProductsByIds(ids) {
   if (!Array.isArray(ids) || ids.length === 0) return [];
   const _ = db().command;
-  const res = await products()
-    .where({
-      _id: _.in(ids),
-      isActive: true
-    })
-    .limit(100)
-    .get();
-  // 保留传入顺序
+  const unique = [...new Set(ids.map(String))];
   const map = {};
-  res.data.forEach(item => { map[item._id] = normalize(item); });
+  // 小程序端分批取，避免单次查询上限静默截断心愿单；每轮最多四个请求。
+  const BATCH = 20;
+  for (let offset = 0; offset < unique.length; offset += BATCH * 4) {
+    const queries = [];
+    for (let i = offset; i < Math.min(offset + BATCH * 4, unique.length); i += BATCH) {
+      queries.push(products().where({
+        _id: _.in(unique.slice(i, i + BATCH)),
+        isActive: true,
+        deleted: _.neq(true)
+      }).limit(BATCH).get());
+    }
+    const results = await Promise.all(queries);
+    for (const result of results) for (const item of result.data || []) {
+      if (item.isActive === true && !item.deleted) map[item._id] = normalize(item);
+    }
+  }
+  // 保留调用方顺序，下架或回收站商品不返回。
   return ids.map(id => map[id]).filter(Boolean);
 }
 
@@ -442,6 +458,7 @@ async function getMyOrder(openid, id) {
 
 module.exports = {
   listProducts,
+  listProductPage,
   countProducts,
   searchProducts,
   getProductById,

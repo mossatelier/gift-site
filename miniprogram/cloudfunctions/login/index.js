@@ -13,9 +13,7 @@ const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 
 const db = cloud.database();
-const _ = db.command;
-
-const COLLECTION = 'users';
+const identity = require('./identity')(db);
 
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext();
@@ -23,66 +21,17 @@ exports.main = async (event, context) => {
     return { success: false, error: 'no openid in context' };
   }
 
-  const nickName = (event && event.nickName || '').trim();
-  const avatarUrl = (event && event.avatarUrl || '').trim();
+  const nickName = String(event && event.nickName || '').trim().slice(0, 100);
+  const avatarUrl = String(event && event.avatarUrl || '').trim().slice(0, 2000);
   const phone = String((event && event.phone) || '').trim();
-  const now = new Date();
 
   if (!/^1\d{10}$/.test(phone)) {
     return { success: false, error: '请输入正确的 11 位手机号' };
   }
 
   try {
-    // 手机号已被别的账号占用 → 拒绝（一个手机号只归属一个 openid）
-    const taken = await db.collection(COLLECTION)
-      .where({ boundPhone: phone, openid: _.neq(OPENID) })
-      .limit(1)
-      .get();
-    if (taken.data.length > 0) {
-      return { success: false, error: '该手机号已绑定其他微信账号，如需换绑请联系客服' };
-    }
-
-    const existing = await db.collection(COLLECTION)
-      .where({ openid: OPENID })
-      .limit(1)
-      .get();
-
-    if (existing.data.length > 0) {
-      const cur = existing.data[0];
-      const patch = { updatedAt: now };
-      if (nickName && nickName !== cur.nickName) patch.nickName = nickName;
-      if (avatarUrl && avatarUrl !== cur.avatarUrl) patch.avatarUrl = avatarUrl;
-      if (phone !== cur.boundPhone) {
-        patch.boundPhone = phone;
-        patch.boundPhoneAt = now;
-      }
-
-      if (Object.keys(patch).length > 1) {
-        await db.collection(COLLECTION).doc(cur._id).update({ data: patch });
-      }
-      return {
-        success: true,
-        openid: OPENID,
-        user: { ...cur, ...patch }
-      };
-    }
-
-    const doc = {
-      openid: OPENID,
-      nickName: nickName || '微信用户',
-      avatarUrl: avatarUrl || '',
-      boundPhone: phone,
-      boundPhoneAt: now,
-      rewardPoints: 0,
-      createdAt: now,
-      updatedAt: now
-    };
-    const add = await db.collection(COLLECTION).add({ data: doc });
-    return {
-      success: true,
-      openid: OPENID,
-      user: { _id: add._id, ...doc }
-    };
+    const user = await identity.upsert(OPENID, { phone, nickName, avatarUrl });
+    return { success: true, openid: OPENID, user };
   } catch (err) {
     console.error('[login] failed', err);
     return { success: false, error: err.message };

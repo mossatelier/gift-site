@@ -39,6 +39,8 @@ function isLoggedIn() {
 
 // 调用云函数 login —— upsert + 同步本地缓存
 async function callLogin({ phone = '', nickName = '', avatarUrl = '' } = {}) {
+  const app = typeof getApp === 'function' ? getApp() : null;
+  if (app && app.waitForReferralBeforeLogin) await app.waitForReferralBeforeLogin();
   const res = await wx.cloud.callFunction({
     name: 'login',
     data: { phone, nickName, avatarUrl }

@@ -22,14 +22,45 @@ App({
     this.tryBindReferrer(options);
   },
 
-  // 通过分享卡片或推荐小程序码进入 → 自动绑定推荐人（幂等：已绑定/绑自己会被云端忽略）
+  // 同一次入口的绑定先完成，登录才能创建账号，避免新人被并发登录误判为老用户。
+  // 暂时失败保留推荐码；下次 onShow 或点击登录会重试。
   tryBindReferrer(options) {
-    if (!wx.cloud) return;
-    const code = this._extractRefCode(options);
-    if (!code || this._bindTriedFor === code) return;
-    this._bindTriedFor = code;
-    wx.cloud.callFunction({ name: 'referral', data: { action: 'bind-referrer', code } })
-      .catch((err) => { console.warn('bind-referrer failed', err); });
+    const incoming = this._extractRefCode(options);
+    if (incoming && incoming !== this._bindTriedFor) this._pendingRefCode = incoming;
+    if (!this._pendingRefCode) return Promise.resolve({ success: true, skipped: 'no-pending-code' });
+    if (this._bindPending) return this._bindPending;
+    this._bindPending = this._drainReferralBinding().finally(() => { this._bindPending = null; });
+    return this._bindPending;
+  },
+
+  async _drainReferralBinding() {
+    while (this._pendingRefCode) {
+      const code = this._pendingRefCode;
+      let result;
+      try {
+        if (!wx.cloud) throw new Error('云服务暂不可用');
+        const response = await wx.cloud.callFunction({ name: 'referral', data: { action: 'bind-referrer', code } });
+        result = response && response.result;
+      } catch (err) {
+        console.warn('bind-referrer failed', err);
+      }
+      // terminal 来自新版云函数；精确文案兼容旧服务对无效码/自荐的响应。
+      const terminal = result && (result.success || result.terminal === true ||
+        ['缺少推荐码', '推荐码无效', '不能推荐自己', '不能绑定自己的推荐码'].includes(result.error));
+      if (terminal) {
+        this._bindTriedFor = code;
+        if (this._pendingRefCode === code) this._pendingRefCode = '';
+        if (!this._pendingRefCode) return result;
+      } else if (this._pendingRefCode === code) {
+        return { success: false, retryable: true, error: '推荐关系暂未确认，请重试登录，避免遗漏推荐记录' };
+      }
+    }
+    return { success: true };
+  },
+
+  async waitForReferralBeforeLogin() {
+    const result = await this.tryBindReferrer();
+    if (result && result.retryable) throw new Error(result.error);
   },
 
   _extractRefCode(options) {

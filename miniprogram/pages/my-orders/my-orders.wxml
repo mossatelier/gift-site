@@ -1,5 +1,7 @@
 <view class="page-shell my-orders-page">
-  <view class="loading-state" wx:if="{{loading}}">加载中…</view>
+  <view class="loading-state" wx:if="{{loading && orders.length === 0}}">加载中…</view>
+
+  <view class="loading-state" wx:elif="{{loadError && orders.length === 0}}" bindtap="loadMore">加载失败，点击重试</view>
 
   <view class="orders-empty" wx:elif="{{orders.length === 0}}">
     <text class="empty-icon">📦</text>
@@ -38,5 +40,11 @@
     </view>
   </view>
 
+  <view class="loading-state" wx:if="{{orders.length > 0}}">
+    <text wx:if="{{loading}}">加载中…</text>
+    <text wx:elif="{{loadError}}" bindtap="loadMore">加载失败，点击重试</text>
+    <text wx:elif="{{noMore}}">已显示全部领取记录</text>
+    <text wx:else bindtap="loadMore">点击加载更多</text>
+  </view>
   <view class="bottom-spacer"></view>
 </view>

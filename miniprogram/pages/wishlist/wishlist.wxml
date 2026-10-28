@@ -5,6 +5,8 @@
       <text class="banner-more" wx:if="{{items.length > 0}}">共 {{items.length}} 件</text>
     </view>
 
+    <view class="loading-state" wx:if="{{syncError}}">心愿单暂未同步，修改已保留。请下拉刷新重试。</view>
+
     <!-- 空状态 -->
     <view class="wishlist-empty" wx:if="{{!loading && items.length === 0}}">
       <text class="wishlist-empty-icon">🎁</text>

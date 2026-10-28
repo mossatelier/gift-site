@@ -808,6 +808,20 @@ async function sendShipNotify(order, trackingNo, trackingCompany) {
 }
 
 // 向快递100 订阅该单号的物流推送：物流有更新会回调 KD_CALLBACK。best-effort，失败不影响发货。
+// 使用现有服务端 key 派生每票盐值，既不暴露 key，也无需把盐值写入客户可读的订单。
+function logisticsSalt(com, num) {
+  if (!KD_KEY) return '';
+  return crypto.createHmac('sha256', KD_KEY).update('logistics-callback-v1\n' + com + '\n' + num).digest('hex');
+}
+
+function verifyLogisticsSignature(rawParam, sign, com, num) {
+  if (typeof rawParam !== 'string' || typeof sign !== 'string' || !/^[a-f0-9]{32}$/i.test(sign)) return false;
+  const salt = logisticsSalt(com, num);
+  if (!salt) return false;
+  const expected = crypto.createHash('md5').update(rawParam + salt).digest('hex');
+  return crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(sign, 'hex'));
+}
+
 async function subscribeLogistics({ com, num, phone }) {
   if (!KD_KEY || !KD_CALLBACK) {
     console.warn('[kd100] 未配置 KUAIDI100_KEY / KUAIDI100_CALLBACK_URL，跳过订阅');
@@ -818,7 +832,7 @@ async function subscribeLogistics({ com, num, phone }) {
     company: com,
     number: num,
     key: KD_KEY,
-    parameters: { callbackurl: KD_CALLBACK, resultv2: '1', autoCom: '0' }
+    parameters: { callbackurl: KD_CALLBACK, resultv2: '1', autoCom: '0', salt: logisticsSalt(com, num) }
   };
   if (phone) paramObj.parameters.phone = String(phone);
   const form = 'schema=json&param=' + encodeURIComponent(JSON.stringify(paramObj));
@@ -856,9 +870,9 @@ function buildLogisticsPatch(order, dataArr, stateRaw) {
   const nodes = Array.isArray(dataArr)
     ? dataArr.map(d => ({ time: d.ftime || d.time || '', context: d.context || '', status: d.status || '' }))
     : [];
-  const state = String(stateRaw || '');
+  const state = String(stateRaw == null ? '' : stateRaw);
   const patch = { logisticsNodes: nodes, logisticsState: state, updatedAt: new Date() };
-  if (state === '3' && order.status !== 'cancelled' && order.status !== 'signed') {
+  if (state === '3' && !order.pointsRefundedAt && ['pending', 'processing', 'preparing', 'shipped'].includes(order.status)) {
     patch.status = 'signed';
     if (!order.signedAt) patch.signedAt = new Date();
     const by = extractSignedBy(nodes[0] && nodes[0].context);
@@ -867,29 +881,36 @@ function buildLogisticsPatch(order, dataArr, stateRaw) {
   return patch;
 }
 
-// 快递100 物流推送回调处理：按单号匹配订单，写物流节点；签收(state=3)自动置「已签收」。
-// 返回快递100 约定的应答体，否则会被反复重推。
-async function handleLogisticsPush(param) {
-  const lr = param && param.lastResult;
-  if (!lr || !lr.nu) return { result: false, returnCode: '500', message: '缺少单号' };
-  const num = String(lr.nu);
-  let order = null;
-  try {
-    const r = await db.collection('orders').where({ trackingNo: num }).limit(1).get();
-    order = r.data && r.data[0];
-  } catch (e) {
-    console.warn('[kd100] push find order failed', e);
-  }
-  // 找不到对应订单也回 200，避免快递100 不断重推
-  if (!order) return { result: true, returnCode: '200', message: '无对应订单' };
+// 查询/回调都必须在事务内重新读取状态，取消和退款之后不得被旧查询结果改回签收。
+async function persistLogistics(orderId, expected, data, state, resolvedCode) {
+  return db.runTransaction(async tx => {
+    const ref = tx.collection('orders').doc(orderId);
+    const order = (await ref.get()).data;
+    if (!order) throw new Error('订单不存在');
+    if (order.trackingNo !== expected.trackingNo || (order.courierCode || '') !== (expected.courierCode || '') || (order.trackingCompany || '') !== (expected.trackingCompany || '')) {
+      throw new Error('快递信息已修改，请重新查询');
+    }
+    if (order.status === 'cancelled' || order.pointsRefundedAt) return order;
+    // 延迟的旧状态不能覆盖已经确认的签收轨迹。
+    if (order.logisticsState === '3' && String(state) !== '3') return order;
+    const patch = buildLogisticsPatch(order, data, state);
+    if (resolvedCode) patch.courierCode = resolvedCode;
+    await ref.update({ data: patch });
+    return { ...order, ...patch };
+  });
+}
 
-  const patch = buildLogisticsPatch(order, lr.data, lr.state);
-  try {
-    await db.collection('orders').doc(order._id).update({ data: patch });
-  } catch (e) {
-    console.error('[kd100] push update failed', e);
-    return { result: false, returnCode: '500', message: '写入失败' };
-  }
+// 官方签名是 MD5(收到的原始 param 字符串 + 订阅时的 salt)，不能重新序列化后校验。
+async function handleLogisticsPush(rawParam, sign) {
+  if (typeof rawParam !== 'string' || rawParam.length > 200000) return { result: false, returnCode: '400', message: '参数格式错误' };
+  const param = JSON.parse(rawParam);
+  const lr = param && param.lastResult;
+  if (!lr || !lr.nu || !lr.com) return { result: false, returnCode: '400', message: '缺少单号或公司' };
+  const num = String(lr.nu), com = String(lr.com);
+  if (!verifyLogisticsSignature(rawParam, sign, com, num)) return { result: false, returnCode: '403', message: '签名无效' };
+  const result = await db.collection('orders').where({ trackingNo: num }).limit(100).get();
+  const orders = (result.data || []).filter(o => (o.courierCode || codeByName(o.trackingCompany)) === com);
+  for (const order of orders) await persistLogistics(order._id, order, lr.data, lr.state);
   return { result: true, returnCode: '200', message: '成功' };
 }
 
@@ -989,10 +1010,6 @@ async function queryLogisticsInner({ orderId, phone, courierCode, trackingCompan
     || codeByName(trackingCompany)
     || codeByName(o.trackingCompany);
   if (!com) throw new Error('未识别快递公司：请在「快递公司」框填写规范公司名（如「申通快递」）再查询');
-  // 顺手把算出的编码回写，避免下次再算
-  if (com !== o.courierCode) {
-    try { await db.collection('orders').doc(orderId).update({ data: { courierCode: com } }); } catch (e) {}
-  }
 
   const paramObj = { com: com, num: o.trackingNo, resultv2: '1' };
   const usePhone = (phone != null && String(phone).trim())
@@ -1024,46 +1041,40 @@ async function queryLogisticsInner({ orderId, phone, courierCode, trackingCompan
     const msg = parsed.message || parsed.returnCode || '快递100 暂无轨迹';
     throw new Error('查询无结果：' + String(msg).slice(0, 120));
   }
-  const patch = buildLogisticsPatch(o, parsed.data, parsed.state);
-  await db.collection('orders').doc(orderId).update({ data: patch });
-  const r2 = await db.collection('orders').doc(orderId).get();
-  return r2.data;
+  return persistLogistics(orderId, o, parsed.data, parsed.state, com);
 }
 
 // 更新快递信息：填了单号 = 发货 → 自动置「运输中」(shipped) + 推送（已取消的不动）
 // courierCode = 快递公司标准编码（快递100，用于订阅物流）；trackingCompany = 展示名
 async function updateTracking({ orderId, trackingNo, trackingCompany, courierCode, phone }) {
   if (!orderId) throw new Error('缺少 orderId');
-  const trimmedNo = String(trackingNo || '').trim().slice(0, 50);
-  const trimmedPhone = String(phone || '').trim().slice(0, 20);
-  const patch = {
-    trackingNo: trimmedNo,
-    trackingCompany: String(trackingCompany || '').trim().slice(0, 30),
-    courierCode: String(courierCode || '').trim().slice(0, 30),
-    updatedAt: new Date()
-  };
-  if (trimmedPhone) patch.trackingPhone = trimmedPhone; // 顺丰等查询/订阅用的手机号
-  // 改了单号/公司/手机号 = 信息变了，清掉物流失败标记，让自动刷新重新尝试这一单
-  patch.logiFailKind = '';
-  patch.logiFailMsg = '';
-  patch.logiFailHint = '';
-  patch.logiFailAt = null;
-  if (trimmedNo) {
-    const cur = await db.collection('orders').doc(orderId).get();
-    if (cur.data && cur.data.status !== 'cancelled') patch.status = 'shipped';
+  const result = await db.runTransaction(async tx => {
+    const ref = tx.collection('orders').doc(orderId);
+    const order = (await ref.get()).data;
+    if (!order) throw new Error('订单不存在');
+    const patch = { updatedAt: new Date() };
+    // 未传字段保持原值，显式空串允许清空（手机号尤其不能忽略）。
+    for (const [key, value, max] of [['trackingNo', trackingNo, 50], ['trackingCompany', trackingCompany, 30], ['courierCode', courierCode, 30], ['trackingPhone', phone, 20]]) {
+      if (value !== undefined) patch[key] = String(value || '').trim().slice(0, max);
+    }
+    const next = { ...order, ...patch };
+    const shipmentChanged = ['trackingNo', 'trackingCompany', 'courierCode'].some(k => (next[k] || '') !== (order[k] || ''));
+    const changed = shipmentChanged || (next.trackingPhone || '') !== (order.trackingPhone || '');
+    if (changed) Object.assign(patch, { logiFailKind: '', logiFailMsg: '', logiFailHint: '', logiFailAt: null });
+    if (shipmentChanged) Object.assign(patch, { logisticsNodes: [], logisticsState: '' });
+    const ship = Boolean(next.trackingNo && !order.pointsRefundedAt && ['pending', 'processing', 'preparing'].includes(order.status));
+    if (ship) patch.status = 'shipped';
+    await ref.update({ data: patch });
+    return { order: { ...order, ...patch }, ship, subscribe: Boolean(next.trackingNo && (ship || changed)) };
+  });
+  // 再检查取消状态，事务重试和重复保存都不会重复触发发货提醒。
+  const current = (await db.collection('orders').doc(orderId).get()).data;
+  const active = current && current.status === 'shipped' && !current.pointsRefundedAt && current.trackingNo === result.order.trackingNo && current.courierCode === result.order.courierCode;
+  if (result.ship && active) await sendShipNotify(current, current.trackingNo, current.trackingCompany);
+  if (result.subscribe && active && current.courierCode) {
+    await subscribeLogistics({ com: current.courierCode, num: current.trackingNo, phone: current.trackingPhone || (current.address && current.address.phone) || '' });
   }
-  await db.collection('orders').doc(orderId).update({ data: patch });
-  const r = await db.collection('orders').doc(orderId).get();
-  // 录入单号后推送发货提醒（仅当填了单号）
-  if (patch.trackingNo) {
-    await sendShipNotify(r.data, patch.trackingNo, patch.trackingCompany);
-  }
-  // 发货 + 有快递公司编码 → 向快递100 订阅物流推送（best-effort，失败不影响发货）
-  if (patch.status === 'shipped' && patch.courierCode && patch.trackingNo) {
-    const subPhone = trimmedPhone || (r.data && r.data.address && r.data.address.phone) || '';
-    await subscribeLogistics({ com: patch.courierCode, num: patch.trackingNo, phone: subPhone });
-  }
-  return { ...r.data, _autoDone: patch.status === 'shipped' };
+  return { ...(current || result.order), _autoDone: Boolean(result.ship && active) };
 }
 
 // 分类显示顺序（存 app_config 集合，key=category_order）
@@ -1948,7 +1959,7 @@ exports.main = async (event) => {
     return buildResponse(204, {});
   }
 
-  // 快递100 物流推送回调（公开，无管理员鉴权）：body 为 form-urlencoded，含 param 字段。
+  // 快递100 物流推送回调：使用订阅 salt 验签，无签名旧回调拒绝写库。
   // 必须在 JSON 解析之前处理（form 体 JSON.parse 会失败）。
   {
     let rawBody = (typeof event.body === 'string') ? event.body : '';
@@ -1959,8 +1970,7 @@ exports.main = async (event) => {
       try {
         const qs = require('querystring');
         const parsed = qs.parse(rawBody);
-        const paramObj = JSON.parse(parsed.param);
-        const data = await handleLogisticsPush(paramObj);
+        const data = await handleLogisticsPush(parsed.param, parsed.sign);
         return buildResponse(200, data);
       } catch (err) {
         console.error('[kd100] push parse/handle', err);

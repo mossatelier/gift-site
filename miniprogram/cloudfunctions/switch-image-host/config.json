@@ -1,9 +1,1 @@
-{
-  "triggers": [
-    {
-      "name": "auto-migrate-images",
-      "type": "timer",
-      "config": "0 * * * * * *"
-    }
-  ]
-}
+{ "triggers": [] }

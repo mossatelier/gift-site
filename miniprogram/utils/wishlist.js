@@ -1,149 +1,78 @@
-// 心愿单本地存储 + 云端同步
-//
-// 策略：
-// - 未登录：纯本地存储，行为同以前
-// - 登录后：
-//   · 启动 / 进入应用：拉云端 → 与本地取并集 → 双写
-//   · 每次 toggle/remove/clear：本地立刻更新（UI 同步），1 秒防抖推云端
-// - 登出：保留本地（用户加的礼品不该突然消失）
-
-const STORAGE_KEY = 'gift-site-wishlist';
-
-function db() {
-  return wx.cloud.database();
+// 每个账户独立缓存；只同步明确的增删操作，不再将陈旧缓存与云端取并集。
+const STORAGE_KEY = 'gift-site-wishlist-v2';
+const running = new Map();
+let pushTimer;
+function openid() {
+  try { return JSON.parse(wx.getStorageSync('gift-site-user') || 'null')?.openid || ''; }
+  catch (_) { return ''; }
 }
-
-function _readRaw() {
+function key(oid) { return STORAGE_KEY + ':' + (oid || 'guest'); }
+function read(oid) {
   try {
-    const raw = wx.getStorageSync(STORAGE_KEY);
-    if (!raw) return [];
-    const arr = JSON.parse(raw);
-    return Array.isArray(arr) ? arr.map(String) : [];
-  } catch (err) {
-    return [];
-  }
+    const value = JSON.parse(wx.getStorageSync(key(oid)) || 'null');
+    if (value && Array.isArray(value.ids) && Array.isArray(value.pending)) return value;
+  } catch (_) {}
+  return { ids: [], pending: [], seq: 0, deviceId: 'd_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2) };
 }
-
-function _writeRaw(ids) {
-  const unique = Array.from(new Set(ids.map(String)));
-  wx.setStorageSync(STORAGE_KEY, JSON.stringify(unique));
-  return unique;
+function write(oid, state) { wx.setStorageSync(key(oid), JSON.stringify(state)); }
+function apply(ids, operations) {
+  const values = new Set(ids);
+  for (const op of operations) { if (op.present) values.add(op.productId); else values.delete(op.productId); }
+  return [...values];
 }
-
-function getList() {
-  return _readRaw();
-}
-
-// 同步保存：写本地 + 触发推云端
+function getList() { return read(openid()).ids; }
 function saveList(ids) {
-  const unique = _writeRaw(ids);
-  schedulePush();
+  const oid = openid(), state = read(oid), unique = [...new Set(ids.map(String))];
+  if (unique.length > 1000 && unique.length > state.ids.length) {
+    wx.showToast({ title: '心愿单最多收藏 1000 件，请先移除部分商品', icon: 'none' });
+    return state.ids;
+  }
+  const before = new Set(state.ids), after = new Set(unique);
+  for (const id of new Set([...before, ...after])) {
+    if (before.has(id) !== after.has(id) && oid) state.pending.push({ seq: ++state.seq, productId: id, present: after.has(id) });
+  }
+  state.ids = unique; write(oid, state);
+  clearTimeout(pushTimer);
+  if (oid) pushTimer = setTimeout(() => pushToCloud(oid).catch(e => console.warn('[wishlist] pending sync', e)), 1000);
   return unique;
 }
-
-function has(id) {
-  return _readRaw().includes(String(id));
-}
-
-function toggle(id) {
-  const list = _readRaw();
-  const sid = String(id);
-  const idx = list.indexOf(sid);
-  if (idx >= 0) list.splice(idx, 1);
-  else list.push(sid);
-  return saveList(list);
-}
-
-function remove(id) {
-  return saveList(_readRaw().filter(x => x !== String(id)));
-}
-
-function getMap() {
-  const map = {};
-  _readRaw().forEach(id => { map[id] = true; });
-  return map;
-}
-
-// ============ 云端同步 ============
-
-let pushTimer = null;
-let pulling = false;
-
-function _getOpenid() {
-  try {
-    const raw = wx.getStorageSync('gift-site-user');
-    if (!raw) return '';
-    const u = JSON.parse(raw);
-    return (u && u.openid) || '';
-  } catch (err) {
-    return '';
-  }
-}
-
-function schedulePush() {
-  const openid = _getOpenid();
-  if (!openid) return; // 未登录不推
-  clearTimeout(pushTimer);
-  pushTimer = setTimeout(() => pushToCloud(openid).catch(err => {
-    console.warn('[wishlist] push failed', err);
-  }), 1000);
-}
-
-async function pushToCloud(openid) {
-  if (!openid) return;
-  const productIds = _readRaw();
-  const now = new Date();
-  const c = db().collection('wishlists');
-  const existing = await c.where({ openid }).limit(1).get();
-  if (existing.data[0]) {
-    await c.doc(existing.data[0]._id).update({
-      data: { productIds, updatedAt: now }
-    });
-  } else {
-    await c.add({ data: { openid, productIds, createdAt: now, updatedAt: now } });
-  }
-}
-
-// 启动 / 登录后调：拉云端，与本地合并（并集），再回写云端
-async function pullAndMerge() {
-  const openid = _getOpenid();
-  if (!openid || pulling) return;
-  pulling = true;
-  try {
-    const c = db().collection('wishlists');
-    const res = await c.where({ openid }).limit(1).get();
-    const cloud = res.data[0];
-    const cloudIds = cloud && Array.isArray(cloud.productIds) ? cloud.productIds.map(String) : [];
-    const localIds = _readRaw();
-
-    const merged = Array.from(new Set([...localIds, ...cloudIds]));
-
-    // 本地立即更新（不触发再次 push，下面会一起处理）
-    _writeRaw(merged);
-
-    // 如果合并结果与云端不一致 → 推一次
-    const cloudSorted = [...cloudIds].sort();
-    const mergedSorted = [...merged].sort();
-    const differs = cloudSorted.length !== mergedSorted.length ||
-                    cloudSorted.some((id, i) => id !== mergedSorted[i]);
-    if (differs) {
-      await pushToCloud(openid);
+function toggle(id) { const ids = getList(), sid = String(id); return saveList(ids.includes(sid) ? ids.filter(x => x !== sid) : [...ids, sid]); }
+function remove(id) { return saveList(getList().filter(x => x !== String(id))); }
+function has(id) { return getList().includes(String(id)); }
+function getMap() { const map = {}; getList().forEach(id => { map[id] = true; }); return map; }
+async function sync(oid) {
+  // 新版游客主动添加的商品只迁移一次；旧版共享缓存无归属，不作为新增操作上传。
+  const guest = read('');
+  if (guest.ids.length) {
+    const state = read(oid);
+    for (const productId of guest.ids) if (!state.ids.includes(productId)) {
+      state.pending.push({ seq: ++state.seq, productId, present: true }); state.ids.push(productId);
     }
-  } catch (err) {
-    console.warn('[wishlist] pull/merge failed', err);
-  } finally {
-    pulling = false;
+    write(oid, state); guest.ids = []; write('', guest);
+  }
+  for (;;) {
+    if (openid() !== oid) return;
+    const sent = read(oid), operations = sent.pending.slice(0, 100);
+    const response = await wx.cloud.callFunction({ name: 'wishlist-sync', data: { deviceId: sent.deviceId, operations } });
+    const result = response && response.result;
+    if (!result || !result.success || !Array.isArray(result.productIds)) throw Error(result && result.error || '心愿单同步失败');
+    const latest = read(oid);
+    latest.pending = latest.pending.filter(op => op.seq > result.ack);
+    latest.ids = apply(result.productIds, latest.pending);
+    write(oid, latest);
+    if (result.rejected && result.rejected.length && openid() === oid) wx.showToast({ title: '心愿单已满，部分新增收藏未保存', icon: 'none' });
+    if (!latest.pending.length) return;
   }
 }
-
-module.exports = {
-  STORAGE_KEY,
-  getList,
-  saveList,
-  has,
-  toggle,
-  remove,
-  getMap,
-  pullAndMerge,
-  pushToCloud
-};
+function pushToCloud(oid = openid()) {
+  if (!oid || oid !== openid()) return Promise.resolve();
+  if (running.has(oid)) return running.get(oid);
+  const task = sync(oid).finally(() => running.delete(oid));
+  running.set(oid, task); return task;
+}
+async function pullAndMerge() {
+  try { await pushToCloud(); }
+  catch (e) { console.warn('[wishlist] sync failed; local changes retained', e); return false; }
+  return true;
+}
+module.exports = { STORAGE_KEY, getList, saveList, has, toggle, remove, getMap, pullAndMerge, pushToCloud };

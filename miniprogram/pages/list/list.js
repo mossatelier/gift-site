@@ -1,4 +1,4 @@
-const { listProducts, countProducts, searchProducts } = require('../../utils/db.js');
+const { listProductPage, countProducts, searchProducts } = require('../../utils/db.js');
 const { subcategories, labelOfCategory } = require('../../config.js');
 const wishlist = require('../../utils/wishlist.js');
 const floatBtn = require('../../utils/floatBtn.js');
@@ -298,7 +298,7 @@ Page({
     const f = this._filter();
     const { cardsMin, cardsMax } = cardsRangeOf(this.data.cards);
     try {
-      const raw = await listProducts({
+      const result = await listProductPage({
         category: f.category,
         subcategory: f.subcategory,
         keyword,
@@ -309,11 +309,13 @@ Page({
         cardsMax
       });
       if (request !== this._loadRequest) return;
-      const page = raw.map(it => ({ ...it, _metaText: buildMetaText(it) }));
+      const seen = new Set(this.data.items.map(it => it._id));
+      const page = result.items.filter(it => !seen.has(it._id))
+        .map(it => ({ ...it, _metaText: buildMetaText(it) }));
       this.setData({
         items: this.data.items.concat(page),
-        skip: skip + page.length,
-        noMore: page.length < PAGE_SIZE,
+        skip: result.nextSkip,
+        noMore: !result.hasMore,
         loading: false
       });
     } catch (err) {

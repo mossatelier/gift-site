@@ -1,5 +1,6 @@
 const auth = require('../../utils/auth.js');
 const { listMyOrders } = require('../../utils/db.js');
+const PAGE_SIZE = 20;
 
 // 旧码兼容：processing/preparing→pending、done→shipped、closed→signed
 const STATUS_LEGACY = { processing: 'pending', preparing: 'pending', done: 'shipped', closed: 'signed' };
@@ -14,7 +15,10 @@ const STATUS_LABEL = {
 Page({
   data: {
     loading: true,
-    orders: []
+    orders: [],
+    skip: 0,
+    noMore: false,
+    loadError: false
   },
 
   onShow() {
@@ -26,12 +30,31 @@ Page({
     this.refresh().then(() => wx.stopPullDownRefresh());
   },
 
+  onHide() {
+    this._loadRequest = (this._loadRequest || 0) + 1;
+  },
+
+  onReachBottom() { this.loadMore(); },
+
   async refresh() {
+    const request = this._loadRequest = (this._loadRequest || 0) + 1;
+    this.setData({ orders: [], skip: 0, noMore: false, loadError: false, loading: false });
+    await this.loadMore(request);
+  },
+
+  async loadMore(request = this._loadRequest) {
+    // bindtap 会传事件对象，只有 refresh 的数字参数代表请求批次。
+    if (typeof request !== 'number') request = this._loadRequest;
+    if (this.data.loading || this.data.noMore) return;
     const user = auth.getCurrentUser();
     if (!user) return;
-    this.setData({ loading: true });
+    const { skip } = this.data;
+    this.setData({ loading: true, loadError: false });
+    const isCurrent = () => request === this._loadRequest &&
+      (auth.getCurrentUser() || {}).openid === user.openid;
     try {
-      const raw = await listMyOrders(user.openid, { limit: 50 });
+      const raw = await listMyOrders(user.openid, { limit: PAGE_SIZE, skip });
+      if (!isCurrent()) return;
       const orders = raw.map(o => ({
         _id: o._id,
         status: normStatus(o.status),
@@ -42,10 +65,17 @@ Page({
         firstTitle: (o.items && o.items[0] && o.items[0].title) || '',
         createdText: formatDate(o.createdAt)
       }));
-      this.setData({ orders, loading: false });
+      const seen = new Set(this.data.orders.map(o => o._id));
+      this.setData({
+        orders: this.data.orders.concat(orders.filter(o => !seen.has(o._id))),
+        skip: skip + raw.length,
+        noMore: raw.length < PAGE_SIZE,
+        loading: false
+      });
     } catch (err) {
+      if (!isCurrent()) return;
       console.error('load orders failed', err);
-      this.setData({ loading: false });
+      this.setData({ loading: false, loadError: true });
       wx.showToast({ title: '加载失败', icon: 'none' });
     }
   },
