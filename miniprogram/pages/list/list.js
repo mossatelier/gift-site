@@ -168,7 +168,9 @@ Page({
       this.setData(patch, () => this.reload());
     } else {
       this.setData({ wishlistMap: patch.wishlistMap });
+      if (this._shownOnce) this.reload();
     }
+    this._shownOnce = true;
   },
 
   // 若 cat 是「更多」里的分类，返回其 label，否则空
@@ -223,6 +225,7 @@ Page({
   },
 
   async reload() {
+    const request = this._loadRequest = (this._loadRequest || 0) + 1;
     this.setData({
       items: [],
       skip: 0,
@@ -233,22 +236,23 @@ Page({
     });
     // 有关键词 → 走云函数智能搜索（同义词+字级打分）；失败回退普通正则搜索
     if ((this.data.keyword || '').trim()) {
-      const ok = await this._searchByKeyword();
-      if (ok) return;
+      const ok = await this._searchByKeyword(request);
+      if (ok || request !== this._loadRequest) return;
     }
     const f = this._filter();
     const { cardsMin, cardsMax } = cardsRangeOf(this.data.cards);
     try {
       const totalCount = await countProducts({ category: f.category, subcategory: f.subcategory, keyword: this.data.keyword, cardsMin, cardsMax });
+      if (request !== this._loadRequest) return;
       this.setData({ totalCount });
     } catch (err) {
       console.warn('countProducts 失败', err);
     }
-    await this._loadPage();
+    if (request === this._loadRequest) await this._loadPage(request);
   },
 
   // 关键词搜索：云函数一次返回按相关度排序的结果（不分页）；返回 false 表示失败需回退
-  async _searchByKeyword() {
+  async _searchByKeyword(request) {
     const f = this._filter();
     const { cardsMin, cardsMax } = cardsRangeOf(this.data.cards);
     try {
@@ -260,6 +264,7 @@ Page({
         cardsMax,
         limit: 100
       });
+      if (request !== this._loadRequest) return true;
       // 云函数按相关度返回；用户选了排序时在结果内重排（否则积分/最新排序在搜索模式下失效）
       const sort = this.data.sort;
       if (sort === 'cards-asc') {
@@ -288,7 +293,7 @@ Page({
     await this._loadPage();
   },
 
-  async _loadPage() {
+  async _loadPage(request = this._loadRequest) {
     const { sort, keyword, skip } = this.data;
     const f = this._filter();
     const { cardsMin, cardsMax } = cardsRangeOf(this.data.cards);
@@ -303,6 +308,7 @@ Page({
         cardsMin,
         cardsMax
       });
+      if (request !== this._loadRequest) return;
       const page = raw.map(it => ({ ...it, _metaText: buildMetaText(it) }));
       this.setData({
         items: this.data.items.concat(page),
@@ -311,6 +317,7 @@ Page({
         loading: false
       });
     } catch (err) {
+      if (request !== this._loadRequest) return;
       console.error('加载列表失败', err);
       this.setData({ loading: false });
       wx.showToast({ title: '加载失败', icon: 'none' });

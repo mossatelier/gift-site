@@ -79,22 +79,23 @@ test('manual invocation also leaves bank data untouched', async () => {
   assert.deepEqual(f.bank, before);
   assert.deepEqual(f.bankAccess, []);
 });
-test('product sync and incremental view counting still work', async () => {
+test('retired sync preserves products and makes no upstream requests', async () => {
   const f = fixture();
-  const first = await f.run({});
-  assert.equal(first.products.updated, 1);
-  assert.equal(f.product.title, '新商品名');
-  assert.equal(f.product.viewCount, 11);
-  const second = await f.run({});
-  assert.equal(second.products.skipped, 1);
-  assert.equal(f.product.viewCount, 11);
+  const before = structuredClone(f.product);
+  for (let i = 0; i < 3; i++) {
+    const result = await f.run({});
+    assert.equal(result.retired, true);
+    assert.equal(result.products.skipped, true);
+    assert.deepEqual(f.product, before);
+  }
+  assert.deepEqual(f.requests, []);
 });
 test('upstream failure cannot revert bank points', async () => {
   const f = fixture({ productFailure: true });
   await f.save({ id: 'bank', points: 7 });
   f.bankAccess.length = 0;
   const result = await f.run({});
-  assert.equal(result.success, false);
+  assert.equal(result.success, true);
   assert.equal(f.bank.points, 7);
   assert.deepEqual(f.bankAccess, []);
 });

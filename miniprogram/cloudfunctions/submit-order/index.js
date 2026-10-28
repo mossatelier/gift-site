@@ -176,8 +176,8 @@ exports.main = async (event, context) => {
     .limit(MAX_ITEMS)
     .get();
 
-  if (productRes.data.length === 0) {
-    return { success: false, error: '商品已下架' };
+  if (productRes.data.length !== ids.length || productRes.data.some(p => p.deleted)) {
+    return { success: false, error: '部分商品已下架或不存在，请刷新礼品列表后重新提交' };
   }
 
   const productMap = {};

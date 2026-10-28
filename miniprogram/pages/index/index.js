@@ -41,7 +41,6 @@ Page({
   },
 
   onLoad() {
-    this.loadAll();
     this.openGuide();
   },
 
@@ -74,6 +73,7 @@ Page({
 
   onShow() {
     this.setData({ wishlistMap: wishlist.getMap() });
+    this.loadAll();
   },
 
   onPullDownRefresh() {
@@ -81,7 +81,8 @@ Page({
   },
 
   async loadAll() {
-    this.setData({ loading: true });
+    const request = this._loadRequest = (this._loadRequest || 0) + 1;
+    this.setData({ loading: true, hotList: [], newList: [] });
     try {
       const results = await Promise.all([
         listHotByOrders(10).catch(() => listHotProducts(10)),  // 下单排名；云函数失败则回退浏览量
@@ -90,6 +91,7 @@ Page({
         getCardsBankLabels().catch(() => ({})),
         getAntiPiracyNotice().catch(() => null)
       ]);
+      if (request !== this._loadRequest) return;
       const labels = results[3] || {};
       const cardsQuick = this.data.cardsQuick.map((it) => ({
         ...it,
@@ -112,6 +114,7 @@ Page({
         loading: false
       });
     } catch (err) {
+      if (request !== this._loadRequest) return;
       console.error('加载首页商品失败', err);
       this.setData({ loading: false });
       wx.showToast({ title: '加载失败', icon: 'none' });

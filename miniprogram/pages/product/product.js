@@ -23,6 +23,7 @@ Page({
   data: {
     loading: true,
     product: null,
+    loadError: '',
     categoryLabel: '',
     pointsText: '',
     currentImageIndex: 0,
@@ -61,13 +62,24 @@ Page({
       app.globalData.pendingProductSubmit = null;
       this._reopenAfterLoad = true;
     }
-    this.loadProduct(id);
     getAntiPiracyNotice().then((notice) => this.setData({ antiPiracyNotice: notice })).catch(() => {});
   },
 
+  onShow() {
+    if (this.productId) this.loadProduct(this.productId);
+  },
+
   async loadProduct(id) {
+    const request = this._loadRequest = (this._loadRequest || 0) + 1;
+    this.setData({ loading: true, loadError: '' });
     try {
       const product = await getProductById(id);
+      if (request !== this._loadRequest) return null;
+      if (!product) {
+        this._reopenAfterLoad = false;
+        this.setData({ product: null, loading: false, showSubmit: false });
+        return null;
+      }
       this.setData({
         product,
         categoryLabel: labelOfCategory(product.category),
@@ -82,9 +94,12 @@ Page({
         this._reopenAfterLoad = false;
         this.openSubmit();
       }
+      return product;
     } catch (err) {
+      if (request !== this._loadRequest) return null;
       console.error('加载商品详情失败', err);
-      this.setData({ loading: false });
+      this.setData({ product: null, loading: false, showSubmit: false, loadError: '商品加载失败，请重新进入重试' });
+      return null;
     }
   },
 
@@ -98,7 +113,7 @@ Page({
       name: 'inc-view',
       data: { id }
     }).then(res => {
-      if (res && res.result && res.result.success) {
+      if (res && res.result && res.result.success && this.data.product && this.data.product._id === id) {
         const next = (this.data.product && this.data.product.viewCount || 0) + 1;
         this.setData({ 'product.viewCount': next });
       }
@@ -125,8 +140,9 @@ Page({
     });
   },
 
-  toggleWishlist() {
-    if (!this.productId) return;
+  async toggleWishlist() {
+    if (!this.productId || this.data.loading) return;
+    if (!await this.loadProduct(this.productId)) return;
     wishlist.toggle(this.productId);
     const nowOn = wishlist.has(this.productId);
     this.setData({ wishlisted: nowOn });
@@ -157,8 +173,9 @@ Page({
 
   // ===== ③ 收藏并提交地址（既写系统又复制给客服）=====
   async openSubmit() {
-    const p = this.data.product;
-    if (!this.productId || !p) return;
+    if (!this.productId || this.data.loading) return;
+    const p = await this.loadProduct(this.productId);
+    if (!p || p.isDisplayOnly) return;
     // 收藏：确保该礼品在心愿单里
     if (!wishlist.has(this.productId)) {
       wishlist.toggle(this.productId);
@@ -197,7 +214,7 @@ Page({
   },
 
   confirmSubmit() {
-    if (this.data.submitting) return;
+    if (this.data.submitting || this.data.loading || !this.data.product) return;
     if (!consent.requireConsent()) return; // 未同意隐私政策不提交
     if (!this.data.submitAddress) {
       wx.showToast({ title: '请先填写收货地址', icon: 'none' });

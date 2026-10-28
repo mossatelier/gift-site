@@ -118,6 +118,7 @@ async function countProducts({
 // 取单个商品
 async function getProductById(id) {
   const res = await products().doc(id).get();
+  if (!res.data || res.data.isActive !== true || res.data.deleted) return null;
   return normalize(res.data);
 }
 

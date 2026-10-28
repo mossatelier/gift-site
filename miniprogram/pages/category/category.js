@@ -44,7 +44,6 @@ Page({
 
   onLoad() {
     this.updateSubList();
-    this.reload();
     this.applyCategoryOrder();
   },
 
@@ -57,6 +56,7 @@ Page({
 
   onShow() {
     this.setData({ wishlistMap: wishlist.getMap() });
+    this.reload();
   },
 
   updateSubList() {
@@ -65,6 +65,7 @@ Page({
   },
 
   async reload() {
+    const request = this._loadRequest = (this._loadRequest || 0) + 1;
     this.setData({
       loading: true,
       items: [],
@@ -81,6 +82,7 @@ Page({
         listProducts({ ...where, limit: 100, sort: 'hot' }),
         countProducts(where).catch(() => null)
       ]);
+      if (request !== this._loadRequest) return;
       const items = raw.map(it => ({
         ...it,
         _metaText: buildCategoryMetaText(it, this.data.currentCategory)
@@ -91,6 +93,7 @@ Page({
         loading: false
       });
     } catch (err) {
+      if (request !== this._loadRequest) return;
       console.error('加载分类商品失败', err);
       this.setData({ loading: false });
     }

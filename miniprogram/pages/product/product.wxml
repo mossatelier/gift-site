@@ -3,7 +3,7 @@
 </block>
 
 <block wx:elif="{{!product}}">
-  <view class="empty-state">商品不存在或已下架</view>
+  <view class="empty-state">{{loadError || '商品不存在或已下架'}}</view>
 </block>
 
 <view wx:else class="page-shell product-page">
