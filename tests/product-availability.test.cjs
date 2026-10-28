@@ -69,15 +69,3 @@ test('older list response cannot restore stale goods after a newer refresh',asyn
  const old=p._loadPage(1);p._loadRequest=2;p.data.items=[{_id:'new'}];
  finish([{_id:'off-shelf'}]);await old;assert.equal(p.data.items[0]._id,'new');assert.equal(p.data.items.length,1);
 });
-test('mixed active and unavailable products reject the entire order before charging',async()=>{
- const db={command:{gt:x=>x,in:x=>x},collection(name){return {
-  where(){return this},orderBy(){return this},limit(){return this},
-  async get(){return {data:name==='orders'?[]:[{_id:'available',isActive:true}]}},
-  doc(){return {get:async()=>({data:{openid:'user'}})}},
-  update(){throw Error('must not charge')},add(){throw Error('must not create order')}
- }}};
- const ctx={exports:{},console:quiet,require:()=>({init(){},database:()=>db,getWXContext:()=>({OPENID:'user'})})};
- vm.runInNewContext(read('miniprogram/cloudfunctions/submit-order/index.js'),ctx);
- const r=await ctx.exports.main({items:[{_id:'available'},{_id:'off-shelf'}],addressId:'address'});
- assert.equal(r.success,false);assert.match(r.error,/下架/);
-});

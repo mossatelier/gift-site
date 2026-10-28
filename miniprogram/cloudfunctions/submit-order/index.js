@@ -12,22 +12,9 @@ const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 
 const db = cloud.database();
-const _ = db.command;
 
 const MAX_ITEMS = 50;
-const RATE_WINDOW_MS = 60 * 1000;
-const RATE_MAX = 3;
-// 防重复下单：同一 openid 在该窗口内提交「完全相同的商品组合」，判定为误触/连点，
-// 直接返回已存在的订单，不新建、不再推送（幂等）。
-const DEDUP_WINDOW_MS = 30 * 1000;
-
-// 订单商品组合签名（商品ID×数量，排序后拼接）——用于判定是否同一笔
-function orderSig(snaps) {
-  return (Array.isArray(snaps) ? snaps : [])
-    .map(s => String(s.productId || s._id || '') + 'x' + (Number(s.qty) || 1))
-    .sort()
-    .join('|');
-}
+const checkout = require('./checkout')(db);
 
 // 「下单成功通知」订阅消息模板 ID（与小程序端 config.orderPlacedTmplId 同一个）
 const ORDER_PLACED_TMPL_ID = '4zU26DwALOyDtm8yRSNmO0vnriyKWW-usUtk2MjGjkg';
@@ -137,162 +124,24 @@ exports.main = async (event, context) => {
 
   const items = Array.isArray(event && event.items) ? event.items : [];
   const addressId = event && event.addressId;
-  const remark = ((event && event.remark) || '').trim().slice(0, 500);
+  const remark = String((event && event.remark) || '').trim().slice(0, 500);
 
   if (items.length === 0) return { success: false, error: '心愿单为空' };
   if (items.length > MAX_ITEMS) return { success: false, error: '商品过多' };
   if (!addressId) return { success: false, error: '缺少收货地址' };
 
-  // 1. 取最近 60s 内本人的订单（同时用于：限频 + 防重复下单）
-  const since = new Date(Date.now() - RATE_WINDOW_MS);
-  const recentRes = await db.collection('orders')
-    .where({ openid: OPENID, createdAt: _.gt(since) })
-    .orderBy('createdAt', 'desc')
-    .limit(10)
-    .get();
-  const recentOrders = (recentRes && recentRes.data) || [];
-  if (recentOrders.length >= RATE_MAX) {
-    return { success: false, error: '操作太频繁，请稍后再试' };
-  }
-
-  // 2. 取地址快照（必须是本人的）
-  let addressDoc;
+  let result;
   try {
-    const r = await db.collection('addresses').doc(addressId).get();
-    addressDoc = r.data;
+    result = await checkout({ openid: OPENID, items, addressId, remark });
   } catch (err) {
-    return { success: false, error: '地址不存在' };
+    console.error('[submit-order] checkout failed', err);
+    return { success: false, error: '暂未确认下单结果，请先查看我的订单；没有订单时再重试' };
   }
-  if (!addressDoc || addressDoc.openid !== OPENID) {
-    return { success: false, error: '地址无效' };
-  }
-
-  // 3. 取商品快照
-  const ids = Array.from(new Set(items.map(i => String(i && i._id || '')).filter(Boolean)));
-  if (ids.length === 0) return { success: false, error: '商品 ID 缺失' };
-
-  const productRes = await db.collection('products')
-    .where({ _id: _.in(ids), isActive: true })
-    .limit(MAX_ITEMS)
-    .get();
-
-  if (productRes.data.length !== ids.length || productRes.data.some(p => p.deleted)) {
-    return { success: false, error: '部分商品已下架或不存在，请刷新礼品列表后重新提交' };
-  }
-
-  const productMap = {};
-  productRes.data.forEach(p => { productMap[p._id] = p; });
-
-  const itemSnapshots = [];
-  let totalCards = 0;
-  for (const it of items) {
-    const p = productMap[it._id];
-    if (!p) continue;
-    // 仅展示条目（活动说明卡之类）不可兑换：前端已经隐藏了入口，这里是服务端兜底，
-    // 防止有人绕过界面直接提交，产生根本没法发货的订单。
-    if (p.isDisplayOnly) {
-      return { success: false, error: `「${p.title || '该条目'}」是活动说明，不能兑换` };
-    }
-    const qty = Math.max(1, Math.min(99, Number(it.qty) || 1));
-    const cards = Number(p.cardsNeeded) || 0;
-    itemSnapshots.push({
-      productId: p._id,
-      supabaseId: p.supabaseId || '',
-      title: p.title || '',
-      imageUrl: (Array.isArray(p.images) && p.images[0]) || p.imageUrl || '',
-      cardsNeeded: cards,
-      price: Number(p.price) || 0,
-      qty
-    });
-    totalCards += cards * qty;
-  }
-  if (itemSnapshots.length === 0) return { success: false, error: '商品已下架' };
-
-  // 4. 组装地址快照（剥掉 _id / openid / 系统字段）
-  const addressSnapshot = {
-    recipient: addressDoc.recipient || '',
-    phone: addressDoc.phone || '',
-    province: addressDoc.province || '',
-    city: addressDoc.city || '',
-    district: addressDoc.district || '',
-    detail: addressDoc.detail || ''
-  };
-
-  // 4.5 防重复：30s 内已有「完全相同商品组合」的订单 → 视为连点/误触，
-  //     返回原单（幂等），不新建、不再推送。
-  const sig = orderSig(itemSnapshots);
-  const dedupSince = Date.now() - DEDUP_WINDOW_MS;
-  const dup = recentOrders.find(o => {
-    const t = o && o.createdAt ? new Date(o.createdAt).getTime() : 0;
-    return t >= dedupSince && orderSig(o.items) === sig;
-  });
-  if (dup) {
-    return {
-      success: true,
-      orderId: dup._id,
-      itemCount: dup.itemCount || itemSnapshots.length,
-      totalCards: dup.totalCards || totalCards,
-      duplicated: true
-    };
-  }
-
-  const now = new Date();
-  const needPoints = totalCards > 0;
-  const order = {
-    // 显式写 _openid：云函数（管理员身份）add 不会自动塞这个字段，
-    // 不塞的话用户用 SDK 读时（自动按 _openid 过滤）会读不到
-    _openid: OPENID,
-    openid: OPENID,
-    items: itemSnapshots,
-    address: addressSnapshot,
-    remark,
-    totalCards,
-    itemCount: itemSnapshots.length,
-    status: 'pending',
-    pointsDeducted: needPoints,
-    createdAt: now,
-    updatedAt: now
-  };
-
-  // 5. 积分校验 + 扣减 + 建单：不用 db.runTransaction（云函数事务里能不能查询不确定，用不熟的
-  //    API 有卡死风险），改用这个项目里到处都在用、确定好使的写法——
-  //    「条件更新」做原子扣分（where 里带 rewardPoints >= totalCards，更新条数为 0 说明没扣成，绝不会扣超），
-  //    扣成功之后再建单；万一建单失败就把刚扣的分退回去，避免「扣了分却没有单」。
-  if (needPoints) {
-    const dec = await db.collection('users')
-      .where({ openid: OPENID, rewardPoints: _.gte(totalCards) })
-      .update({ data: { rewardPoints: _.inc(-totalCards), updatedAt: now } });
-    if (!dec || !dec.stats || dec.stats.updated === 0) {
-      const ur = await db.collection('users').where({ openid: OPENID }).limit(1).get();
-      const balance = (ur.data[0] && Number(ur.data[0].rewardPoints)) || 0;
-      return { success: false, error: `积分不足，还差 ${totalCards - balance} 分才能兑换该礼品`, insufficientPoints: true };
-    }
-  }
-
-  let add;
-  try {
-    add = await db.collection('orders').add({ data: order });
-  } catch (err) {
-    if (needPoints) {
-      // 建单失败，把刚扣的分退回去，别让用户莫名其妙少了分却没订单
-      await db.collection('users').where({ openid: OPENID })
-        .update({ data: { rewardPoints: _.inc(totalCards), updatedAt: new Date() } })
-        .catch(e2 => console.error('[points] refund after order-create failure also failed', OPENID, e2));
-    }
-    throw err;
-  }
-  if (needPoints) {
-    // 流水记录失败不影响订单（余额已经扣对了，只是这笔明细以后查不到），记日志方便排查
-    await db.collection('points_ledger').add({
-      data: { openid: OPENID, delta: -totalCards, reason: '礼品兑换', refId: add._id, createdAt: now }
-    }).catch(e => console.error('[points] ledger write failed', add._id, e));
-  }
-
-  // 下单成功 → 立即推一条「下单成功通知」（用户在下单时已授权；失败不阻断）
-  await sendOrderPlacedNotify(OPENID, add._id, order);
-  // 按手机号对账推荐关系（把手动录入的记录关联到本人 openid + 补上线 + 去重；失败不阻断）
-  await reconcileReferralByPhone(OPENID, addressSnapshot.phone);
-  // 下单后把自己那条推荐记录「待审核→办卡中」（不发奖励；失败不阻断）
+  if (!result.success || result.duplicated) return result;
+  const { order, orderId, ...response } = result;
+  // 通知和推荐对账只在真正创建新订单后执行，不放进可重试的事务回调。
+  await sendOrderPlacedNotify(OPENID, orderId, order);
+  await reconcileReferralByPhone(OPENID, order.address.phone);
   await advanceRefereeStatusOnOrder(OPENID);
-  return { success: true, orderId: add._id, itemCount: itemSnapshots.length, totalCards };
+  return { ...response, orderId };
 };
